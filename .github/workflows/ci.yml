@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
   CACHE_VERSION: v1
 
 jobs:
@@ -72,6 +72,8 @@ jobs:
       
     - name: Validate Prisma schema
       run: npx prisma validate
+      env:
+        DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
       
     - name: Generate Prisma client
       run: npx prisma generate

@@ -31,7 +31,7 @@ on:
         - production
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
 
 jobs:
   validate-schema:
@@ -54,6 +54,8 @@ jobs:
       
     - name: Validate Prisma schema
       run: npx prisma validate
+      env:
+        DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
       
     - name: Check migration conflicts
       run: |
