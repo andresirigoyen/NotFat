@@ -1,0 +1,256 @@
+name: Database Operations
+
+on:
+  push:
+    paths:
+      - 'prisma/**'
+    branches: [ main, develop ]
+  pull_request:
+    paths:
+      - 'prisma/**'
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: 'Database operation'
+        required: true
+        default: 'validate'
+        type: choice
+        options:
+        - validate
+        - migrate
+        - seed
+        - reset
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  validate-schema:
+    name: Validate Database Schema
+    runs-on: ubuntu-latest
+    if: github.event.inputs.operation == 'validate' || github.event.inputs.operation == ''
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Validate Prisma schema
+      run: npx prisma validate
+      
+    - name: Check migration conflicts
+      run: |
+        if [ -d "supabase/migrations" ]; then
+          echo "Checking for migration conflicts..."
+          npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma
+        fi
+
+  migrate-staging:
+    name: Migrate Staging Database
+    runs-on: ubuntu-latest
+    environment: staging
+    if: github.event.inputs.operation == 'migrate' && github.event.inputs.environment == 'staging'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Generate Prisma client
+      run: npx prisma generate
+      
+    - name: Apply migrations to staging
+      run: npx prisma db push --force-reset
+      env:
+        DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+
+  seed-staging:
+    name: Seed Staging Database
+    runs-on: ubuntu-latest
+    environment: staging
+    needs: migrate-staging
+    if: github.event.inputs.operation == 'seed' && github.event.inputs.environment == 'staging'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Generate Prisma client
+      run: npx prisma generate
+      
+    - name: Seed staging database
+      run: npx prisma db seed
+      env:
+        DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        NODE_ENV: staging
+
+  backup-production:
+    name: Backup Production Database
+    runs-on: ubuntu-latest
+    environment: production
+    if: github.event.inputs.operation == 'backup' && github.event.inputs.environment == 'production'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Create database backup
+      run: |
+        TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+        BACKUP_FILE="notfat_backup_${TIMESTAMP}.sql"
+        
+        pg_dump ${{ secrets.PRODUCTION_DATABASE_URL }} > $BACKUP_FILE
+        
+        # Upload to S3
+        aws s3 cp $BACKUP_FILE s3://notfat-backups/production/
+        
+        # Clean up local file
+        rm $BACKUP_FILE
+        
+        echo "Backup completed: $BACKUP_FILE"
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: us-east-1
+
+  health-check:
+    name: Database Health Check
+    runs-on: ubuntu-latest
+    if: github.event.inputs.operation == 'health'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Check database connectivity
+      run: |
+        # Test staging database
+        echo "Testing staging database..."
+        npx prisma db execute --stdin <<< "SELECT 1 as health_check;" \
+          --url ${{ secrets.STAGING_DATABASE_URL }}
+          
+        # Test production database (if available)
+        if [ -n "${{ secrets.PRODUCTION_DATABASE_URL }}" ]; then
+          echo "Testing production database..."
+          npx prisma db execute --stdin <<< "SELECT 1 as health_check;" \
+            --url ${{ secrets.PRODUCTION_DATABASE_URL }}
+        fi
+        
+    - name: Check table counts
+      run: |
+        echo "Checking critical table counts..."
+        
+        # Check profiles table
+        PROFILE_COUNT=$(npx prisma db execute --stdin \
+          --url ${{ secrets.STAGING_DATABASE_URL }} \
+          --format json <<< "SELECT COUNT(*) as count FROM profiles;" | jq '.[0].count')
+        echo "Profiles: $PROFILE_COUNT"
+        
+        # Check meals table
+        MEAL_COUNT=$(npx prisma db execute --stdin \
+          --url ${{ secrets.STAGING_DATABASE_URL }} \
+          --format json <<< "SELECT COUNT(*) as count FROM meals;" | jq '.[0].count')
+        echo "Meals: $MEAL_COUNT"
+        
+        # Check payments table
+        PAYMENT_COUNT=$(npx prisma db execute --stdin \
+          --url ${{ secrets.STAGING_DATABASE_URL }} \
+          --format json <<< "SELECT COUNT(*) as count FROM payments;" | jq '.[0].count')
+        echo "Payments: $PAYMENT_COUNT"
+
+  performance-test:
+    name: Database Performance Test
+    runs-on: ubuntu-latest
+    if: github.event.inputs.operation == 'performance'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run performance tests
+      run: |
+        echo "Running database performance tests..."
+        
+        # Test query performance
+        npx prisma db execute --stdin \
+          --url ${{ secrets.STAGING_DATABASE_URL }} <<< "
+          EXPLAIN ANALYZE 
+          SELECT p.id, p.email, COUNT(m.id) as meal_count
+          FROM profiles p
+          LEFT JOIN meals m ON p.id = m.user_id
+          WHERE p.created_at > NOW() - INTERVAL '30 days'
+          GROUP BY p.id, p.email
+          ORDER BY meal_count DESC
+          LIMIT 10;
+          "
+        
+        # Test index usage
+        npx prisma db execute --stdin \
+          --url ${{ secrets.STAGING_DATABASE_URL }} <<< "
+          SELECT schemaname, tablename, attname, n_distinct, correlation
+          FROM pg_stats
+          WHERE schemaname = 'public'
+          ORDER BY n_distinct DESC
+          LIMIT 20;
+          "

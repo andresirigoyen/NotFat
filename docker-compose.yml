@@ -1,0 +1,187 @@
+version: '3.8'
+
+services:
+  # Main application
+  app:
+    build:
+      context: .
+      target: development
+    ports:
+      - "3000:3000"
+      - "19006:19006"  # Expo Metro bundler
+      - "19002:19002"  # Expo dev server
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://notfat:notfat_password@database:5432/notfat_db
+      - REDIS_URL=redis://redis:6379
+      - EXPO_PUBLIC_SUPABASE_URL=http://localhost:54321
+      - EXPO_PUBLIC_SUPABASE_ANON_KEY=your-local-anon-key
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.expo
+    depends_on:
+      - database
+      - redis
+      - supabase
+    networks:
+      - notfat-network
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  database:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: notfat_db
+      POSTGRES_USER: notfat
+      POSTGRES_PASSWORD: notfat_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - notfat-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notfat -d notfat_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - notfat-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass redis_password
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Supabase Local Development
+  supabase:
+    image: supabase/cli:latest
+    ports:
+      - "54321:54321"
+      - "54322:54322"
+      - "54323:54323"
+      - "54324:54324"
+      - "54325:54325"
+      - "54326:54326"
+      - "54327:54327"
+      - "54328:54328"
+      - "54329:54329"
+      - "54330:54330"
+    environment:
+      SUPABASE_DB_PASSWORD: notfat_password
+      SUPABASE_SERVICE_ROLE_KEY: your-service-role-key
+      SUPABASE_ANON_KEY: your-anon-key
+    volumes:
+      - ./supabase:/supabase
+      - supabase_db:/var/lib/postgresql
+    networks:
+      - notfat-network
+    command: start --db.password notfat_password
+    restart: unless-stopped
+
+  # Nginx for reverse proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/ssl:/etc/nginx/ssl
+    depends_on:
+      - app
+    networks:
+      - notfat-network
+    restart: unless-stopped
+
+  # MinIO for S3-compatible storage
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: notfat
+      MINIO_ROOT_PASSWORD: notfat_password
+      MINIO_DEFAULT_BUCKETS: notfat-uploads,notfat-backups
+    volumes:
+      - minio_data:/data
+    networks:
+      - notfat-network
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Prometheus for monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - notfat-network
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - notfat-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  supabase_db:
+    driver: local
+  minio_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  notfat-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

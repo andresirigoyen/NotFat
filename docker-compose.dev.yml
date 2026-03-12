@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # Development environment with hot reload
+  app-dev:
+    build:
+      context: .
+      target: development
+    ports:
+      - "3000:3000"
+      - "19006:19006"
+      - "19002:19002"
+    environment:
+      - NODE_ENV=development
+      - DEBUG=notfat:*
+      - DATABASE_URL=postgresql://notfat:notfat_password@database:5432/notfat_db
+      - REDIS_URL=redis://redis:6379
+      - EXPO_PUBLIC_SUPABASE_URL=http://localhost:54321
+      - EXPO_PUBLIC_SUPABASE_ANON_KEY=your-local-anon-key
+      - SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
+      - MIXPANEL_TOKEN=your-mixpanel-token
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.expo
+      - /app/.expo-shared
+    depends_on:
+      - database
+      - redis
+    networks:
+      - notfat-network
+    command: npm start
+    restart: unless-stopped
+
+  # Database with development optimizations
+  database:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: notfat_db
+      POSTGRES_USER: notfat
+      POSTGRES_PASSWORD: notfat_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./docker/postgres-dev.conf:/etc/postgresql/postgresql.conf
+    networks:
+      - notfat-network
+    restart: unless-stopped
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+
+  # Redis with persistence
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+      - ./docker/redis-dev.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - notfat-network
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  # MailHog for email testing in development
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - notfat-network
+    restart: unless-stopped
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+
+networks:
+  notfat-network:
+    driver: bridge
