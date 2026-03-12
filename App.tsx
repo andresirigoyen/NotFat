@@ -93,7 +93,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
 export default function App() {
   // Cargar fuentes
-  let [fontsLoaded] = useFonts({
+  const [fontsLoaded] = useFonts({
     Montserrat_300Light,
     Montserrat_400Regular,
     Montserrat_500Medium,
@@ -107,12 +107,25 @@ export default function App() {
   const isNative = Platform.OS !== 'web';
   const { registerForPushNotificationsAsync, scheduleHydrationReminder } = isNative ? useNotifications() : { registerForPushNotificationsAsync: async () => {}, scheduleHydrationReminder: async () => {} };
 
+  // Initialize authentication
+  const initializeAuth = () => {
+    try {
+      const { useAuthStore } = require('@/store');
+      useAuthStore.getState().initializeAuth();
+    } catch (error) {
+      console.log('Auth initialization failed:', error);
+    }
+  };
+
   React.useEffect(() => {
     if (isNative) {
       registerForPushNotificationsAsync();
       // Schedule a reminder every 2 hours as default
       scheduleHydrationReminder('2hours');
     }
+    
+    // Initialize auth on app start
+    initializeAuth();
   }, []);
 
   if (!fontsLoaded) {

@@ -74,13 +74,15 @@ export default function DashboardScreen() {
   }
 
   // Calculate calories per meal type
-  const mealKcalMap = (meals || []).reduce((acc: any, meal: any) => {
-    const kcal = meal.food_items?.reduce((sum: number, item: any) => sum + (item.calories || 0), 0) || 0;
-    const type = meal.meal_type; // 'breakfast', 'lunch' etc
-    if (!acc[type]) acc[type] = 0;
-    acc[type] += kcal;
-    return acc;
-  }, {});
+  const mealKcalMap = React.useMemo(() => {
+    return (meals || []).reduce((acc: any, meal: any) => {
+      const kcal = meal.food_items?.reduce((sum: number, item: any) => sum + (item.calories || 0), 0) || 0;
+      const type = meal.meal_type; // 'breakfast', 'lunch' etc
+      if (!acc[type]) acc[type] = 0;
+      acc[type] += kcal;
+      return acc;
+    }, {});
+  }, [meals]);
 
   const MEAL_TYPE_MAP: any = {
     'Desayuno': 'breakfast',

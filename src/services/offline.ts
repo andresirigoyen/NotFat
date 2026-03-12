@@ -123,28 +123,31 @@ export class OfflineService {
   // Execute individual operation
   private async executeOperation(operation: any) {
     switch (operation.type) {
-      case 'create':
+      case 'create': {
         const { data, error: createError } = await supabase
           .from(operation.table)
           .insert(operation.data);
         if (createError) throw createError;
         break;
+      }
 
-      case 'update':
+      case 'update': {
         const { data: updateData, error: updateError } = await supabase
           .from(operation.table)
           .update(operation.data)
           .eq('id', operation.data.id);
         if (updateError) throw updateError;
         break;
+      }
 
-      case 'delete':
+      case 'delete': {
         const { error: deleteError } = await supabase
           .from(operation.table)
           .delete()
           .eq('id', operation.data.id);
         if (deleteError) throw deleteError;
         break;
+      }
 
       default:
         throw new Error(`Unknown operation type: ${operation.type}`);
@@ -286,21 +289,15 @@ export class OfflineQueryClient {
     }
 
     if (this.offlineService.getNetworkStatus()) {
-      try {
-        const result = await mutationFn();
-        
-        // Invalidate cache
-        await this.offlineService.saveOfflineData(cacheKey, {
-          data: result,
-          timestamp: Date.now()
-        });
-        
-        return result;
-      } catch (error) {
-        // Revert optimistic update
-        // This would need more sophisticated logic to revert
-        throw error;
-      }
+      const result = await mutationFn();
+      
+      // Invalidate cache
+      await this.offlineService.saveOfflineData(cacheKey, {
+        data: result,
+        timestamp: Date.now()
+      });
+      
+      return result;
     } else {
       // Queue mutation for later sync
       await this.offlineService.queueOperation({

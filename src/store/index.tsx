@@ -2,28 +2,21 @@ import React from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useOnboardingStore } from './onboarding';
-
-interface User {
-  id: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_url: string | null;
-  role: 'user' | 'creator' | 'admin' | 'superadmin';
-  onboarding_completed: boolean | null;
-  subscription_status: string | null;
-}
+import { supabase } from '@/services/SupabaseContext';
+import { Session, User } from '@supabase/supabase-js';
 
 interface AuthState {
   user: User | null;
-  session: any | null;
+  session: Session | null;
   loading: boolean;
   setUser: (user: User | null) => void;
-  setSession: (session: any | null) => void;
+  setSession: (session: Session | null) => void;
   setLoading: (loading: boolean) => void;
-  signOut: () => void;
-  signIn: (email: string, pass: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
+  resetPassword: (email: string) => Promise<{ error: any }>;
+  initializeAuth: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -31,120 +24,143 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       session: null,
-      loading: false,
+      loading: true,
       setUser: (user) => set({ user }),
       setSession: (session) => set({ session }),
       setLoading: (loading) => set({ loading }),
-      signOut: () => set({ user: null, session: null }),
-      signIn: async (email, pass) => {
-        // Mock simple de signIn para evitar errores TS, se debe ajustar
-        set({ loading: true });
-        setTimeout(() => {
-          set({ user: { id: 'test-123', email, first_name: 'Test', last_name: 'User', avatar_url: null, role: 'user', onboarding_completed: false, subscription_status: null }, loading: false });
-        }, 1000);
+      
+      signOut: async () => {
+        try {
+          const { error } = await supabase.auth.signOut();
+          if (error) throw error;
+          
+          set({ user: null, session: null });
+        } catch (error) {
+          console.error('Error signing out:', error);
+          throw error;
+        }
+      },
+      
+      signIn: async (email, password) => {
+        try {
+          set({ loading: true });
+          
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          
+          if (error) throw error;
+          
+          set({ 
+            user: data.user, 
+            session: data.session,
+            loading: false 
+          });
+          
+          return { error: null };
+        } catch (error) {
+          set({ loading: false });
+          return { error };
+        }
+      },
+      
+      signUp: async (email, password, fullName) => {
+        try {
+          set({ loading: true });
+          
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                full_name: fullName,
+              },
+            },
+          });
+          
+          if (error) throw error;
+          
+          set({ 
+            user: data.user, 
+            session: data.session,
+            loading: false 
+          });
+          
+          return { error: null };
+        } catch (error) {
+          set({ loading: false });
+          return { error };
+        }
+      },
+      
+      resetPassword: async (email) => {
+        try {
+          const { error } = await supabase.auth.resetPasswordForEmail(email);
+          return { error };
+        } catch (error) {
+          return { error };
+        }
+      },
+      
+      initializeAuth: async () => {
+        try {
+          set({ loading: true });
+          
+          // Get initial session
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (error) throw error;
+          
+          set({ 
+            user: session?.user || null, 
+            session: session || null,
+            loading: false 
+          });
+          
+          // We don't return the unsubscribe function because this is an async function
+          // and the interface expects Promise<void>.
+          // Listen for auth changes
+          supabase.auth.onAuthStateChange(
+            (_event, session) => {
+              set({ 
+                user: session?.user || null, 
+                session: session || null,
+                loading: false 
+              });
+            }
+          );
+        } catch (error) {
+          console.error('Error initializing auth:', error);
+          set({ loading: false });
+          return;
+        }
       },
     }),
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({ user: state.user, session: state.session }),
+      partialize: (state) => ({ 
+        user: state.user ? {
+          id: state.user.id,
+          email: state.user.email,
+          user_metadata: state.user.user_metadata,
+        } : null,
+        session: state.session ? {
+          access_token: state.session.access_token,
+          refresh_token: state.session.refresh_token,
+          expires_at: state.session.expires_at,
+        } : null,
+      }),
     }
   )
 );
 
-interface NutritionState {
-  dailyGoals: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    water: number;
-  };
-  currentIntake: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    water: number;
-  };
-  setDailyGoals: (goals: Partial<NutritionState['dailyGoals']>) => void;
-  updateIntake: (intake: Partial<NutritionState['currentIntake']>) => void;
-  resetDailyIntake: () => void;
+// Provider component
+interface StoreProviderProps {
+  children: React.ReactNode;
 }
 
-export const useNutritionStore = create<NutritionState>()(
-  persist(
-    (set, get) => ({
-      dailyGoals: {
-        calories: 2000,
-        protein: 100,
-        carbs: 250,
-        fat: 65,
-        water: 2000,
-      },
-      currentIntake: {
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fat: 0,
-        water: 0,
-      },
-      setDailyGoals: (goals) => 
-        set((state) => ({ 
-          dailyGoals: { ...state.dailyGoals, ...goals } 
-        })),
-      updateIntake: (intake) => 
-        set((state) => ({ 
-          currentIntake: { ...state.currentIntake, ...intake } 
-        })),
-      resetDailyIntake: () => 
-        set({ 
-          currentIntake: { 
-            calories: 0, 
-            protein: 0, 
-            carbs: 0, 
-            fat: 0, 
-            water: 0 
-          } 
-        }),
-    }),
-    {
-      name: 'nutrition-storage',
-      storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
-);
-
-interface UIState {
-  theme: 'light' | 'dark' | 'system';
-  showCalories: boolean;
-  showHydration: boolean;
-  notifications: boolean;
-  setTheme: (theme: 'light' | 'dark' | 'system') => void;
-  setShowCalories: (show: boolean) => void;
-  setShowHydration: (show: boolean) => void;
-  setNotifications: (enabled: boolean) => void;
-}
-
-export const useUIStore = create<UIState>()(
-  persist(
-    (set) => ({
-      theme: 'system',
-      showCalories: true,
-      showHydration: true,
-      notifications: true,
-      setTheme: (theme) => set({ theme }),
-      setShowCalories: (show) => set({ showCalories: show }),
-      setShowHydration: (show) => set({ showHydration: show }),
-      setNotifications: (enabled) => set({ notifications: enabled }),
-    }),
-    {
-      name: 'ui-storage',
-      storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
-);
-
-export const StoreProvider = ({ children }: { children: React.ReactNode }) => {
+export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
   return <>{children}</>;
 };

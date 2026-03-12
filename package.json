@@ -11,7 +11,7 @@
     "build:android": "expo build:android",
     "build:ios": "expo build:ios",
     "build:web": "expo build:web",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",

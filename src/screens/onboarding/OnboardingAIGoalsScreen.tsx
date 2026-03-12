@@ -207,19 +207,19 @@ export default function OnboardingAIGoalsScreen() {
                 <View style={styles.goalItem}>
                   <Ionicons name="water" size={24} color={COLORS.status.success} />
                   <Text style={styles.goalValue}>{aiGoals.water_ml}ml</Text>
-                  <Text style={styles.goalLabel">Agua</Text>
+                  <Text style={styles.goalLabel}>Agua</Text>
                 </View>
 
                 <View style={styles.goalItem}>
                   <Ionicons name="footsteps" size={24} color={COLORS.status.info} />
-                  <Text style={styles.goalValue">{aiGoals.steps_daily.toLocaleString()}</Text>
-                  <Text style={styles.goalLabel">Pasos/día</Text>
+                  <Text style={styles.goalValue}>{aiGoals.steps_daily.toLocaleString()}</Text>
+                  <Text style={styles.goalLabel}>Pasos/día</Text>
                 </View>
 
                 <View style={styles.goalItem}>
                   <Ionicons name="bicycle" size={24} color={COLORS.text.secondary} />
-                  <Text style={styles.goalValue">{aiGoals.workout_frequency}</Text>
-                  <Text style={styles.goalLabel">Ejercicio</Text>
+                  <Text style={styles.goalValue}>{aiGoals.workout_frequency}</Text>
+                  <Text style={styles.goalLabel}>Ejercicio</Text>
                 </View>
               </View>
             </View>
@@ -252,7 +252,7 @@ export default function OnboardingAIGoalsScreen() {
                   ) : (
                     <>
                       <Ionicons name="sparkles" size={20} color={COLORS.text.primary} />
-                      <Text style={styles.generateButtonText">Generar con IA</Text>
+                      <Text style={styles.generateButtonText}>Generar con IA</Text>
                     </>
                   )}
                 </LinearGradient>
@@ -269,7 +269,7 @@ export default function OnboardingAIGoalsScreen() {
                   end={{ x: 1, y: 0 }}
                 >
                   <Ionicons name="checkmark-circle" size={20} color={COLORS.text.primary} />
-                  <Text style={styles.saveButtonText">Usar estas metas</Text>
+                  <Text style={styles.saveButtonText}>Usar estas metas</Text>
                 </LinearGradient>
               </TouchableOpacity>
             )}
@@ -279,14 +279,14 @@ export default function OnboardingAIGoalsScreen() {
               onPress={handleManualSetup}
             >
               <Ionicons name="create" size={20} color={COLORS.text.secondary} />
-              <Text style={styles.manualButtonText">Configurar manualmente</Text>
+              <Text style={styles.manualButtonText}>Configurar manualmente</Text>
             </TouchableOpacity>
           </View>
 
           {/* Privacy Note */}
           <View style={styles.privacyNote}>
             <Ionicons name="shield-checkmark" size={16} color={COLORS.text.muted} />
-            <Text style={styles.privacyText">
+            <Text style={styles.privacyText}>
               Tus metas se guardan de forma privada y puedes cambiarlas cuando quieras
             </Text>
           </View>

@@ -117,3 +117,5 @@ export const useMealsByDate = (userId: string, date?: Date) => {
     enabled: !!userId,
   });
 };
+
+export const useTodayMeals = (userId: string) => useMealsByDate(userId, new Date());
