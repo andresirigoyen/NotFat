@@ -53,7 +53,7 @@ export class GDPRService {
   }
 
   // Check if user has given consent for specific purpose
-  async hasConsent(purpose: keyof Omit<typeof consent, 'version' | 'timestamp'>) {
+  async hasConsent(purpose: keyof Omit<GDPRConsent, 'version' | 'timestamp'>) {
     const consent = await this.getConsent();
     return consent?.[purpose] || false;
   }

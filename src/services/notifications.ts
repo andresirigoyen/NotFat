@@ -26,6 +26,8 @@ export class NotificationService {
           shouldShowAlert: true,
           shouldPlaySound: true,
           shouldSetBadge: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
         }),
       });
 
@@ -61,7 +63,6 @@ export class NotificationService {
             allowAlert: true,
             allowBadge: true,
             allowSound: true,
-            allowAnnouncements: true,
           },
         });
         return status === 'granted';
@@ -130,12 +131,13 @@ export class NotificationService {
       });
 
       // Handle deep linking from notification
-      if (data && data.deepLink) {
-        await deepLinkingService.handleUrl(data.deepLink);
+      if (data && (data as any).deepLink) {
+        await deepLinkingService.handleUrl((data as any).deepLink);
       }
-
+      
       // Call custom handler if registered
-      const handler = this.notificationHandlers.get(data.type || 'default');
+      const type = (data as any).type || 'default';
+      const handler = this.notificationHandlers.get(type);
       if (handler) {
         handler(notification);
       }
@@ -221,7 +223,7 @@ export class NotificationService {
           hour: time.getHours(),
           minute: time.getMinutes(),
           repeats: true,
-        },
+        } as Notifications.NotificationTriggerInput,
         channelId: 'meal_reminders'
       });
     } catch (error) {
@@ -245,7 +247,7 @@ export class NotificationService {
           hour: time.getHours(),
           minute: time.getMinutes(),
           repeats: true,
-        },
+        } as Notifications.NotificationTriggerInput,
         channelId: 'water_reminders'
       });
     } catch (error) {

@@ -225,7 +225,7 @@ export const useHydration = () => {
   };
 
   const getWeeklyProgress = () => {
-    if (!hydrationGoal) return { consumed: 0, goal: 0, percentage: 0, daily: [] };
+    if (!hydrationGoal) return { consumed: 0, total: 0, average: 0, days: 0, goal: 0, percentage: 0, daily: [] };
 
     const today = new Date();
     const weekStart = new Date(today);
@@ -258,8 +258,13 @@ export const useHydration = () => {
       };
     });
 
+    const activeDays = daily.filter(d => d.consumed > 0).length;
+
     return {
       consumed,
+      total: consumed,
+      average: activeDays > 0 ? Math.round(consumed / activeDays) : 0,
+      days: activeDays,
       goal,
       percentage: Math.min(percentage, 100),
       unit: hydrationGoal.unit,

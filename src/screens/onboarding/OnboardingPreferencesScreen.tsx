@@ -40,7 +40,7 @@ export default function OnboardingPreferencesScreen() {
     setIsLoading(true);
     try {
       // Sincronizado con Prisma: profiles
-      await updateProfile({
+      await updateProfile.mutateAsync({
         preferred_bottle_size: preferredBottleSize, // Int @default(1000)
         preferred_bottle_unit: preferredBottleUnit, // water_unit_enum
         show_calories: showCalories, // Boolean @default(true)

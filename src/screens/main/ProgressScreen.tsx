@@ -103,12 +103,11 @@ const ProgressScreen = () => {
             <View style={styles.dotRow}>
               {[0, 1, 2, 3, 4, 5, 6].map((dayIdx) => (
                 <View 
-                   key={dayIdx} 
-                   style={[styles.summaryDot, weeklyStats?.data[dayIdx] > 0 && styles.dotActive]} 
+                   key={dayIdx}                    style={[styles.summaryDot, weeklyStats?.data && weeklyStats.data[dayIdx] > 0 && styles.dotActive]} 
                 />
               ))}
             </View>
-            <Text style={styles.cardSubtitle}>{Math.round((weeklyStats?.daysActive / 7) * 100)}% completado</Text>
+            <Text style={styles.cardSubtitle}>{Math.round(((weeklyStats?.daysActive || 0) / 7) * 100)}% completado</Text>
           </View>
         </View>
 

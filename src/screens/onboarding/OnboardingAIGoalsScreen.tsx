@@ -71,7 +71,7 @@ export default function OnboardingAIGoalsScreen() {
 
     try {
       // Sincronizado con Prisma: profiles
-      await updateProfile({
+      await updateProfile.mutateAsync({
         onboarding_step: 'completed',
         onboarding_completed: true,
       });

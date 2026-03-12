@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { offlineQueryClient, offlineService } from '@/services/offline';
 import { analytics } from '@/services/analytics';
 import { reportError } from '@/services/sentry';
+import { supabase } from '@/services/supabase';
 
 export const useOfflineData = <T>(
   key: string,
@@ -151,7 +152,7 @@ export const useOfflineMutation = <T, Variables>(
       // Track successful mutation
       analytics.trackCustomEvent('Offline Mutation Success', {
         key,
-        variables_count: Object.keys(variables).length
+        variables_count: Object.keys(variables as any).length
       });
 
       return result;

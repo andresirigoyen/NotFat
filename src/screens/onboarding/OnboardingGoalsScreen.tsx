@@ -106,7 +106,7 @@ export default function OnboardingGoalsScreen() {
     setIsLoading(true);
     try {
       // Sincronizado con Prisma: profiles.nutrition_goal, profiles.achievement_goal, profiles.diet_type
-      await updateProfile({
+      await updateProfile.mutateAsync({
         nutrition_goal: selectedNutritionGoal, // String @db.VarChar(255)
         achievement_goal: selectedNutritionGoal, // String @db.VarChar(255)
         diet_type: selectedDietType, // String @default("Balanced")
@@ -510,6 +510,45 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
     color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
+  },
+  actionSection: {
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.xl,
+    gap: SPACING.md,
+  },
+  aiButton: {
+    borderRadius: BORDER_RADIUS.lg,
+    overflow: 'hidden',
+    ...SHADOWS.md,
+  },
+  aiButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.md,
+    gap: SPACING.sm,
+  },
+  aiButtonText: {
+    fontSize: FONTS.sizes.base,
+    fontWeight: FONTS.weights.semibold,
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
+  },
+  manualButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.background.border,
+    backgroundColor: COLORS.background.card,
+    gap: SPACING.sm,
+  },
+  manualButtonText: {
+    fontSize: FONTS.sizes.base,
+    color: COLORS.text.secondary,
     fontFamily: FONTS.primary,
   },
 });

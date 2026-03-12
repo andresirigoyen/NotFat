@@ -85,7 +85,7 @@ export default function OnboardingActivityScreen() {
     setIsLoading(true);
     try {
       // Sincronizado con Prisma: profiles
-      await updateProfile({
+      await updateProfile.mutateAsync({
         workout_frequency: selectedWorkout, // String?
         steps_goal: selectedStepsGoal, // Int @default(10000)
         onboarding_step: 'preferences',

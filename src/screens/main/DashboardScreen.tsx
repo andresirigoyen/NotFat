@@ -11,12 +11,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import HydrationModal from '@/components/HydrationModal';
+import HealthScoreCard from '@/components/HealthScoreCard';
 import { useDailyTotals } from '@/hooks/useDailyTotals';
 import { useProfile } from '@/hooks/useProfile';
 import { useWaterLogs, useAddWater } from '@/hooks/useWaterLogs';
 import { useBodyMetrics, useAddBodyMetric } from '@/hooks/useBodyMetrics';
 import { useMealsByDate } from '@/hooks/useMeals';
 import { useAuthStore } from '@/store';
+import { useQueryClient } from '@tanstack/react-query';
 
 const DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const TODAY_INDEX = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
@@ -32,6 +34,7 @@ const WATER_CUPS = 8;
 
 export default function DashboardScreen() {
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date());
   
   const { data: totals, isLoading: totalsLoading } = useDailyTotals(selectedDate);
@@ -176,6 +179,16 @@ export default function DashboardScreen() {
             ))}
           </View>
         </View>
+
+        {/* ── Health Score Card ───────────────────── */}
+        <HealthScoreCard 
+          date={selectedDate.toISOString().split('T')[0]}
+          onRefresh={() => {
+            // Refresh daily totals and health score
+            queryClient.invalidateQueries({ queryKey: ['daily_totals'] });
+            queryClient.invalidateQueries({ queryKey: ['health_score'] });
+          }}
+        />
 
         {/* ── SECTION: NUTRITION ───────────────────── */}
         <SectionHeader title="Nutrición" action="Más" actionColor={COLORS.primary.sky} />

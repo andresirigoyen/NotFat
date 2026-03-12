@@ -7,7 +7,7 @@ import { useOnboardingStore } from '@/store/onboarding';
 
 const GoalsScreen = ({ navigation }: any) => {
   const [selectedGoal, setSelectedGoal] = React.useState<string | null>(null);
-  const { setGoal, completeOnboarding } = useOnboardingStore();
+  const { updateUserData, setIsOnboardingComplete } = useOnboardingStore();
 
   const goals = [
     {
@@ -38,8 +38,8 @@ const GoalsScreen = ({ navigation }: any) => {
 
   const handleComplete = () => {
     if (selectedGoal) {
-      setGoal(selectedGoal);
-      completeOnboarding();
+      updateUserData({ goals: [selectedGoal] });
+      setIsOnboardingComplete(true);
       // Navigate to main app (Dashboard)
       navigation.reset({
         index: 0,

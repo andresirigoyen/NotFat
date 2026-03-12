@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
+import { supabase } from '@/services/supabase';
 
 // Tipos sincronizados con Prisma
 export interface OnboardingData {
@@ -149,7 +150,7 @@ export const useOnboarding = () => {
     setIsLoading(true);
     try {
       // Sincronizado con Prisma: profiles.onboarding_step
-      await updateProfile({
+      await updateProfile.mutateAsync({
         onboarding_step: step,
       });
       
@@ -169,8 +170,8 @@ export const useOnboarding = () => {
     setIsLoading(true);
     try {
       // Sincronizado con Prisma: profiles.gender (gender_enum)
-      await updateProfile({
-        gender,
+      await updateProfile.mutateAsync({
+        gender: gender as any,
         onboarding_step: 'birth_date',
       });
 
@@ -200,7 +201,7 @@ export const useOnboarding = () => {
     setIsLoading(true);
     try {
       // Sincronizado con Prisma: profiles.birth_date (DateTime)
-      await updateProfile({
+      await updateProfile.mutateAsync({
         birth_date: birthDate.toISOString(),
         onboarding_step: 'goals',
       });
@@ -226,7 +227,7 @@ export const useOnboarding = () => {
     setIsLoading(true);
     try {
       // Sincronizado con Prisma: múltiples campos
-      await updateProfile({
+      await updateProfile.mutateAsync({
         nutrition_goal: data.nutrition_goal, // String @db.VarChar(255)
         achievement_goal: data.achievement_goal, // String @db.VarChar(255)
         diet_type: data.diet_type, // String @default("Balanced")
@@ -256,7 +257,7 @@ export const useOnboarding = () => {
     setIsLoading(true);
     try {
       // Sincronizado con Prisma: onboarding_completed
-      await updateProfile({
+      await updateProfile.mutateAsync({
         onboarding_step: 'completed',
         onboarding_completed: true,
       });
@@ -298,7 +299,7 @@ export const useOnboarding = () => {
       if (error) throw error;
 
       // Actualizar perfil con metas generadas
-      await updateProfile({
+      await updateProfile.mutateAsync({
         onboarding_step: 'completed',
         onboarding_completed: true,
       });
@@ -336,6 +337,26 @@ export const useOnboarding = () => {
   const getPreviousStep = (): OnboardingStep | null => {
     const currentIndex = onboardingSteps.findIndex(step => step.step === currentStep);
     return onboardingSteps[currentIndex - 1] || null;
+  };
+
+  // Reiniciar onboarding
+  const resetOnboarding = async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      await updateProfile.mutateAsync({
+        gender: undefined,
+        birth_date: undefined,
+        onboarding_step: 'welcome',
+        onboarding_completed: false,
+      });
+      setCurrentStep('welcome');
+      navigation.navigate('Welcome' as never);
+    } catch (error) {
+      console.error('Error resetting onboarding:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return {

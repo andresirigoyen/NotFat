@@ -1,0 +1,14 @@
+
+> notfat@1.0.0 type-check
+> tsc --noEmit --skipLibCheck
+
+src/screens/onboarding/BirthDateScreen.tsx(12,11): error TS2339: Property 'setBirthDate' does not exist on type 'OnboardingState'.
+src/screens/onboarding/GenderScreen.tsx(10,11): error TS2339: Property 'setGender' does not exist on type 'OnboardingState'.
+src/screens/onboarding/OnboardingActivityScreen.tsx(88,13): error TS2349: This expression is not callable.
+  No constituent of type 'UseMutationResult<any, Error, Partial<Omit<{ id: string; created_at: string; updated_at: string; first_name: string | null; avatar_url: string | null; diet_type: string | null; last_name: string | null; ... 22 more ...; steps_goal: number; }, "id" | ... 1 more ... | "updated_at">>, unknown>' is callable.
+src/screens/onboarding/OnboardingAIGoalsScreen.tsx(74,13): error TS2349: This expression is not callable.
+  No constituent of type 'UseMutationResult<any, Error, Partial<Omit<{ id: string; created_at: string; updated_at: string; first_name: string | null; avatar_url: string | null; diet_type: string | null; last_name: string | null; ... 22 more ...; steps_goal: number; }, "id" | ... 1 more ... | "updated_at">>, unknown>' is callable.
+src/screens/onboarding/OnboardingBirthDateScreen.tsx(69,13): error TS2349: This expression is not callable.
+  No constituent of type 'UseMutationResult<any, Error, Partial<Omit<{ id: string; created_at: string; updated_at: string; first_name: string | null; avatar_url: string | null; diet_type: string | null; last_name: string | null; ... 22 more ...; steps_goal: number; }, "id" | ... 1 more ... | "updated_at">>, unknown>' is callable.
+src/screens/onboarding/OnboardingPreferencesScreen.tsx(43,13): error TS2349: This expression is not callable.
+  No constituent of type 'UseMutationResult<any, Error, Partial<Omit<{ id: string; created_at: string; updated_at: string; first_name: string | null; avatar_url: string | null; diet_type: string | null; last_name: string | null; ... 22 more ...; steps_goal: number; }, "id" | ... 1 more ... | "updated_at">>, unknown>' is callable.

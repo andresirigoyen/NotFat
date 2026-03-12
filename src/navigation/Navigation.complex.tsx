@@ -5,8 +5,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text } from 'react-native';
 
 // Importaciones con manejo de errores
-let useAuthStore, useOnboardingStore, CustomTabBar;
-let WelcomeScreen, DashboardScreen, ProgressScreen, NoFatScreen, ProfileScreen;
+let useAuthStore: any, useOnboardingStore: any, CustomTabBar: React.ComponentType<any> | null;
+let WelcomeScreen: React.ComponentType<any>, DashboardScreen: React.ComponentType<any>, ProgressScreen: React.ComponentType<any>, NoFatScreen: React.ComponentType<any>, ProfileScreen: React.ComponentType<any>;
 
 try {
   useAuthStore = require('@/store').useAuthStore;

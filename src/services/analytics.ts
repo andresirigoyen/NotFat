@@ -63,7 +63,7 @@ class MixpanelAnalytics {
         debug: __DEV__,
         api_host: ANALYTICS_CONFIG.mixpanel.apiHost,
         persistence: 'localStorage',
-        loaded: (mixpanel) => {
+        loaded: (mixpanel: any) => {
           console.log('Mixpanel initialized');
           mixpanel.identify(this.distinctId);
           this.isInitialized = true;

@@ -7,11 +7,11 @@ import { useOnboardingStore } from '@/store/onboarding';
 
 const GenderScreen = ({ navigation }: any) => {
   const [selectedGender, setSelectedGender] = React.useState<string | null>(null);
-  const { setGender } = useOnboardingStore();
+  const { updateUserData } = useOnboardingStore();
 
   const handleContinue = () => {
     if (selectedGender) {
-      setGender(selectedGender);
+      updateUserData({ gender: selectedGender });
       navigation.navigate('OnboardingBirthDate');
     }
   };

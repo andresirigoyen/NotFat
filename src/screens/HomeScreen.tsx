@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -55,7 +55,6 @@ export default function HomeScreen() {
       volume: 250, 
       unit: 'ml',
       recorded_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      logged_at: new Date().toISOString()
     });
   };
 
@@ -98,7 +97,7 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.greeting}>
-            {getGreeting()}, {user?.first_name?.split(' ')[0] || 'Usuario'}! 👋
+            {getGreeting()}, {profile?.first_name?.split(' ')[0] || 'Usuario'}! 👋
           </Text>
           <Text style={styles.subtitle}>
             ¿Cómo vamos hoy con tus metas?

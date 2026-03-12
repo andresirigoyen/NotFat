@@ -2,7 +2,14 @@ import { useState } from 'react';
 import { Platform } from 'react-native';
 import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/store';
-// import * as Purchases from 'react-native-purchases';
+// Fallback if react-native-purchases is not installed
+const Purchases: any = {
+  configure: async () => {},
+  getOfferings: async () => ({ current: null }),
+  purchaseProduct: async () => ({ customerInfo: { entitlements: {} } }),
+  restoreTransactions: async () => ({ entitlements: {} }),
+  getCustomerInfo: async () => ({ entitlements: {} }),
+};
 
 interface PaymentPlan {
   id: string;
@@ -86,7 +93,7 @@ export const usePayments = () => {
         }
 
         const productToPurchase = offering.products.find(
-          product => product.identifier === plan.productId
+          (product: any) => product.identifier === plan.productId
         );
 
         if (!productToPurchase) {
@@ -117,7 +124,7 @@ export const usePayments = () => {
       const { data, error } = await supabase.functions.invoke('create-mp-preference', {
         body: {
           planId: plan.id,
-          userId: user.id,
+          userId: user?.id,
           amount: plan.price,
           currency: plan.currency
         }

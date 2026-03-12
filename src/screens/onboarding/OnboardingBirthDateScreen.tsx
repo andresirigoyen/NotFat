@@ -66,7 +66,7 @@ export default function OnboardingBirthDateScreen() {
     setIsLoading(true);
     try {
       // Sincronizado con Prisma: profiles.birth_date (DateTime)
-      await updateProfile({
+      await updateProfile.mutateAsync({
         birth_date: birthDate.toISOString(), // DateTime format for Prisma
         onboarding_step: 'goals',
       });

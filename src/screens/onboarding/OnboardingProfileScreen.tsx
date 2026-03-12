@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -94,7 +94,7 @@ export default function OnboardingProfileScreen() {
     setIsLoading(true);
     try {
       // Sincronizado con Prisma: profiles
-      await updateProfile({
+      await updateProfile.mutateAsync({
         first_name: firstName.trim(), // String?
         last_name: lastName.trim(), // String?
         height_value: parseFloat(heightValue), // Float?

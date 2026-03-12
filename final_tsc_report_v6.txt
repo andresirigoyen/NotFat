@@ -1,0 +1,38 @@
+
+> notfat@1.0.0 type-check
+> tsc --noEmit --skipLibCheck
+
+prisma/seed.ts(161,30): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(options?: { years?: number | undefined; refDate?: string | number | Date | undefined; } | undefined): Date', gave the following error.
+    Object literal may only specify known properties, and 'months' does not exist in type '{ years?: number | undefined; refDate?: string | number | Date | undefined; }'.
+  Overload 2 of 3, '(years?: number | undefined, refDate?: string | number | Date | undefined): Date', gave the following error.
+    Argument of type '{ months: number; }' is not assignable to parameter of type 'number'.
+  Overload 3 of 3, '(options?: number | { years?: number | undefined; refDate?: string | number | Date | undefined; } | undefined, legacyRefDate?: string | number | Date | undefined): Date', gave the following error.
+    Object literal may only specify known properties, and 'months' does not exist in type '{ years?: number | undefined; refDate?: string | number | Date | undefined; }'.
+src/components/HealthScoreCard.tsx(12,27): error TS2305: Module '"@/constants/theme"' has no exported member 'TYPOGRAPHY'.
+src/components/ui/NutritionChart.tsx(91,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: AbstractChartProps & PieChartProps): PieChart', gave the following error.
+    Type 'number' is not assignable to type 'string'.
+  Overload 2 of 2, '(props: AbstractChartProps & PieChartProps, context: any): PieChart', gave the following error.
+    Type 'number' is not assignable to type 'string'.
+src/components/VoiceInputButton.tsx(12,27): error TS2305: Module '"@/constants/theme"' has no exported member 'TYPOGRAPHY'.
+src/hooks/useHealthScore.ts(81,42): error TS2339: Property 'id' does not exist on type '{ total_calories: any; total_protein: any; total_carbs: any; total_fat: any; total_fiber: any; total_sugar: any; total_sodium: any; }'.
+src/hooks/useVoiceInput.ts(69,30): error TS2339: Property 'EncodingType' does not exist on type 'typeof import("/Users/andresirigoyen/Desktop/NotFat/node_modules/expo-file-system/build/index")'.
+src/hooks/useVoiceInput.ts(74,27): error TS2304: Cannot find name 'decode'.
+src/screens/main/BarcodeScannerScreen.tsx(16,27): error TS2305: Module '"@/constants/theme"' has no exported member 'TYPOGRAPHY'.
+src/screens/main/ScientificGoalsScreen.tsx(15,27): error TS2305: Module '"@/constants/theme"' has no exported member 'TYPOGRAPHY'.
+src/screens/main/ScientificGoalsScreen.tsx(174,25): error TS2820: Type '"grain"' is not assignable to type '"search" | "repeat" | "link" | "at" | "push" | "map" | "filter" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | "text" | "options" | "star" | "car" | "card" | ... 1338 more ... | undefined'. Did you mean '"train"'?
+src/screens/onboarding/BirthDateScreen.tsx(12,11): error TS2339: Property 'setBirthDate' does not exist on type 'OnboardingState'.
+src/screens/onboarding/GenderScreen.tsx(10,11): error TS2339: Property 'setGender' does not exist on type 'OnboardingState'.
+src/screens/onboarding/GoalsScreen.tsx(10,11): error TS2339: Property 'setGoal' does not exist on type 'OnboardingState'.
+src/screens/onboarding/GoalsScreen.tsx(10,20): error TS2339: Property 'completeOnboarding' does not exist on type 'OnboardingState'.
+src/screens/onboarding/OnboardingActivityScreen.tsx(88,13): error TS2349: This expression is not callable.
+  No constituent of type 'UseMutationResult<any, Error, Partial<Omit<{ id: string; created_at: string; updated_at: string; first_name: string | null; avatar_url: string | null; diet_type: string | null; last_name: string | null; ... 22 more ...; steps_goal: number; }, "id" | ... 1 more ... | "updated_at">>, unknown>' is callable.
+src/screens/onboarding/OnboardingAIGoalsScreen.tsx(74,13): error TS2349: This expression is not callable.
+  No constituent of type 'UseMutationResult<any, Error, Partial<Omit<{ id: string; created_at: string; updated_at: string; first_name: string | null; avatar_url: string | null; diet_type: string | null; last_name: string | null; ... 22 more ...; steps_goal: number; }, "id" | ... 1 more ... | "updated_at">>, unknown>' is callable.
+src/screens/onboarding/OnboardingBirthDateScreen.tsx(69,13): error TS2349: This expression is not callable.
+  No constituent of type 'UseMutationResult<any, Error, Partial<Omit<{ id: string; created_at: string; updated_at: string; first_name: string | null; avatar_url: string | null; diet_type: string | null; last_name: string | null; ... 22 more ...; steps_goal: number; }, "id" | ... 1 more ... | "updated_at">>, unknown>' is callable.
+src/screens/onboarding/OnboardingPreferencesScreen.tsx(43,13): error TS2349: This expression is not callable.
+  No constituent of type 'UseMutationResult<any, Error, Partial<Omit<{ id: string; created_at: string; updated_at: string; first_name: string | null; avatar_url: string | null; diet_type: string | null; last_name: string | null; ... 22 more ...; steps_goal: number; }, "id" | ... 1 more ... | "updated_at">>, unknown>' is callable.
+src/services/analytics.ts(66,18): error TS7006: Parameter 'mixpanel' implicitly has an 'any' type.
+src/services/gdpr.ts(56,47): error TS2304: Cannot find name 'consent'.

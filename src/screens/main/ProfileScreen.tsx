@@ -18,7 +18,9 @@ const ProfileScreen = ({ navigation }: any) => {
     hydrationGoals, 
     updateProfile, 
     updateNutritionGoals, 
-    updateHydrationGoals 
+    updateHydrationGoals,
+    generateAutomaticGoals,
+    generateAutomaticHydrationGoal
   } = useProfile();
 
   const [expandedSection, setExpandedSection] = React.useState<string | null>(null);
@@ -148,7 +150,7 @@ const ProfileScreen = ({ navigation }: any) => {
             <TouchableOpacity 
               style={styles.outlineBtnCenter} 
               onPress={async () => {
-                await useProfile().generateAutomaticGoals();
+                await generateAutomaticGoals();
                 setShowNutritionalModal(false);
                 Alert.alert('Éxito', 'Objetivos calculados automáticamente.');
               }}
@@ -203,7 +205,7 @@ const ProfileScreen = ({ navigation }: any) => {
           <TouchableOpacity 
             style={styles.outlineBtnCenter} 
             onPress={async () => {
-              await useProfile().generateAutomaticHydrationGoal();
+              await generateAutomaticHydrationGoal();
               setShowHydrationModal(false);
               Alert.alert('Éxito', 'Objetivo de agua calculado automáticamente.');
             }}
@@ -239,7 +241,7 @@ const ProfileScreen = ({ navigation }: any) => {
         <View style={styles.userHeader}>
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarInitials}>
-              {profile?.first_name?.charAt(0)}{profile?.last_name?.charAt(0)}
+              {profile?.first_name?.charAt(0) || ''}{profile?.last_name?.charAt(0) || ''}
             </Text>
           </View>
           <Text style={styles.userName}>{profile?.first_name} {profile?.last_name}</Text>
@@ -337,6 +339,20 @@ const ProfileScreen = ({ navigation }: any) => {
               </View>
             )}
           </View>
+
+          {/* Objetivos Científicos */}
+          <TouchableOpacity style={styles.accordionItem} onPress={() => navigation.navigate('ScientificGoalsScreen')}>
+            <View style={styles.menuIconBox}>
+              <Activity size={22} color="#7c2d12" />
+            </View>
+            <Text style={styles.menuLabel}>Objetivos Científicos</Text>
+            <View style={styles.menuInfo}>
+              <Text style={styles.menuValueText}>
+                {nutritionGoals?.source === 'algorithm' ? 'Basado en ciencia' : 'Manual'}
+              </Text>
+            </View>
+            <ChevronRight size={22} color="#cbd5e1" />
+          </TouchableOpacity>
 
           {/* Hidratación */}
           <View style={styles.accordionItem}>

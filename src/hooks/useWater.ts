@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/services/SupabaseContext';
+import { reportError } from '@/services/sentry';
+import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/store';
 import { Database } from '@/types/database';
 
@@ -25,8 +26,8 @@ export function useWater() {
         .from('water_logs')
         .select('*')
         .eq('user_id', user.id)
-        .eq('log_date', today)
-        .order('log_time', { ascending: true });
+        .gte('logged_at', new Date().toISOString().split('T')[0])
+        .order('logged_at', { ascending: true });
 
       if (error) throw error;
       return data as WaterLog[];
@@ -45,8 +46,8 @@ export function useWater() {
           .from('water_logs')
           .select('*')
           .eq('user_id', user.id)
-          .eq('log_date', date)
-          .order('log_time', { ascending: true });
+          .gte('logged_at', date)
+          .order('logged_at', { ascending: true });
 
         if (error) throw error;
         return data as WaterLog[];
@@ -57,16 +58,15 @@ export function useWater() {
 
   // Add water log mutation
   const addWaterMutation = useMutation({
-    mutationFn: async (waterData: Omit<WaterLogInsert, 'user_id' | 'log_date'>) => {
+    mutationFn: async (waterData: Omit<WaterLogInsert, 'user_id'>) => {
       if (!user?.id) throw new Error('User not authenticated');
       
-      const today = new Date().toISOString().split('T')[0];
       const { data, error } = await supabase
         .from('water_logs')
         .insert({
           ...waterData,
           user_id: user.id,
-          log_date: today,
+          logged_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -100,9 +100,10 @@ export function useWater() {
   // Helper functions
   const addWater = async (amount: number, unit: 'ml' | 'oz' = 'ml') => {
     return await addWaterMutation.mutateAsync({
-      amount,
+      volume: amount,
       unit,
-      log_time: new Date().toTimeString().split(' ')[0].substring(0, 5),
+      recorded_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      logged_at: new Date().toISOString(),
     });
   };
 
@@ -112,7 +113,7 @@ export function useWater() {
 
   // Calculate today's total water intake
   const todayTotal = todayWaterLogs?.reduce((total, log) => {
-    return total + (log.unit === 'oz' ? log.amount * 29.5735 : log.amount); // Convert oz to ml
+    return total + (log.unit === 'oz' ? log.volume * 29.5735 : log.volume); // Convert oz to ml
   }, 0) || 0;
 
   return {

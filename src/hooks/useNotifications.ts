@@ -9,6 +9,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -102,7 +104,7 @@ export const useNotifications = () => {
             body: `No olvides registrar tu ${mealType} en NotFat`,
             data: { type: 'meal_reminder', mealType },
           },
-          trigger: scheduledTime,
+          trigger: scheduledTime as any,
           identifier: `meal-${mealType}-${scheduledTime.toDateString()}`,
         });
       }
@@ -124,7 +126,7 @@ export const useNotifications = () => {
             body: 'Es hora de tomar agua. Mantente hidratado durante el día.',
             data: { type: 'hydration_reminder' },
           },
-          trigger,
+          trigger: trigger as any,
           identifier: `hydration-${hour}`,
         });
       }
@@ -147,7 +149,7 @@ export const useNotifications = () => {
         hour: parseInt(hours),
         minute: parseInt(minutes),
         repeats: true,
-      },
+      } as any,
       identifier: 'daily-summary',
     });
   };

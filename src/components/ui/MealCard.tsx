@@ -73,11 +73,11 @@ export const MealCard: React.FC<MealCardProps> = ({
   const getStatusIcon = () => {
     switch (status) {
       case 'analyzing':
-        return 'ellipsis-circle-outline';
+        return 'help-circle-outline';
       case 'error':
         return 'warning-outline';
       default:
-        return 'checkmark-circle';
+        return 'checkmark-circle-outline';
     }
   };
 
@@ -101,7 +101,9 @@ export const MealCard: React.FC<MealCardProps> = ({
           content: styles.contentSmall,
           title: styles.titleSmall,
           time: styles.timeSmall,
-          nutrition: styles.nutritionSmall
+          nutrition: styles.nutritionSmall,
+          nutritionValue: styles.nutritionValueSmall,
+          nutritionDetails: styles.nutritionDetailsSmall
         };
       case 'large':
         return {
@@ -110,7 +112,9 @@ export const MealCard: React.FC<MealCardProps> = ({
           content: styles.contentLarge,
           title: styles.titleLarge,
           time: styles.timeLarge,
-          nutrition: styles.nutritionLarge
+          nutrition: styles.nutritionLarge,
+          nutritionValue: styles.nutritionValueLarge,
+          nutritionDetails: styles.nutritionDetailsLarge
         };
       default:
         return {
@@ -119,7 +123,9 @@ export const MealCard: React.FC<MealCardProps> = ({
           content: styles.contentMedium,
           title: styles.titleMedium,
           time: styles.timeMedium,
-          nutrition: styles.nutritionMedium
+          nutrition: styles.nutritionMedium,
+          nutritionValue: styles.nutritionValueMedium,
+          nutritionDetails: styles.nutritionDetailsMedium
         };
     }
   };
@@ -165,10 +171,10 @@ export const MealCard: React.FC<MealCardProps> = ({
           <Text style={sizeStyles.time}>{time}</Text>
           
           <View style={sizeStyles.nutrition}>
-            <Text style={styles.nutritionValue}>
+            <Text style={sizeStyles.nutritionValue}>
               {Math.round(calories)} {t('meals.calories')}
             </Text>
-            <Text style={styles.nutritionDetails}>
+            <Text style={sizeStyles.nutritionDetails}>
               P: {Math.round(protein)}g | C: {Math.round(carbs)}g | F: {Math.round(fat)}g
             </Text>
           </View>
@@ -222,12 +228,12 @@ const styles = StyleSheet.create({
   nutritionSmall: {
     alignItems: 'flex-end'
   },
-  nutritionValue: {
+  nutritionValueSmall: {
     fontSize: 14,
     fontWeight: '600',
     color: '#111827'
   },
-  nutritionDetails: {
+  nutritionDetailsSmall: {
     fontSize: 10,
     color: '#6B7280'
   },
@@ -260,12 +266,12 @@ const styles = StyleSheet.create({
   nutritionMedium: {
     alignItems: 'flex-end'
   },
-  nutritionValue: {
+  nutritionValueMedium: {
     fontSize: 16,
     fontWeight: '600',
     color: '#111827'
   },
-  nutritionDetails: {
+  nutritionDetailsMedium: {
     fontSize: 12,
     color: '#6B7280'
   },
@@ -298,12 +304,12 @@ const styles = StyleSheet.create({
   nutritionLarge: {
     alignItems: 'flex-end'
   },
-  nutritionValue: {
+  nutritionValueLarge: {
     fontSize: 18,
     fontWeight: '600',
     color: '#111827'
   },
-  nutritionDetails: {
+  nutritionDetailsLarge: {
     fontSize: 14,
     color: '#6B7280'
   },

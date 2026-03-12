@@ -37,8 +37,9 @@ export const useOfflineSync = () => {
     try {
       const results = await offlineService.syncPendingOperations();
       
-      const successful = results.filter(r => r.success).length;
-      const failed = results.filter(r => !r.success).length;
+      const safeResults = results || [];
+      const successful = safeResults.filter(r => r.success).length;
+      const failed = safeResults.filter(r => !r.success).length;
 
       setSyncStatus('completed');
       updateSyncStatus();
@@ -47,7 +48,7 @@ export const useOfflineSync = () => {
       analytics.trackCustomEvent('Offline Sync Completed', {
         successful_operations: successful,
         failed_operations: failed,
-        total_operations: results.length
+        total_operations: safeResults.length
       });
 
       // Auto-reset status after 3 seconds

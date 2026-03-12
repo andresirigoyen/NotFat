@@ -23,7 +23,7 @@ const HydrationScreen = ({ navigation }: any) => {
   } = useHydration();
   const { user } = useAuthStore();
 
-  const todayProgress = getTodayProgress();
+  const todayProgress = getTodayProgress().consumed;
   const weeklyProgress = getWeeklyProgress();
 
   const quickAmounts = hydrationGoal?.unit === 'ml' 
@@ -47,7 +47,7 @@ const HydrationScreen = ({ navigation }: any) => {
         { text: 'Cancelar', style: 'cancel' },
         { 
           text: 'Agregar', 
-          onPress: (amount) => {
+          onPress: (amount: any) => {
             if (amount && !isNaN(Number(amount))) {
               handleAddWater(Number(amount));
             }
@@ -78,9 +78,9 @@ const HydrationScreen = ({ navigation }: any) => {
         { text: 'Cancelar', style: 'cancel' },
         { 
           text: 'Actualizar', 
-          onPress: (goal) => {
+          onPress: (goal: any) => {
             if (goal && !isNaN(Number(goal))) {
-              updateHydrationGoal(Number(goal));
+              updateHydrationGoal({ daily_goal: Number(goal) });
             }
           }
         }

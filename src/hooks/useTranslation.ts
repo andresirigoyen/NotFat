@@ -1,8 +1,8 @@
-import { useTranslation } from 'react-i18next';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { languageService } from '@/services/i18n';
 
 export const useTranslation = () => {
-  const { t, i18n } = useTranslation();
+  const { t, i18n } = useI18nTranslation();
 
   const changeLanguage = async (language: string) => {
     try {
@@ -19,7 +19,7 @@ export const useTranslation = () => {
   const direction = languageService.getLanguageDirection();
 
   // Helper functions for common translations
-  const translate = (key: string, options?: any) => t(key, options);
+  const translate = (key: string, options?: any) => t(key, options) as string;
 
   // Format helpers
   const formatNumber = (number: number, options?: Intl.NumberFormatOptions) => 

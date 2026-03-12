@@ -88,8 +88,8 @@ export const NutritionChart: React.FC<NutritionChartProps> = ({
           }}
           accessor="population"
           backgroundColor="transparent"
-          paddingLeft={0}
-          center={[size / 2, size / 2]}
+          paddingLeft="0"
+          center={[size / 2, size / 2] as any}
           absolute
           hasLegend={false}
         />

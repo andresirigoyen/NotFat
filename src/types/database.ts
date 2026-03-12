@@ -111,6 +111,15 @@ export type Database = {
           scanned: boolean;
           servings: number | null;
           contributed: boolean;
+          nutriscore_grade: string | null;
+          nova_group: number | null;
+          nutria_score: number | null;
+          labels_tags: any | null;
+          additives_tags: any | null;
+          nutria_score_breakdown: any | null;
+          additives_details: any | null;
+          is_alcoholic: boolean;
+          has_ingredients_data: boolean | null;
         };
         Insert: Omit<Database['public']['Tables']['food_items']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['food_items']['Insert']>;

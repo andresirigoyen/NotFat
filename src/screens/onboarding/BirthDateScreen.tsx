@@ -9,7 +9,7 @@ import { useOnboardingStore } from '@/store/onboarding';
 const BirthDateScreen = ({ navigation }: any) => {
   const [date, setDate] = React.useState(new Date(2000, 0, 1));
   const [show, setShow] = React.useState(Platform.OS === 'ios');
-  const { setBirthDate } = useOnboardingStore();
+  const { updateUserData } = useOnboardingStore();
 
   const onChange = (event: any, selectedDate?: Date) => {
     const currentDate = selectedDate || date;
@@ -18,7 +18,7 @@ const BirthDateScreen = ({ navigation }: any) => {
   };
 
   const handleContinue = () => {
-    setBirthDate(date.toISOString());
+    updateUserData({ birthDate: date.toISOString() });
     navigation.navigate('OnboardingGoals');
   };
 

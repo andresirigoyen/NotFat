@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store';
 import { useCreateMealWithItems } from '@/hooks/useMeals';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PermissionPopover } from '@/components/ui/PermissionPopover';
+import VoiceInputButton from '@/components/VoiceInputButton';
 
 const MealLoggerScreen = ({ navigation }: any) => {
   const navigationHook = useNavigation();
@@ -42,7 +43,7 @@ const MealLoggerScreen = ({ navigation }: any) => {
       const photoUri = await takePhoto();
       if (photoUri) {
         // Navigate to analysis result
-        navigationHook.navigate('AnalysisResult' as never, { 
+        (navigationHook as any).navigate('AnalysisResult', { 
           imageUri: photoUri,
           mealType: selectedType
         });
@@ -67,7 +68,7 @@ const MealLoggerScreen = ({ navigation }: any) => {
       const imageUri = await pickImage();
       if (imageUri) {
         // Navigate to analysis result
-        navigationHook.navigate('AnalysisResult' as never, { 
+        (navigationHook as any).navigate('AnalysisResult', { 
           imageUri,
           mealType: selectedType
         });
@@ -82,8 +83,10 @@ const MealLoggerScreen = ({ navigation }: any) => {
   const handleVoicePress = async () => {
     const hasPermission = await requestMicrophoneAccess();
     if (hasPermission) {
-      // TODO: Implement voice recording
-      Alert.alert('Próximamente', 'La función de voz estará disponible pronto.');
+      // Navigate to voice input screen
+      (navigationHook as any).navigate('VoiceInputScreen', { 
+        mealType: selectedType 
+      });
     }
   };
 
@@ -145,7 +148,7 @@ const MealLoggerScreen = ({ navigation }: any) => {
   };
 
   const handleNowPress = () => {
-    navigationHook.navigate('MealTime' as never);
+    (navigationHook as any).navigate('MealTime');
   };
 
   return (
@@ -218,7 +221,7 @@ const MealLoggerScreen = ({ navigation }: any) => {
               <Text style={styles.actionSubtitle}>Describe con voz</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => (navigationHook as any).navigate('BarcodeScannerScreen')}>
               <View style={[styles.actionIcon, { backgroundColor: '#FED7AA' }]}>
                 <Ionicons name="barcode" size={24} color="#F59E0B" />
               </View>
@@ -253,6 +256,20 @@ const MealLoggerScreen = ({ navigation }: any) => {
               )}
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Voice Input Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>O describe con tu voz</Text>
+          <Text style={styles.sectionSubtitle}>
+            Mantén presionado el botón y describe lo que comiste
+          </Text>
+          <VoiceInputButton 
+            onMealCreated={(mealData) => {
+              Alert.alert('¡Éxito!', 'Comida registrada correctamente');
+              navigationHook.goBack();
+            }}
+          />
         </View>
 
         {/* Time Selection */}
@@ -328,6 +345,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 16,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 16,
+    textAlign: 'center',
   },
   mealTypes: {
     flexDirection: 'row',

@@ -80,7 +80,7 @@ export const useProfile = () => {
   });
 
   const updateNutritionGoals = useMutation({
-    mutationFn: async (goals: Omit<NutritionGoalInsert, 'user_id' | 'start_date'>) => {
+    mutationFn: async (goals: Omit<NutritionGoalInsert, 'user_id' | 'start_date' | 'end_date'>) => {
       if (!user?.id) throw new Error('User not authenticated');
       // We insert a new record for goals to keep history, or update current. 
       // Typically goals are time-bound. For now, let's just insert a new one as "current"
@@ -104,7 +104,7 @@ export const useProfile = () => {
   });
 
   const updateHydrationGoals = useMutation({
-    mutationFn: async (goals: Omit<HydrationGoalInsert, 'user_id' | 'start_date'>) => {
+    mutationFn: async (goals: Omit<HydrationGoalInsert, 'user_id' | 'start_date' | 'end_date'>) => {
       if (!user?.id) throw new Error('User not authenticated');
       const { data, error } = await supabase
         .from('hydration_goals')

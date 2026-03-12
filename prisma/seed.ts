@@ -158,7 +158,7 @@ async function seedUserProfiles(users: any[]) {
       user_id: user.id,
       target: getRandomInt(1500, 4000),
       target_unit: getRandomEnum(['ml', 'oz']),
-      start_date: faker.date.past({ months: 6 }),
+      start_date: faker.date.past({ years: 0.5 }),
     });
     
     // User sports
