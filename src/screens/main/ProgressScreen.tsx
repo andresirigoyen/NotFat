@@ -61,7 +61,7 @@ const ProgressScreen = () => {
         {/* Header */}
         <View style={styles.topHeader}>
           <Text style={styles.brandEmoji}>🦦</Text>
-          <Text style={styles.brandText}>nutrIA</Text>
+          <Text style={styles.brandText}>NotFat</Text>
           <TouchableOpacity style={styles.weightBadge}>
             <Text style={styles.weightText}>{profile?.weight_value || '--'} {profile?.weight_unit || 'kg'}</Text>
             <ChevronRight size={16} color="#7c2d12" />

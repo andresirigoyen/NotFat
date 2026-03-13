@@ -1,23 +1,24 @@
-// @ts-ignore
-import { Request, Response, NextFunction } from 'express';
-declare global {
-  namespace Express {
-    interface Request {}
-    interface Response {}
-    namespace Multer {
-      interface File {
-        size: number;
-        mimetype: string;
-      }
-    }
-  }
-}
 import { ZodSchema, ZodError } from 'zod';
-import { reportError } from '@/services/sentry';
+
+// Types for validation
+interface ValidationRequest {
+  body?: any;
+  query?: any;
+  params?: any;
+}
+
+interface ValidationResponse {
+  status(code: number): void;
+  json(data: any): void;
+}
+
+interface ValidationNext {
+  (error?: any): void;
+}
 
 // Validation middleware factory
 export const validate = (schema: ZodSchema, source: 'body' | 'query' | 'params' = 'body') => {
-  return (req: any, res: any, next: any) => {
+  return (req: ValidationRequest, res: ValidationResponse, next: ValidationNext) => {
     try {
       let data;
       
@@ -57,20 +58,15 @@ export const validate = (schema: ZodSchema, source: 'body' | 'query' | 'params' 
       if (error instanceof ZodError) {
         const validationError = formatValidationError(error);
         
-        reportError(error, {
-          context: 'validation_middleware',
-          source,
-          endpoint: req.path,
-          method: req.method,
-          validation_errors: validationError.errors,
-        });
+        // Log error (assuming reportError exists)
+        console.error('Validation error:', validationError);
 
         return res.status(400).json({
           success: false,
           error: 'Validation Error',
           message: 'Invalid input data',
           details: validationError,
-        });
+        })
       }
       
       // For non-Zod errors, pass to next error handler
@@ -116,10 +112,8 @@ export const validateAsync = async (
     if (error instanceof ZodError) {
       const validationError = formatValidationError(error);
       
-      reportError(error, {
-        context: context || 'async_validation',
-        validation_errors: validationError.errors,
-      });
+      // Log error (assuming reportError exists)
+      console.error('Async validation error:', validationError);
 
       throw new ValidationError(validationError);
     }
@@ -195,7 +189,7 @@ export const commonValidations = {
   },
 
   // File upload validation
-  file: (file: Express.Multer.File, options: {
+  file: (file: any, options: {
     maxSize?: number;
     allowedTypes?: string[];
   } = {}) => {

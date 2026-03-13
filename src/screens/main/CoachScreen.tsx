@@ -30,7 +30,7 @@ const INITIAL_MESSAGES: Message[] = [
   {
     id: '1',
     from: 'coach',
-    text: '¡Hola! 🦦 Soy tu Coach Nutria. ¿Qué quieres cocinar hoy con lo que tienes en tu nevera?',
+    text: '¡Hola! 🦦 Soy tu Coach NotFat. ¿Qué quieres cocinar hoy con lo que tienes en tu nevera?',
   },
 ];
 
@@ -60,7 +60,7 @@ export default function CoachScreen() {
           <Text style={styles.avatarEmoji}>🦦</Text>
         </View>
         <View>
-          <Text style={styles.coachName}>Nutria Coach</Text>
+          <Text style={styles.coachName}>NotFat Coach</Text>
           <Text style={styles.coachStatus}>● En línea</Text>
         </View>
       </View>

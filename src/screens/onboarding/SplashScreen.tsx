@@ -57,7 +57,7 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary, // Fondo negro solido
+    backgroundColor: '#000000', // Fondo completamente negro
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -66,8 +66,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logo: {
-    width: 600, // Logo mucho más grande para el splash inicial
-    height: 200,
+    width: 200, // Logo mucho más pequeño
+    height: 80,
     marginBottom: SPACING['3xl'], // Espacio entre el logo y el spinner
   },
   spinner: {

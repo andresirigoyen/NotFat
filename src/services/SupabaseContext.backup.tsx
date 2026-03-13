@@ -2,26 +2,16 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// Evitar múltiples instancias con singleton
-let supabaseInstance: SupabaseClient | null = null;
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://your-project.supabase.co';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key';
 
-const getSupabaseClient = () => {
-  if (!supabaseInstance) {
-    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://your-project.supabase.co';
-    const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key';
-    
-    console.log('🔑 Creating Supabase client...');
-    console.log('🔑 URL:', supabaseUrl);
-    console.log('🔑 Key exists:', !!supabaseAnonKey);
-    
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
-  }
-  return supabaseInstance;
-};
+console.log('🔑 Supabase URL:', supabaseUrl);
+console.log('🔑 Supabase Anon Key exists:', !!supabaseAnonKey);
 
-export const supabase = getSupabaseClient();
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const SupabaseContext = createContext<SupabaseClient | undefined>(undefined);
+
 const queryClient = new QueryClient();
 
 export const SupabaseProvider = ({ children }: { children: ReactNode }) => {

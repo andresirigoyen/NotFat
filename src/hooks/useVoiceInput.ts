@@ -115,10 +115,32 @@ export function useVoiceInput() {
         playThroughEarpieceAndroid: false,
       });
 
-      // Crear nueva grabación
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
+      // Crear nueva grabación con configuración optimizada para voz
+      const { recording } = await Audio.Recording.createAsync({
+        android: {
+          extension: '.m4a',
+          outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+          audioEncoder: Audio.AndroidAudioEncoder.AAC,
+          sampleRate: 16000, // Optimizado para voz
+          numberOfChannels: 1, // Mono para voz
+          bitRate: 64000, // Calidad balanceada para transcripción
+        },
+        ios: {
+          extension: '.m4a',
+          outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+          audioQuality: Audio.IOSAudioQuality.MEDIUM,
+          sampleRate: 16000,
+          numberOfChannels: 1,
+          bitRate: 64000,
+          linearPCMBitDepth: 16,
+          linearPCMIsBigEndian: false,
+          linearPCMIsFloat: false,
+        },
+        web: {
+          mimeType: 'audio/webm',
+          bitsPerSecond: 64000,
+        },
+      });
 
       recordingRef.current = recording;
 
@@ -159,19 +181,62 @@ export function useVoiceInput() {
       // Crear entrada en task_queue
       const task = await createTaskMutation.mutateAsync(audioUrl);
 
-      // Procesar audio
-      await processAudioMutation.mutateAsync(task.id);
+      // Monitorear procesamiento en background
+      const monitorProcessing = async () => {
+        let attempts = 0;
+        const maxAttempts = 30; // ~5 minutos
 
-      setState(prev => ({
-        ...prev,
-        isRecording: false,
-        isProcessing: false,
-        audioUri: uri,
-      }));
+        const checkInterval = setInterval(async () => {
+          attempts++;
+          
+          try {
+            const { data: status } = await supabase
+              .from('task_queue')
+              .select('status, error_message')
+              .eq('id', task.id)
+              .single();
 
-      // Invalidar queries para actualizar UI
-      queryClient.invalidateQueries({ queryKey: ['meals'] });
-      queryClient.invalidateQueries({ queryKey: ['daily_totals'] });
+            if (!status) return;
+
+            if (status.status === 'completed') {
+              clearInterval(checkInterval);
+              setState(prev => ({ ...prev, isProcessing: false }));
+              
+              // Invalidar queries para actualizar UI
+              queryClient.invalidateQueries({ queryKey: ['meals'] });
+              queryClient.invalidateQueries({ queryKey: ['daily_totals'] });
+              
+              Alert.alert(
+                '¡Listo!',
+                'Tu entrada de voz ha sido procesada correctamente',
+                [{ text: 'OK' }]
+              );
+              
+            } else if (status.status === 'error') {
+              clearInterval(checkInterval);
+              setState(prev => ({ ...prev, isProcessing: false }));
+              Alert.alert(
+                'Error',
+                'No se pudo procesar tu audio. Intenta nuevamente.',
+                [{ text: 'OK' }]
+              );
+              
+            } else if (attempts >= maxAttempts) {
+              clearInterval(checkInterval);
+              setState(prev => ({ ...prev, isProcessing: false }));
+              Alert.alert(
+                'Tiempo agotado',
+                'El procesamiento está tomando más tiempo de lo esperado. Revisa más tarde.',
+                [{ text: 'OK' }]
+              );
+            }
+          } catch (error) {
+            console.error('Error checking task status:', error);
+          }
+        }, 10000); // Verificar cada 10 segundos
+      };
+
+      monitorProcessing();
 
     } catch (error) {
       console.error('Error stopping recording:', error);

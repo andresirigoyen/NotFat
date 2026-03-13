@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)', // Subtle overlay
+    backgroundColor: 'rgba(0,0,0,0.7)', // Darker overlay
   },
   content: {
     flex: 1,

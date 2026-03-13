@@ -57,7 +57,7 @@ export default function Navigation() {
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAF3ED' }}>
-        <Text style={{ marginTop: 20, color: '#7c2d12', fontWeight: '900', fontSize: 18 }}>nutrIA 🦦</Text>
+        <Text style={{ marginTop: 20, color: '#7c2d12', fontWeight: '900', fontSize: 18 }}>NotFat 🦦</Text>
       </View>
     );
   }

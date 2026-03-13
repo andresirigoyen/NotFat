@@ -34,7 +34,7 @@ export const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarPro
             label = 'Inicio';
           } else if (route.name === 'Coach') {
             icon = <Ionicons name="sparkles" size={24} color={isFocused ? '#7c2d12' : '#94a3b8'} />;
-            label = 'Nutria';
+            label = 'NotFat';
           } else if (route.name === 'NoFat') {
             icon = <Ionicons name="nutrition" size={24} color={isFocused ? '#7c2d12' : '#94a3b8'} />;
             label = 'NoFat';

@@ -30,12 +30,12 @@ export const usePayments = () => {
   const plans: PaymentPlan[] = [
     {
       id: 'monthly',
-      name: 'Nutria Mensual',
+      name: 'NotFat Mensual',
       price: 4990,
       currency: 'CLP',
       duration: 'monthly',
       trialDays: 3,
-      productId: 'com.nutriahealth.app.Monthly',
+      productId: 'com.notfat.app.Monthly',
       features: [
         'Análisis IA ilimitado',
         'Seguimiento nutricional completo',
@@ -46,12 +46,12 @@ export const usePayments = () => {
     },
     {
       id: 'annual',
-      name: 'Nutria Anual',
+      name: 'NotFat Anual',
       price: 29990,
       currency: 'CLP',
       duration: 'annual',
       trialDays: 3,
-      productId: 'com.nutriahealth.app.Annual',
+      productId: 'com.notfat.app.Annual',
       features: [
         'Todo lo mensual +',
         'Ahorro de 50%',

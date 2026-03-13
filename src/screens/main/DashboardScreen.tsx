@@ -36,6 +36,7 @@ export default function DashboardScreen() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showCalendar, setShowCalendar] = useState(false);
   
   const { data: totals, isLoading: totalsLoading } = useDailyTotals(selectedDate);
   const { profile, nutritionGoals, hydrationGoals, isLoading: profileLoading } = useProfile();
@@ -54,6 +55,27 @@ export default function DashboardScreen() {
       setWeight(profile.weight_value);
     }
   }, [profile?.weight_value]);
+
+  // Generate calendar days for the month view
+  const generateCalendarDays = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    const days = [];
+    const current = new Date(startDate);
+    
+    while (current <= lastDay || current.getDay() !== 0) {
+      days.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+      if (days.length >= 42) break; // 6 weeks max
+    }
+    
+    return days;
+  };
 
   const handleAddWater = (amount: number) => {
     addWater({ volume: amount, unit: 'ml' });
@@ -99,15 +121,79 @@ export default function DashboardScreen() {
       {/* ── Top Header ─────────────────────────────── */}
       <View style={s.topBar}>
         <View>
-          <Text style={s.todayTitle}>{isToday ? 'Hoy' : selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</Text>
-          <Text style={s.weekLabel}>Semana 1</Text>
+          <Text style={s.todayTitle}>
+            {isToday ? 'Hoy' : selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}
+          </Text>
+          <Text style={s.weekLabel}>
+            {isToday ? 'Semana 1' : selectedDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
+          </Text>
         </View>
         <View style={s.topIcons}>
-          <View style={s.iconBadge}><Text>💎</Text><Text style={s.badgeNum}>0</Text></View>
-          <View style={s.iconBadge}><Text>🔥</Text><Text style={s.badgeNum}>0</Text></View>
-          <Ionicons name="calendar-outline" size={24} color={COLORS.text.secondary} />
+          <TouchableOpacity onPress={() => setShowCalendar(!showCalendar)}>
+            <Ionicons name="calendar-outline" size={24} color={COLORS.text.secondary} />
+          </TouchableOpacity>
         </View>
       </View>
+
+      {/* ── Expandable Calendar ──────────────────────── */}
+      {showCalendar && (
+        <View style={s.calendarContainer}>
+          <View style={s.calendarHeader}>
+            <TouchableOpacity onPress={() => {
+              const newDate = new Date(selectedDate);
+              newDate.setMonth(newDate.getMonth() - 1);
+              setSelectedDate(newDate);
+            }}>
+              <Ionicons name="chevron-back" size={20} color={COLORS.text.primary} />
+            </TouchableOpacity>
+            <Text style={s.calendarTitle}>
+              {selectedDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+            </Text>
+            <TouchableOpacity onPress={() => {
+              const newDate = new Date(selectedDate);
+              newDate.setMonth(newDate.getMonth() + 1);
+              setSelectedDate(newDate);
+            }}>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.text.primary} />
+            </TouchableOpacity>
+          </View>
+          <View style={s.calendarGrid}>
+            {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((day, i) => (
+              <Text key={i} style={s.calendarDayHeader}>{day}</Text>
+            ))}
+            {generateCalendarDays(selectedDate).map((day, i) => {
+              const isToday = day.toDateString() === new Date().toDateString();
+              const isSelected = day.toDateString() === selectedDate.toDateString();
+              const isCurrentMonth = day.getMonth() === selectedDate.getMonth();
+              
+              return (
+                <TouchableOpacity
+                  key={i}
+                  style={[
+                    s.calendarDay,
+                    isToday && s.calendarDayToday,
+                    isSelected && s.calendarDaySelected,
+                    !isCurrentMonth && s.calendarDayOtherMonth
+                  ]}
+                  onPress={() => {
+                    setSelectedDate(day);
+                    setShowCalendar(false);
+                  }}
+                >
+                  <Text style={[
+                    s.calendarDayText,
+                    isToday && s.calendarDayTextToday,
+                    isSelected && s.calendarDayTextSelected,
+                    !isCurrentMonth && s.calendarDayTextOtherMonth
+                  ]}>
+                    {day.getDate()}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      )}
 
       {/* ── Day Strip ──────────────────────────────── */}
       <View style={s.dayStrip}>
@@ -434,4 +520,80 @@ const s = StyleSheet.create({
   notesContent: { flexDirection: 'row', alignItems: 'center' },
   noteBtn: { backgroundColor: COLORS.text.primary, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md, alignItems: 'center' },
   noteBtnText: { color: COLORS.background.primary, fontFamily: FONTS.primary, fontWeight: '800', fontSize: FONTS.sizes.base },
+
+  // Calendar
+  calendarContainer: {
+    backgroundColor: '#1A1A1A',
+    marginHorizontal: SPACING.xl,
+    marginBottom: SPACING.md,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  calendarTitle: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
+    textTransform: 'capitalize',
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  calendarDayHeader: {
+    width: '14%',
+    textAlign: 'center',
+    fontSize: FONTS.sizes.xs,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+    fontFamily: FONTS.primary,
+    marginBottom: SPACING.xs,
+    textTransform: 'uppercase',
+  },
+  calendarDay: {
+    width: '14%',
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    marginBottom: SPACING.xs,
+  },
+  calendarDayToday: {
+    backgroundColor: COLORS.primary.sky,
+  },
+  calendarDaySelected: {
+    backgroundColor: COLORS.primary.amber,
+  },
+  calendarDayOtherMonth: {
+    opacity: 0.3,
+  },
+  calendarDayText: {
+    fontSize: FONTS.sizes.sm,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
+  },
+  calendarDayTextToday: {
+    color: COLORS.background.primary,
+  },
+  calendarDayTextSelected: {
+    color: COLORS.background.primary,
+  },
+  calendarDayTextOtherMonth: {
+    color: COLORS.text.secondary,
+  },
 });

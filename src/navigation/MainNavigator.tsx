@@ -61,7 +61,7 @@ export default function MainNavigator() {
           component={CoachScreen}
           options={{
             tabBarIcon: ({ color, size }) => <Ionicons name="sparkles-outline" size={size} color={color} />,
-            tabBarLabel: 'Nutria',
+            tabBarLabel: 'NotFat',
           }}
         />
         <Tab.Screen

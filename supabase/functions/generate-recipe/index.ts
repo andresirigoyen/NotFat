@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,12 +11,11 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl, userId } = await req.json()
+    const { ingredients } = await req.json()
 
-    // Validación de entrada
-    if (!imageUrl || !userId) {
+    if (!ingredients) {
       return new Response(
-        JSON.stringify({ error: 'Faltan parámetros requeridos: imageUrl y userId' }), 
+        JSON.stringify({ error: 'Ingredientes requeridos' }), 
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
@@ -25,7 +23,7 @@ serve(async (req) => {
       )
     }
 
-    // 1. Configuración de la API de IA (Gemini 2.0 Flash)
+    // Configuración de Gemini
     const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
     if (!apiKey) {
       return new Response(
@@ -39,39 +37,40 @@ serve(async (req) => {
 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
 
-    const prompt = `Analiza esta imagen de comida y devuelve un JSON con:
-    - name: nombre del plato
-    - calories: total estimado
-    - macros: { protein, carbs, fat } en gramos
-    - ingredients: lista de ingredientes detectados
-    - health_score: 1-10
-    IMPORTANTE: Responde SOLO el JSON sin formato de código.`
+    const prompt = `Crea una receta saludable con: "${ingredients}"
+
+Responde en JSON con:
+- name: nombre del plato
+- description: descripción breve
+- ingredients: lista con cantidades
+- instructions: 3-5 pasos numerados
+- nutrition: { calories, protein, carbs, fat }
+- time: minutos
+- difficulty: "Fácil" o "Medio"
+
+SOLO JSON, sin código.`
 
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{
-          parts: [
-            { text: prompt },
-            { 
-              inline_data: {
-                mime_type: "image/jpeg",
-                data: await fetch(imageUrl).then(r => r.arrayBuffer()).then(buf => 
-                  btoa(String.fromCharCode(...new Uint8Array(buf)))
-                )
-              }
-            }
-          ]
-        }]
+          parts: [{ text: prompt }]
+        }],
+        generationConfig: {
+          temperature: 0.8,
+          maxOutputTokens: 800, // Reducido para mayor velocidad
+          candidateCount: 1,
+        }
       })
     })
 
-    if (!response.ok) {
-      throw new Error(`Error en API de Gemini: ${response.status} ${response.statusText}`)
-    }
+    // Timeout de 20 segundos para recetas
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout de 20 segundos')), 20000)
+    })
 
-    const result = await response.json()
+    const result = await Promise.race([response.json(), timeoutPromise])
     
     if (!result.candidates || result.candidates.length === 0) {
       throw new Error('No se obtuvo respuesta de Gemini')
@@ -80,25 +79,22 @@ serve(async (req) => {
     const content = result.candidates[0].content.parts[0].text
     
     // Limpiar y parsear el JSON
-    let analysis;
+    let recipe;
     try {
       const cleanContent = content.replace(/```json|```/g, '').trim()
-      analysis = JSON.parse(cleanContent)
+      recipe = JSON.parse(cleanContent)
     } catch (parseError: any) {
-      throw new Error(`Error al parsear respuesta de Gemini: ${parseError?.message || parseError}`)
+      throw new Error(`Error al parsear respuesta de Gemini: ${parseError?.message}`)
     }
 
-    // Validar estructura del análisis
-    if (!analysis.name || !analysis.calories || !analysis.macros) {
-      throw new Error('La respuesta de Gemini no contiene todos los campos requeridos')
-    }
-
-    return new Response(JSON.stringify(analysis), {
+    return new Response(JSON.stringify({ 
+      recipe: recipe 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error: any) {
-    console.error('Error en analyze-meal:', error)
+    console.error('Error en generate-recipe:', error)
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Error interno del servidor' 

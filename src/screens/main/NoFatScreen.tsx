@@ -1,14 +1,25 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ghost, Sparkles, Send, Utensils, Zap, ChefHat, Salad, Coffee } from 'lucide-react-native';
+import { useAIChat } from '@/hooks/useAIChat';
 
 const { width } = Dimensions.get('window');
 
 const NoFatScreen = () => {
   const [chatInput, setChatInput] = React.useState('');
   const [isGenerating, setIsGenerating] = React.useState(false);
+  const [chatHistory, setChatHistory] = React.useState<Array<{role: 'user' | 'ai', message: string}>>([]);
+  const [generatedRecipe, setGeneratedRecipe] = React.useState<any>(null);
+  const { processPrompt, loading, error } = useAIChat();
+
+  // Manejo de errores con Alert
+  React.useEffect(() => {
+    if (error) {
+      Alert.alert("Error en la cocina 👨‍🍳", "No pudimos conectar con el chef IA. Intenta de nuevo.");
+    }
+  }, [error]);
 
   const categories = [
     { label: 'Desayunos', icon: <Coffee size={20} color="#7c2d12" />, color: '#fef3c7' },
@@ -29,11 +40,11 @@ const NoFatScreen = () => {
         <View style={styles.header}>
           <View style={styles.brandRow}>
             <Text style={styles.brandEmoji}>🦦</Text>
-            <Text style={styles.brandText}>nutrIA Chef</Text>
+            <Text style={styles.brandText}>NotFat Chef</Text>
           </View>
           <View style={styles.aiBadge}>
             <Sparkles color="#7c2d12" size={14} fill="#7c2d12" />
-            <Text style={styles.aiBadgeText}>Powered by GPT-4</Text>
+            <Text style={styles.aiBadgeText}>Powered by Gemini</Text>
           </View>
         </View>
 
@@ -54,11 +65,116 @@ const NoFatScreen = () => {
               value={chatInput}
               onChangeText={setChatInput}
             />
-            <TouchableOpacity style={styles.sendBtn} onPress={() => setIsGenerating(true)}>
-              {isGenerating ? <ActivityIndicator color="#7c2d12" size="small" /> : <Send color="#7c2d12" size={20} />}
+            <TouchableOpacity 
+              style={styles.sendBtn} 
+              disabled={loading || isGenerating}
+              onPress={async () => {
+                if (!chatInput.trim()) return;
+                
+                const userMessage = chatInput.trim();
+                setChatHistory(prev => [...prev, { role: 'user', message: userMessage }]);
+                setChatInput('');
+                setIsGenerating(true);
+                
+                try {
+                  // Usar el endpoint unificado processPrompt
+                  const result = await processPrompt(userMessage);
+                  
+                  if (result) {
+                    if (result.type === 'recipe' && result.recipeData) {
+                      setGeneratedRecipe(result.recipeData);
+                      setChatHistory(prev => [...prev, { 
+                        role: 'ai', 
+                        message: result.response || '¡He creado una receta deliciosa para ti!'
+                      }]);
+                    } else {
+                      // Es solo chat, limpiamos la receta anterior de la pantalla
+                      setGeneratedRecipe(null);
+                      setChatHistory(prev => [...prev, { 
+                        role: 'ai', 
+                        message: result.response 
+                      }]);
+                    }
+                  }
+                } catch (err) {
+                  console.error("Fallo al enviar mensaje:", err);
+                } finally {
+                  setIsGenerating(false);
+                }
+              }}
+            >
+              {loading || isGenerating ? <ActivityIndicator color="#7c2d12" size="small" /> : <Send color="#7c2d12" size={20} />}
             </TouchableOpacity>
           </View>
         </LinearGradient>
+
+        {/* Chat History */}
+        {chatHistory.length > 0 && (
+          <View style={styles.chatHistory}>
+                {chatHistory.map((msg, idx) => (
+                  <View key={idx} style={[
+                    styles.messageBubble,
+                    msg.role === 'user' ? styles.userBubble : styles.aiBubble
+                  ]}>
+                    <Text style={[
+                      styles.messageText,
+                      msg.role === 'user' ? styles.userText : styles.aiText
+                    ]}>
+                      {msg.message}
+                    </Text>
+                  </View>
+                ))}
+          </View>
+        )}
+
+        {/* Generated Recipe */}
+        {generatedRecipe && (
+          <View style={styles.recipeCard}>
+            <View style={styles.recipeHeader}>
+              <Text style={styles.recipeName}>{generatedRecipe.name}</Text>
+              <Text style={styles.recipeTime}>{generatedRecipe.time} min • {generatedRecipe.difficulty}</Text>
+            </View>
+            <Text style={styles.recipeDescription}>{generatedRecipe.description}</Text>
+            
+            <View style={styles.nutritionInfo}>
+              <Text style={styles.nutritionTitle}>Información Nutricional</Text>
+              <View style={styles.nutritionGrid}>
+                <View style={styles.nutritionItem}>
+                  <Text style={styles.nutritionValue}>{generatedRecipe.nutrition?.calories || 0}</Text>
+                  <Text style={styles.nutritionLabel}>Calorías</Text>
+                </View>
+                <View style={styles.nutritionItem}>
+                  <Text style={styles.nutritionValue}>{generatedRecipe.nutrition?.protein || 0}g</Text>
+                  <Text style={styles.nutritionLabel}>Proteína</Text>
+                </View>
+                <View style={styles.nutritionItem}>
+                  <Text style={styles.nutritionValue}>{generatedRecipe.nutrition?.carbs || 0}g</Text>
+                  <Text style={styles.nutritionLabel}>Carbos</Text>
+                </View>
+                <View style={styles.nutritionItem}>
+                  <Text style={styles.nutritionValue}>{generatedRecipe.nutrition?.fat || 0}g</Text>
+                  <Text style={styles.nutritionLabel}>Grasas</Text>
+                </View>
+              </View>
+            </View>
+            
+            <View style={styles.ingredientsSection}>
+              <Text style={styles.sectionTitle}>Ingredientes</Text>
+              {generatedRecipe.ingredients?.map((ingredient: string, idx: number) => (
+                <Text key={idx} style={styles.ingredientItem}>• {ingredient}</Text>
+              ))}
+            </View>
+            
+            <View style={styles.instructionsSection}>
+              <Text style={styles.sectionTitle}>Preparacion</Text>
+              {generatedRecipe.instructions?.map((instruction: string, idx: number) => (
+                <Text key={idx} style={styles.instructionItem}>
+                  {idx + 1}. {instruction}
+                </Text>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Categories Grid */}
         <View style={styles.sectionHeader}>
@@ -298,7 +414,102 @@ const styles = StyleSheet.create({
   },
   favBtn: {
     padding: 8,
-  }
+  },
+  // Chat styles
+  chatHistory: {
+    marginBottom: 24,
+  },
+  messageBubble: {
+    maxWidth: '80%',
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 12,
+  },
+  userBubble: {
+    backgroundColor: '#7c2d12',
+    alignSelf: 'flex-end',
+  },
+  aiBubble: {
+    backgroundColor: '#f1f5f9',
+    alignSelf: 'flex-start',
+  },
+  messageText: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  userText: {
+    color: '#ffffff',
+  },
+  aiText: {
+    color: '#1e293b',
+  },
+  // Recipe styles
+  recipeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  recipeTime: {
+    fontSize: 14,
+    color: '#94a3b8',
+    fontWeight: '600',
+  },
+  recipeDescription: {
+    fontSize: 16,
+    color: '#475569',
+    lineHeight: 24,
+    marginBottom: 20,
+  },
+  nutritionInfo: {
+    backgroundColor: '#f8fafc',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  nutritionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1e293b',
+    marginBottom: 12,
+  },
+  nutritionGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  nutritionItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  nutritionValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#7c2d12',
+  },
+  nutritionLabel: {
+    fontSize: 12,
+    color: '#94a3b8',
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  ingredientsSection: {
+    marginBottom: 20,
+  },
+  ingredientItem: {
+    fontSize: 16,
+    color: '#475569',
+    lineHeight: 24,
+    marginBottom: 4,
+  },
+  instructionsSection: {
+    marginBottom: 20,
+  },
+  instructionItem: {
+    fontSize: 16,
+    color: '#475569',
+    lineHeight: 24,
+    marginBottom: 8,
+  },
 });
 
 export default NoFatScreen;
