@@ -27,6 +27,9 @@ module.exports = function(api) {
         {
           metaObjectProperty: '__meta__'
         }
+      ],
+      [
+        'react-native-reanimated/plugin'
       ]
     ]
   };
