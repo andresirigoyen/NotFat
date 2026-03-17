@@ -10,8 +10,7 @@ const ADMIN_COUNT = 2;
 const CREATOR_COUNT = 3;
 
 // Helper functions
-function getRandomEnum<T>(enumObj: any): T {
-  const values = Object.values(enumObj) as T[];
+function getRandomEnum<const T extends readonly string[]>(values: T): T[number] {
   return values[Math.floor(Math.random() * values.length)];
 }
 
@@ -197,9 +196,9 @@ async function seedMeals(users: any[]) {
   const bodyMetrics = [];
   const healthSnapshots = [];
   
-  const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
-  const sourceTypes = ['camera', 'gallery', 'text', 'scanner', 'unknown', 'voice'];
-  const statuses = ['complete', 'analyzing', 'error', 'no_nutritional_info', 'not_found', 'contributed'];
+  const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
+  const sourceTypes = ['camera', 'gallery', 'text', 'scanner', 'unknown', 'voice'] as const;
+  const statuses = ['complete', 'analyzing', 'error', 'no_nutritional_info', 'not_found', 'contributed'] as const;
   
   for (const user of users) {
     // Skip users without onboarding completed
@@ -230,7 +229,7 @@ async function seedMeals(users: any[]) {
           status: getRandomEnum(statuses),
           source_type: getRandomEnum(sourceTypes),
           recorded_timezone: user.timezone || 'UTC',
-          llm_used: getRandomEnum(['gemini-2.0-flash', 'gpt-4.1-mini', 'open-food-facts', 'gemini-2.5-flash', 'gpt-4.1', 'gemini-2.5-pro']),
+          llm_used: getRandomEnum(['gemini_2_0_flash', 'gpt_4_1_mini', 'open_food_facts', 'gemini_2_5_flash', 'gpt_4_1', 'gemini_2_5_pro']),
           modified: Math.random() > 0.8,
           is_from_favorite: Math.random() > 0.9,
           api_time_ms: getRandomInt(500, 5000),
@@ -295,7 +294,7 @@ async function seedMeals(users: any[]) {
           height_value: getRandomFloat(150, 200),
           weight_unit: getRandomEnum(['kg', 'lb']),
           height_unit: getRandomEnum(['cm', 'm', 'in']),
-          body_fat_unit: 'pct',
+          body_fat_unit: 'pct' as const,
         });
       }
       
@@ -336,9 +335,9 @@ async function seedSubscriptions(users: any[]) {
   const payments = [];
   const paymentAnalytics = [];
   
-  const planTypes = ['basic', 'premium', 'pro'];
-  const statuses = ['active', 'cancelled', 'expired', 'pending'];
-  const paymentMethods = ['mercadopago', 'credit_card', 'debit_card', 'paypal'];
+  const planTypes = ['basic', 'premium', 'pro'] as const;
+  const statuses = ['active', 'cancelled', 'expired', 'pending'] as const;
+  const paymentMethods = ['mercadopago', 'credit_card', 'debit_card', 'paypal'] as const;
   
   for (const user of users) {
     // Skip admin users
@@ -461,7 +460,7 @@ async function seedMasterData() {
   
   // Daily Tips
   const dailyTips = [];
-  const tipCategories = ['nutrición', 'ejercicio', 'hidratación', 'descanso', 'mental'];
+  const tipCategories = ['nutrición', 'ejercicio', 'hidratación', 'descanso', 'mental'] as const;
   for (let i = 0; i < 100; i++) {
     dailyTips.push({
       id: i + 1,
@@ -490,7 +489,7 @@ async function seedNotifications(users: any[]) {
       { hour: 13, minute: 0, type: 'lunch' },
       { hour: 19, minute: 0, type: 'dinner' },
       { hour: 10, minute: 30, type: 'snack' },
-    ];
+    ] as const;
     
     for (const mealTime of mealTimes) {
       if (Math.random() > 0.3) {
@@ -520,7 +519,7 @@ async function seedNotifications(users: any[]) {
           id: faker.string.uuid(),
           user_id: user.id,
           sent_at: notificationTime,
-          notification_type: 'simple_reminder',
+          notification_type: 'simple_reminder' as const,
           reminder_id: preferences.length > 0 ? preferences[getRandomInt(0, preferences.length - 1)].id : null,
         });
       }

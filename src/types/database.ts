@@ -155,6 +155,20 @@ export type Database = {
         Insert: Omit<Database['public']['Tables']['body_metrics']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['body_metrics']['Insert']>;
       };
+      user_activity_profile: {
+        Row: {
+          id: string;
+          user_id: string;
+          does_sport: boolean | null;
+          daily_activity_level: string | null;
+          activity_system_version: string;
+          upgraded_to_v2_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['user_activity_profile']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['user_activity_profile']['Insert']>;
+      };
     };
     Enums: {
       user_role: 'user' | 'creator' | 'admin' | 'superadmin';

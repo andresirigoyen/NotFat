@@ -61,6 +61,38 @@ export type RootStackParamList = {
   Gallery: { mealType: string };
 };
 
+export type MainStackParamList = {
+  DashboardTab: undefined;
+  CoachTab: undefined;
+  ProfileTab: undefined;
+  AnalysisResult: { imageUri: string; mealType: string };
+  MealLogger: { mealType?: string };
+  MealTime: undefined;
+  CustomTimeMeal: undefined;
+  Hydration: undefined;
+  EditProfile: undefined;
+  ProfileSetup: undefined;
+  Preferences: undefined;
+  Favorites: undefined;
+  EditFavorite: undefined;
+  ScientificGoals: undefined;
+  Progress: undefined;
+  Stats: undefined;
+  Achievements: undefined;
+  HealthIntegration: undefined;
+  ProfessionalServices: undefined;
+  NutritionGuidelines: undefined;
+  Nutritionists: undefined;
+  Recipes: undefined;
+  Workouts: undefined;
+  VoiceInput: { mealType: string };
+  NoFat: undefined;
+  Pro: undefined;
+  Steps: undefined;
+  NutritionPlanDetail: undefined;
+  NutritionPlanEdit: undefined;
+};
+
 export type StackNavigationProp<T extends keyof RootStackParamList> = {
   navigate: (screen: T, params?: RootStackParamList[T]) => void;
   goBack: () => void;

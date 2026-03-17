@@ -35,11 +35,13 @@ export const useScannedCaloriesAnalytics = (userId: string | undefined, date: Da
 
       // 1) Ratio diario desde la vista daily_calories_with_scanned_ratio
       const { data: ratioRows, error: ratioError } = await supabase
-        .from<DailyScannedRatio>('daily_calories_with_scanned_ratio')
+        .from('daily_calories_with_scanned_ratio')
         .select('*')
         .eq('user_id', userId)
         .eq('day', isoDay)
         .maybeSingle();
+
+      const ratioData = ratioRows as DailyScannedRatio | null;
 
       if (ratioError) {
         console.error('Error fetching daily_calories_with_scanned_ratio:', ratioError.message);
@@ -47,7 +49,7 @@ export const useScannedCaloriesAnalytics = (userId: string | undefined, date: Da
 
       // 2) Top productos escaneados globales (limit 3)
       const { data: topRows, error: topError } = await supabase
-        .from<TopScannedProduct>('top_scanned_products_by_calories')
+        .from('top_scanned_products_by_calories')
         .select('*')
         .limit(3);
 
@@ -55,8 +57,8 @@ export const useScannedCaloriesAnalytics = (userId: string | undefined, date: Da
         console.error('Error fetching top_scanned_products_by_calories:', topError.message);
       }
 
-      const totalCalories = ratioRows?.total_calories || 0;
-      const scannedCalories = ratioRows?.scanned_calories || 0;
+      const totalCalories = ratioData?.total_calories || 0;
+      const scannedCalories = ratioData?.scanned_calories || 0;
       const ratio = totalCalories > 0
         ? (scannedCalories / totalCalories) * 100
         : 0;

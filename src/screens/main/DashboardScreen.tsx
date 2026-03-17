@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '@/types/navigation';
+import { MainStackParamList } from '@/types/navigation';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import HydrationModal from '@/components/HydrationModal';
 import HealthScoreCard from '@/components/HealthScoreCard';
@@ -45,7 +45,7 @@ const DEFAULT_CUP_SIZE = 250;
 
 export default function DashboardScreen() {
   const { user } = useAuthStore();
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
