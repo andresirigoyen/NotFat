@@ -476,7 +476,7 @@ export default function SubscriptionCenterScreen() {
       </ScrollView>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
