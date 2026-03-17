@@ -12,7 +12,7 @@
     "build:ios": "expo run:ios",
     "build:web": "npx expo export --platform web --clear",
     "vercel-build": "npx expo export --platform web --clear",
-    "test": "jest --passWithNoTests",
+    "test": "jest --passWithNoTests --watchman=false",
     "test:watch": "jest --watch",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
