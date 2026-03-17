@@ -116,7 +116,7 @@ export const useHydration = () => {
     }
   };
 
-  const addWaterLog = async (amount: number, unit: 'ml' | 'oz' = 'ml') => {
+  const addWaterLog = async (amount: number, unit: 'ml' | 'oz' = 'ml', loggedAt?: string) => {
     if (!user || !hydrationGoal) return;
 
     setLoading(true);
@@ -135,8 +135,8 @@ export const useHydration = () => {
           user_id: user.id,
           amount: convertedAmount,
           unit: hydrationGoal.unit,
-          logged_at: new Date().toISOString(),
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          logged_at: loggedAt || new Date().toISOString(),
+          recorded_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
         })
         .select()
         .single();

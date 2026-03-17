@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Dimensions, Animated, Easing, Vibration, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -22,6 +22,9 @@ const HydrationScreen = ({ navigation }: any) => {
     getWeeklyProgress 
   } = useHydration();
   const { user } = useAuthStore();
+  
+  const progressAnim = React.useRef(new Animated.Value(0)).current;
+  const pulseAnim = React.useRef(new Animated.Value(1)).current;
 
   const todayProgress = getTodayProgress().consumed;
   const weeklyProgress = getWeeklyProgress();
@@ -32,8 +35,17 @@ const HydrationScreen = ({ navigation }: any) => {
 
   const handleAddWater = async (amount: number) => {
     try {
+      if (Platform.OS !== 'web') {
+        Vibration.vibrate(10);
+      }
+      
+      // Pulse animation
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.2, duration: 150, useNativeDriver: true }),
+        Animated.spring(pulseAnim, { toValue: 1, friction: 3, useNativeDriver: true })
+      ]).start();
+
       await addWaterLog(amount, hydrationGoal?.unit || 'ml');
-      Alert.alert('¡Éxito!', `Has agregado ${amount} ${hydrationGoal?.unit || 'ml'} de agua`);
     } catch (error) {
       Alert.alert('Error', 'No se pudo agregar el agua. Por favor intenta nuevamente.');
     }
@@ -103,6 +115,17 @@ const HydrationScreen = ({ navigation }: any) => {
     return '#EF4444';
   };
 
+  const percentage = getProgressPercentage();
+
+  React.useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: percentage,
+      duration: 1000,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [percentage]);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -133,19 +156,25 @@ const HydrationScreen = ({ navigation }: any) => {
           
           <View style={styles.progressBarContainer}>
             <View style={styles.progressBar}>
-              <View 
+              <Animated.View 
                 style={[
                   styles.progressFill,
                   { 
-                    width: `${getProgressPercentage()}%`,
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 100],
+                      outputRange: ['0%', '100%'],
+                    }),
                     backgroundColor: getProgressColor()
                   }
                 ]} 
               />
             </View>
-            <Text style={styles.progressPercentage}>
-              {Math.round(getProgressPercentage())}%
-            </Text>
+            <Animated.Text style={[
+              styles.progressPercentage,
+              { transform: [{ scale: pulseAnim }] }
+            ]}>
+              {Math.round(percentage)}%
+            </Animated.Text>
           </View>
         </View>
 
@@ -186,6 +215,20 @@ const HydrationScreen = ({ navigation }: any) => {
             <Ionicons name="add-circle" size={20} color="#3B82F6" />
             <Text style={styles.customButtonText}>Cantidad personalizada</Text>
           </TouchableOpacity>
+
+          <View style={styles.historicalButtons}>
+            <TouchableOpacity 
+              style={styles.historicalButton} 
+              onPress={() => {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                addWaterLog(selectedAmount, hydrationGoal?.unit || 'ml', yesterday.toISOString());
+              }}
+            >
+              <Ionicons name="calendar-outline" size={18} color="#6B7280" />
+              <Text style={styles.historicalButtonText}>Registrar para Ayer ({selectedAmount} {hydrationGoal?.unit || 'ml'})</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Today's Logs */}
@@ -543,6 +586,27 @@ const styles = StyleSheet.create({
   },
   goalDescription: {
     fontSize: 14,
+    color: '#6B7280',
+  },
+  historicalButtons: {
+    marginTop: 16,
+    gap: 8,
+  },
+  historicalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 8,
+  },
+  historicalButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#6B7280',
   },
 });

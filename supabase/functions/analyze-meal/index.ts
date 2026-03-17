@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { getPrismaClient } from "../_shared/db.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,38 +14,29 @@ serve(async (req) => {
   try {
     const { imageUrl, userId } = await req.json()
 
-    // Validación de entrada
+    // 1. Input validation
     if (!imageUrl || !userId) {
       return new Response(
-        JSON.stringify({ error: 'Faltan parámetros requeridos: imageUrl y userId' }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        }
+        JSON.stringify({ error: 'Missing required parameters: imageUrl and userId' }), 
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
-    // 1. Configuración de la API de IA (Gemini 2.0 Flash)
+    // 2. AI API Configuration
     const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
     if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'GOOGLE_GEMINI_API_KEY no configurada' }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
-        }
-      )
+      throw new Error('GOOGLE_GEMINI_API_KEY is not configured')
     }
 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
 
-    const prompt = `Analiza esta imagen de comida y devuelve un JSON con:
-    - name: nombre del plato
-    - calories: total estimado
-    - macros: { protein, carbs, fat } en gramos
-    - ingredients: lista de ingredientes detectados
+    const prompt = `Analyze this food image and return a JSON with:
+    - name: name of the dish
+    - calories: estimated total
+    - macros: { protein, carbs, fat } in grams
+    - ingredients: Array of { name, calories, protein, carbs, fat }
     - health_score: 1-10
-    IMPORTANTE: Responde SOLO el JSON sin formato de código.`
+    IMPORTANT: Respond ONLY with the JSON.`
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -68,45 +59,61 @@ serve(async (req) => {
     })
 
     if (!response.ok) {
-      throw new Error(`Error en API de Gemini: ${response.status} ${response.statusText}`)
+      throw new Error(`Gemini API Error: ${response.statusText}`)
     }
 
     const result = await response.json()
-    
-    if (!result.candidates || result.candidates.length === 0) {
-      throw new Error('No se obtuvo respuesta de Gemini')
-    }
-
     const content = result.candidates[0].content.parts[0].text
-    
-    // Limpiar y parsear el JSON
-    let analysis;
-    try {
-      const cleanContent = content.replace(/```json|```/g, '').trim()
-      analysis = JSON.parse(cleanContent)
-    } catch (parseError: any) {
-      throw new Error(`Error al parsear respuesta de Gemini: ${parseError?.message || parseError}`)
+    const analysis = JSON.parse(content.replace(/```json|```/g, '').trim())
+
+    // 3. Database Persistence using Prisma
+    const prisma = getPrismaClient();
+
+    // Verify user exists
+    const user = await prisma.profiles.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new Error('User profile not found. Please complete onboarding first.');
     }
 
-    // Validar estructura del análisis
-    if (!analysis.name || !analysis.calories || !analysis.macros) {
-      throw new Error('La respuesta de Gemini no contiene todos los campos requeridos')
-    }
+    // Create the meal record
+    const meal = await prisma.meals.create({
+      data: {
+        user_id: userId,
+        name: analysis.name,
+        image_url: imageUrl,
+        status: 'complete',
+        source_type: 'camera',
+        llm_used: 'gemini_2_5_flash',
+        food_items: {
+          create: (analysis.ingredients || []).map((ing: any) => ({
+            name: ing.name,
+            calories: ing.calories || 0,
+            protein: ing.protein || 0,
+            carbs: ing.carbs || 0,
+            fat: ing.fat || 0,
+          }))
+        }
+      },
+      include: {
+        food_items: true
+      }
+    });
 
-    return new Response(JSON.stringify(analysis), {
+    return new Response(JSON.stringify({ 
+      ...analysis,
+      mealId: meal.id 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error: any) {
-    console.error('Error en analyze-meal:', error)
+    console.error('Error in analyze-meal:', error)
     return new Response(
-      JSON.stringify({ 
-        error: error.message || 'Error interno del servidor' 
-      }), 
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
+      JSON.stringify({ error: error.message || 'Internal Server Error' }), 
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
 })

@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
+import { analytics } from '@/services/analytics';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 // Sincronizado con Prisma: height_unit_enum
@@ -103,6 +104,13 @@ export default function OnboardingProfileScreen() {
         weight_unit: weightUnit, // weight_unit_enum
         onboarding_step: 'activity',
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, // String?
+      });
+
+      analytics.trackOnboardingStep('profile', {
+        height_value: parseFloat(heightValue),
+        height_unit: heightUnit,
+        weight_value: parseFloat(weightValue),
+        weight_unit: weightUnit,
       });
 
       navigation.navigate('OnboardingActivity' as never);

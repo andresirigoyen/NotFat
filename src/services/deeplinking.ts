@@ -87,7 +87,10 @@ export class DeepLinkingService {
       return false;
     }
 
-    const { path, params } = parsedUrl;
+    const { path: rawPath, params } = parsedUrl;
+    const [path, ...rest] = rawPath.split('/').filter(Boolean);
+    const subpath = rest.join('/');
+    if (subpath) params._subpath = subpath;
 
     switch (path) {
       case 'meal':
@@ -108,6 +111,8 @@ export class DeepLinkingService {
         return this.handleEmailVerificationDeepLink(params);
       case 'notification':
         return this.handleNotificationDeepLink(params);
+      case 'coach':
+        return this.handleCoachDeepLink(params);
       default:
         return this.handleGenericDeepLink(path, params);
     }
@@ -198,18 +203,18 @@ export class DeepLinkingService {
   // Handle subscription-related deep links
   private async handleSubscriptionDeepLink(params: Record<string, string>): Promise<boolean> {
     try {
-      const plan = params.plan;
-      const action = params.action; // 'upgrade', 'manage', 'cancel'
+      const result = params.result || params._subpath; // success | failure | pending
+      const subscriptionId = params.subscriptionId;
 
-      this.navigationRef?.navigate('Subscription', {
-        screen: action === 'manage' ? 'SubscriptionManage' : 'SubscriptionPlans',
-        params: { plan, action }
+      this.navigationRef?.navigate('SubscriptionCenter', {
+        result,
+        subscriptionId,
       });
 
       analytics.trackCustomEvent('Deep Link Handled', {
         type: 'subscription',
-        action,
-        plan
+        result,
+        subscriptionId,
       });
 
       return true;
@@ -372,6 +377,33 @@ export class DeepLinkingService {
       return true;
     } catch (error) {
       reportError(error as Error, { context: 'deeplinking_notification', params });
+      return false;
+    }
+  }
+
+  // Handle coach-related deep links (processed intake, etc.)
+  private async handleCoachDeepLink(params: Record<string, string>): Promise<boolean> {
+    try {
+      const action = params.action; // e.g. 'processed_intake'
+
+      if (action === 'processed_intake') {
+        this.navigationRef?.navigate('Coach', {
+          initialMessage:
+            'He recibido una alerta de que varias de mis calorías vienen de productos procesados. ' +
+            'Ayúdame a reducirlos y sugiéreme alternativas más saludables para los productos que más consumo.',
+        });
+      } else {
+        this.navigationRef?.navigate('Coach');
+      }
+
+      analytics.trackCustomEvent('Deep Link Handled', {
+        type: 'coach',
+        action: action || 'navigate',
+      });
+
+      return true;
+    } catch (error) {
+      reportError(error as Error, { context: 'deeplinking_coach', params });
       return false;
     }
   }

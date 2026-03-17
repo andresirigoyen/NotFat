@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,16 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Animated,
+  Vibration,
+  Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '@/types/navigation';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import HydrationModal from '@/components/HydrationModal';
 import HealthScoreCard from '@/components/HealthScoreCard';
@@ -19,6 +26,9 @@ import { useBodyMetrics, useAddBodyMetric } from '@/hooks/useBodyMetrics';
 import { useMealsByDate } from '@/hooks/useMeals';
 import { useAuthStore } from '@/store';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNotes } from '@/hooks/useNotes';
+import { Modal, TextInput, KeyboardAvoidingView, Platform as RNPlatform } from 'react-native';
+import { useScannedCaloriesAnalytics } from '@/hooks/useScannedCaloriesAnalytics';
 
 const DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const TODAY_INDEX = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
@@ -31,9 +41,11 @@ const MEALS = [
 ];
 
 const WATER_CUPS = 8;
+const DEFAULT_CUP_SIZE = 250;
 
 export default function DashboardScreen() {
   const { user } = useAuthStore();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
@@ -45,7 +57,22 @@ export default function DashboardScreen() {
   const { mutate: addBodyMetric } = useAddBodyMetric();
   
   const [hydrationVisible, setHydrationVisible] = useState(false);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const { note, saveNote } = useNotes(selectedDate);
+  const [tempNote, setTempNote] = useState('');
   const [weight, setWeight] = useState(profile?.weight_value || 70.0);
+  const { data: scannedAnalytics } = useScannedCaloriesAnalytics(user?.id, selectedDate);
+
+  // Water feedback animation
+  const waterFeedbackAnim = useRef(new Animated.Value(0)).current;
+  const [showWaterFeedback, setShowWaterFeedback] = useState(false);
+
+  const waterMl = totals?.water || 0;
+  const waterGoal = hydrationGoals?.target || 2000;
+  const waterCupsFilled = Math.round((waterMl / waterGoal) * WATER_CUPS);
+
+  // Cup animations
+  const cupAnims = useRef(Array.from({ length: WATER_CUPS - 1 }).map(() => new Animated.Value(0))).current;
 
   const isToday = selectedDate.toDateString() === new Date().toDateString();
 
@@ -55,6 +82,21 @@ export default function DashboardScreen() {
       setWeight(profile.weight_value);
     }
   }, [profile?.weight_value]);
+
+  useEffect(() => {
+    setTempNote(note);
+  }, [note, showNoteModal]);
+
+  useEffect(() => {
+    cupAnims.forEach((anim: Animated.Value, i: number) => {
+      Animated.spring(anim, {
+        toValue: i < waterCupsFilled ? 1 : 0,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+    });
+  }, [waterCupsFilled]);
 
   // Generate calendar days for the month view
   const generateCalendarDays = (date: Date) => {
@@ -79,15 +121,51 @@ export default function DashboardScreen() {
 
   const handleAddWater = (amount: number) => {
     addWater({ volume: amount, unit: 'ml' });
+    
+    // Feedback animation
+    setShowWaterFeedback(true);
+    waterFeedbackAnim.setValue(0);
+    Animated.sequence([
+      Animated.spring(waterFeedbackAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 8,
+      }),
+      Animated.timing(waterFeedbackAnim, {
+        toValue: 0,
+        duration: 500,
+        delay: 800,
+        useNativeDriver: true,
+      })
+    ]).start(() => setShowWaterFeedback(false));
+
+    if (Platform.OS !== 'web') {
+      Vibration.vibrate(10);
+    }
   };
 
-  const waterGoal = hydrationGoals?.target || 2000;
-  const waterMl = totals?.water || 0;
-  const waterCupsFilled = Math.round((waterMl / waterGoal) * WATER_CUPS);
+  const handleDeleteNote = () => {
+    Alert.alert(
+      'Eliminar Nota',
+      '¿Estás seguro de que quieres eliminar esta nota?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Eliminar', 
+          style: 'destructive',
+          onPress: () => {
+            saveNote(''); // Guardar string vacío elimina la nota
+          }
+        }
+      ]
+    );
+  };
 
   const calGoal = nutritionGoals?.calories || 3095;
   const totalConsumed = totals?.calories || 0;
-  const totalRemaining = Math.max(0, calGoal - totalConsumed);
+  const totalBurned = (totals as any)?.burned || 0;
+  const totalRemaining = Math.max(0, (calGoal + totalBurned) - totalConsumed);
 
   if (totalsLoading || profileLoading || mealsLoading) {
     return (
@@ -102,7 +180,11 @@ export default function DashboardScreen() {
   const mealKcalMap = React.useMemo(() => {
     return (meals || []).reduce((acc: any, meal: any) => {
       const kcal = meal.food_items?.reduce((sum: number, item: any) => sum + (item.calories || 0), 0) || 0;
-      const type = meal.meal_type; // 'breakfast', 'lunch' etc
+      let type = meal.meal_type; // 'breakfast', 'lunch' etc
+      
+      // Standardize types for aggregation
+      if (type?.includes('snack')) type = 'snack';
+      
       if (!acc[type]) acc[type] = 0;
       acc[type] += kcal;
       return acc;
@@ -222,53 +304,54 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── SECTION: SUMMARY ──────────────────────── */}
-        <SectionHeader title="Resumen" action="Detalles" actionColor={COLORS.primary.sky} />
+        <SectionHeader 
+          title="Calorías" 
+          action="Detalles" 
+          actionColor={COLORS.primary.sky}
+          onActionPress={() => navigation.navigate('Stats')}
+        />
         <View style={s.card}>
-          {/* Calorie Ring Row */}
-          <View style={s.ringRow}>
-            <View style={s.calStat}>
-              <Text style={s.calNum}>{totalConsumed.toLocaleString()}</Text>
-              <Text style={s.calLabel}>Consumidas</Text>
-            </View>
-            {/* Ring */}
-            <View style={s.ring}>
-              <View style={s.ringInner}>
-                <Text style={s.ringNum}>{totalRemaining.toLocaleString()}</Text>
-                <Text style={s.ringLabel}>Restantes</Text>
+          {/* Calorie Gauge */}
+          <View style={s.calorieGaugeContainer}>
+            <View style={s.calorieGaugeArc}>
+              <View style={s.calorieGaugeFill} />
+              <View style={s.calorieGaugeInner}>
+                <Text style={s.calorieTodayLabel}>
+                  {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </Text>
+                <Text style={s.calorieMain}>{totalConsumed.toLocaleString()} kcal</Text>
+                <Text style={s.calorieSub}>
+                  Calorías restantes {totalRemaining.toLocaleString()}
+                </Text>
               </View>
-            </View>
-            <View style={s.calStat}>
-              <Text style={s.calNum}>0</Text>
-              <Text style={s.calLabel}>Quemadas</Text>
             </View>
           </View>
 
-          {/* Macro Bars */}
-          <View style={s.macroSection}>
+          {/* Macro Circles */}
+          <View style={s.macroCirclesRow}>
             {[
+              { label: 'Proteína', current: totals?.protein || 0, goal: nutritionGoals?.protein || 151, color: '#FBBF24' },
               { label: 'Carbos', current: totals?.carbs || 0, goal: nutritionGoals?.carbs || 377, color: COLORS.primary.sky },
-              { label: 'Proteína', current: totals?.protein || 0, goal: nutritionGoals?.protein || 151, color: '#A78BFA' },
-              { label: 'Grasas', current: totals?.fat || 0, goal: nutritionGoals?.fat || 100, color: COLORS.primary.amber },
-            ].map((m) => (
-              <View key={m.label} style={s.macroItem}>
-                <Text style={s.macroLabel}>{m.label}</Text>
-                <View style={s.macroBarBg}>
-                  <View
-                    style={[
-                      s.macroBarFill,
-                      { width: `${Math.min((m.current / m.goal) * 100, 100)}%`, backgroundColor: m.color },
-                    ]}
-                  />
+              { label: 'Grasas', current: totals?.fat || 0, goal: nutritionGoals?.fat || 100, color: '#F97316' },
+            ].map((m) => {
+              const pct = m.goal > 0 ? Math.min((m.current / m.goal) * 100, 100) : 0;
+              return (
+                <View key={m.label} style={s.macroCircle}>
+                  <View style={[s.macroCircleOuter, { borderColor: 'rgba(255,255,255,0.08)' }]}>
+                    <View style={[s.macroCircleInner, { borderColor: m.color }]} />
+                    <Text style={s.macroCircleValue}>{Math.round(pct)}</Text>
+                  </View>
+                  <Text style={s.macroCircleLabel}>{m.label}</Text>
                 </View>
-                <Text style={s.macroGoal}>{m.current} / {m.goal} g</Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
 
         {/* ── Health Score Card ───────────────────── */}
         <HealthScoreCard 
           date={selectedDate.toISOString().split('T')[0]}
+          processedRatioToday={scannedAnalytics?.ratio}
           onRefresh={() => {
             // Refresh daily totals and health score
             queryClient.invalidateQueries({ queryKey: ['daily_totals'] });
@@ -277,7 +360,12 @@ export default function DashboardScreen() {
         />
 
         {/* ── SECTION: NUTRITION ───────────────────── */}
-        <SectionHeader title="Nutrición" action="Más" actionColor={COLORS.primary.sky} />
+        <SectionHeader 
+          title="Nutrición" 
+          action="Más" 
+          actionColor={COLORS.primary.sky}
+          onActionPress={() => navigation.navigate('Progress')}
+        />
         <View style={s.card}>
           {MEALS.map((meal, idx) => {
             const consumed = Math.round(mealKcalMap[MEAL_TYPE_MAP[meal.name]] || 0);
@@ -291,7 +379,10 @@ export default function DashboardScreen() {
                     <Text style={s.mealName}>{meal.name} →</Text>
                     <Text style={s.mealKcal}>{consumed} / {meal.target.toLocaleString()} kcal</Text>
                   </View>
-                  <TouchableOpacity style={s.addBtn}>
+                  <TouchableOpacity 
+                    style={s.addBtn}
+                    onPress={() => navigation.navigate('MealLogger', { mealType: MEAL_TYPE_MAP[meal.name] })}
+                  >
                     <Ionicons name="add" size={22} color={COLORS.text.primary} />
                   </TouchableOpacity>
                 </View>
@@ -301,28 +392,120 @@ export default function DashboardScreen() {
           })}
         </View>
 
+        {/* ── SECTION: ALIMENTOS ESCANEADOS ─────────── */}
+        {scannedAnalytics && (
+          <>
+            <SectionHeader 
+              title="Alimentos escaneados" 
+            />
+            <View style={s.card}>
+              <Text style={s.scanSummary}>
+                {scannedAnalytics.totalCalories > 0
+                  ? `${scannedAnalytics.ratio}% de tus calorías de hoy provienen de productos escaneados (${scannedAnalytics.scannedCalories.toLocaleString()} kcal).`
+                  : 'Aún no hay datos de calorías para hoy.'}
+              </Text>
+
+              {scannedAnalytics.topProducts.length > 0 && (
+                <View style={s.scanList}>
+                  {scannedAnalytics.topProducts.map((p, idx) => (
+                    <View key={`${p.barcode_number || idx}-${idx}`} style={s.scanItem}>
+                      <View style={s.scanBullet} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.scanName}>{p.name || 'Producto sin nombre'}</Text>
+                        <Text style={s.scanDetail}>
+                          {p.total_calories_from_scans.toLocaleString()} kcal totales · {p.times_scanned} escaneos
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          </>
+        )}
+
         {/* ── SECTION: WATER TRACKER ───────────────── */}
-        <SectionHeader title="Hidratación" />
+        <SectionHeader 
+          title="Hidratación" 
+          action="Más" 
+          actionColor={COLORS.primary.sky}
+          onActionPress={() => navigation.navigate('Hydration')}
+        />
         <View style={s.card}>
           <Text style={s.waterTitle}>Agua</Text>
           <Text style={s.waterGoalLabel}>Meta: {(waterGoal / 1000).toFixed(2)} L</Text>
           <Text style={s.waterBigNum}>
             {waterMl >= 1000 ? `${(waterMl / 1000).toFixed(2)} l` : `${waterMl} ml`}
           </Text>
+          
+          {showWaterFeedback && (
+            <Animated.View style={[
+              s.waterFeedback,
+              {
+                opacity: waterFeedbackAnim,
+                transform: [
+                  { translateY: waterFeedbackAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -40],
+                    }) 
+                  },
+                  { scale: waterFeedbackAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.5, 1.2],
+                    })
+                  }
+                ]
+              }
+            ]}>
+              <Text style={s.waterFeedbackText}>+{DEFAULT_CUP_SIZE}ml</Text>
+            </Animated.View>
+          )}
+
           {/* Cups row */}
           <View style={s.cupsRow}>
-            <TouchableOpacity style={s.addCupBtn} onPress={() => setHydrationVisible(true)}>
+            <TouchableOpacity 
+              style={s.addCupBtn} 
+              onPress={() => handleAddWater(DEFAULT_CUP_SIZE)}
+              onLongPress={() => setHydrationVisible(true)}
+              activeOpacity={0.7}
+            >
               <Ionicons name="add" size={20} color={COLORS.primary.sky} />
             </TouchableOpacity>
-            {Array.from({ length: WATER_CUPS - 1 }).map((_, i) => (
-              <View key={i} style={[s.cup, i < waterCupsFilled && s.cupFilled]} />
+            {cupAnims.map((anim: Animated.Value, i: number) => (
+              <Animated.View 
+                key={i} 
+                style={[
+                  s.cup, 
+                  {
+                    transform: [{
+                      scale: anim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.95, 1.1],
+                      })
+                    }],
+                    backgroundColor: anim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['rgba(56,189,248,0.1)', COLORS.primary.sky],
+                    }) as any,
+                    borderColor: anim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['rgba(56,189,248,0.2)', COLORS.primary.sky],
+                    }) as any
+                  }
+                ]} 
+              />
             ))}
           </View>
           <Text style={s.waterFromFood}>+ Agua de alimentos: 0 mL</Text>
         </View>
 
         {/* ── SECTION: MEASUREMENTS ────────────────── */}
-        <SectionHeader title="Mediciones" action="Más" actionColor={COLORS.primary.sky} />
+        <SectionHeader 
+          title="Mediciones" 
+          action="Más" 
+          actionColor={COLORS.primary.sky}
+          onActionPress={() => navigation.navigate('Progress')}
+        />
         <View style={s.card}>
           <Text style={s.measTitle}>Peso</Text>
           <Text style={s.measGoal}>Meta: {profile?.nutrition_goal?.includes('kg') ? profile.nutrition_goal : '---'}</Text>
@@ -352,7 +535,12 @@ export default function DashboardScreen() {
         </View>
 
         {/* ── SECTION: ACTIVITIES ──────────────────── */}
-        <SectionHeader title="Actividades" action="Más" actionColor={COLORS.primary.sky} />
+        <SectionHeader 
+          title="Actividades" 
+          action="Más" 
+          actionColor={COLORS.primary.sky}
+          onActionPress={() => navigation.navigate('Preferences')}
+        />
         <View style={[s.card, s.activityCard]}>
           <View style={s.activityContent}>
             <Text style={{ fontSize: 32 }}>👟</Text>
@@ -362,10 +550,15 @@ export default function DashboardScreen() {
             </View>
             <Text style={{ fontSize: 32 }}>🏃</Text>
           </View>
-          <TouchableOpacity style={s.connectBtn}>
+          <TouchableOpacity 
+            style={s.connectBtn}
+            onPress={() => navigation.navigate('Preferences')}
+          >
             <Text style={s.connectBtnText}>Conectar</Text>
           </TouchableOpacity>
-          <TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('Steps')}
+          >
             <Text style={s.manualLink}>Registrar pasos manualmente</Text>
           </TouchableOpacity>
         </View>
@@ -373,21 +566,86 @@ export default function DashboardScreen() {
         {/* ── SECTION: NOTAS ───────────────────────── */}
         <SectionHeader title="Notas" />
         <View style={[s.card, s.notesCard]}>
-          <View style={s.notesContent}>
-            <Text style={{ fontSize: 32 }}>☀️</Text>
-            <View style={{ flex: 1, marginHorizontal: SPACING.md }}>
-              <Text style={s.actTitle}>¿Cómo fue tu día?</Text>
-              <Text style={s.actSub}>Registra tu salud y emociones</Text>
+          {note ? (
+            <View>
+              <View style={s.notesHeader}>
+                <Ionicons name="document-text-outline" size={20} color={COLORS.primary.amber} />
+                <Text style={s.notesHeaderText}>Entrada del día</Text>
+                <View style={s.notesActions}>
+                  <TouchableOpacity onPress={() => setShowNoteModal(true)} style={s.noteActionBtn}>
+                    <Ionicons name="pencil" size={16} color={COLORS.text.tertiary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDeleteNote()} style={s.noteActionBtn}>
+                    <Ionicons name="trash" size={16} color={COLORS.status.error} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <Text style={s.noteDisplay}>{note}</Text>
             </View>
-            <Text style={{ fontSize: 32 }}>🌧️</Text>
-          </View>
-          <TouchableOpacity style={s.noteBtn}>
-            <Text style={s.noteBtnText}>Añadir nota</Text>
-          </TouchableOpacity>
+          ) : (
+            <>
+              <View style={s.notesContent}>
+                <Text style={{ fontSize: 32 }}>☀️</Text>
+                <View style={{ flex: 1, marginHorizontal: SPACING.md }}>
+                  <Text style={s.actTitle}>¿Cómo fue tu día?</Text>
+                  <Text style={s.actSub}>Registra tu salud y emociones</Text>
+                </View>
+                <Text style={{ fontSize: 32 }}>🌧️</Text>
+              </View>
+              <TouchableOpacity 
+                style={s.noteBtn}
+                onPress={() => setShowNoteModal(true)}
+              >
+                <Text style={s.noteBtnText}>Añadir nota</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         <View style={{ height: SPACING['3xl'] * 2 }} />
       </ScrollView>
+
+      {/* Note Modal */}
+      <Modal
+        visible={showNoteModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowNoteModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={RNPlatform.OS === 'ios' ? 'padding' : 'height'}
+          style={s.modalOverlay}
+        >
+          <View style={s.modalContent}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>Diario Personal</Text>
+              <TouchableOpacity onPress={() => setShowNoteModal(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text.secondary} />
+              </TouchableOpacity>
+            </View>
+            
+            <TextInput
+              style={s.noteInput}
+              multiline
+              placeholder="¿Cómo te sientes hoy? ¿Alguna observación especial?"
+              placeholderTextColor={COLORS.text.tertiary}
+              value={tempNote}
+              onChangeText={setTempNote}
+              autoFocus
+            />
+            
+            <TouchableOpacity 
+              style={s.saveNoteBtn}
+              onPress={() => {
+                saveNote(tempNote);
+                setShowNoteModal(false);
+              }}
+            >
+              <Text style={s.saveNoteBtnText}>Guardar Nota</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       <HydrationModal
         visible={hydrationVisible}
@@ -398,11 +656,20 @@ export default function DashboardScreen() {
   );
 }
 
-function SectionHeader({ title, action, actionColor }: { title: string; action?: string; actionColor?: string }) {
+function SectionHeader({ title, action, actionColor, onActionPress }: { 
+  title: string; 
+  action?: string; 
+  actionColor?: string;
+  onActionPress?: () => void;
+}) {
   return (
     <View style={s.sectionHeader}>
       <Text style={s.sectionTitle}>{title}</Text>
-      {action && <TouchableOpacity><Text style={[s.sectionAction, { color: actionColor || COLORS.primary.amber }]}>{action}</Text></TouchableOpacity>}
+      {action && (
+        <TouchableOpacity onPress={onActionPress}>
+          <Text style={[s.sectionAction, { color: actionColor || COLORS.primary.amber }]}>{action}</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -457,28 +724,97 @@ const s = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.06)',
   },
 
-  // Summary / Ring
-  ringRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', marginBottom: SPACING.xl },
-  calStat: { alignItems: 'center' },
-  calNum: { fontSize: FONTS.sizes['2xl'], fontWeight: '800', color: COLORS.text.primary, fontFamily: FONTS.primary },
-  calLabel: { fontSize: FONTS.sizes.xs, color: COLORS.text.secondary, fontFamily: FONTS.primary, marginTop: 2 },
-  ring: {
-    width: 130, height: 130, borderRadius: 65,
-    borderWidth: 10, borderColor: 'rgba(255,255,255,0.08)',
-    justifyContent: 'center', alignItems: 'center',
-    borderLeftColor: COLORS.primary.sky,
-    borderBottomColor: COLORS.primary.sky,
+  // Summary / Calories Gauge
+  calorieGaugeContainer: {
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
   },
-  ringInner: { alignItems: 'center' },
-  ringNum: { fontSize: FONTS.sizes['2xl'], fontWeight: '800', color: COLORS.text.primary, fontFamily: FONTS.primary },
-  ringLabel: { fontSize: 10, color: COLORS.text.secondary, fontFamily: FONTS.primary },
-
-  macroSection: { gap: SPACING.md },
-  macroItem: {},
-  macroLabel: { fontSize: FONTS.sizes.sm, color: COLORS.text.secondary, fontFamily: FONTS.primary, marginBottom: 4 },
-  macroBarBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 3, marginBottom: 3 },
-  macroBarFill: { height: 6, borderRadius: 3, minWidth: 6 },
-  macroGoal: { fontSize: FONTS.sizes.xs, color: COLORS.text.secondary, fontFamily: FONTS.primary },
+  calorieGaugeArc: {
+    width: 220,
+    height: 120,
+    borderTopLeftRadius: 220,
+    borderTopRightRadius: 220,
+    borderWidth: 10,
+    borderColor: 'rgba(255,255,255,0.06)',
+    borderBottomWidth: 0,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  calorieGaugeFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '100%',
+    borderTopLeftRadius: 220,
+    borderTopRightRadius: 220,
+    borderWidth: 10,
+    borderBottomWidth: 0,
+    borderColor: COLORS.primary.amber,
+  },
+  calorieGaugeInner: {
+    paddingBottom: SPACING.md,
+    alignItems: 'center',
+  },
+  calorieTodayLabel: {
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.text.secondary,
+    fontFamily: FONTS.primary,
+    marginBottom: 4,
+  },
+  calorieMain: {
+    fontSize: FONTS.sizes['3xl'],
+    fontWeight: '900',
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
+  },
+  calorieSub: {
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.text.secondary,
+    fontFamily: FONTS.primary,
+    marginTop: 2,
+  },
+  macroCirclesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: SPACING.lg,
+  },
+  macroCircle: {
+    alignItems: 'center',
+  },
+  macroCircleOuter: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  macroCircleInner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 28,
+    borderWidth: 4,
+    borderTopColor: 'transparent',
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+  },
+  macroCircleValue: {
+    fontSize: FONTS.sizes.sm,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
+  },
+  macroCircleLabel: {
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.text.secondary,
+    fontFamily: FONTS.primary,
+    marginTop: 4,
+  },
 
   // Nutrition
   mealRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: SPACING.md },
@@ -493,6 +829,22 @@ const s = StyleSheet.create({
   waterTitle: { fontSize: FONTS.sizes.lg, fontWeight: '700', color: COLORS.text.primary, fontFamily: FONTS.primary, textAlign: 'center' },
   waterGoalLabel: { fontSize: FONTS.sizes.xs, color: COLORS.text.secondary, fontFamily: FONTS.primary, textAlign: 'center', marginBottom: SPACING.sm },
   waterBigNum: { fontSize: FONTS.sizes['3xl'], fontWeight: '900', color: COLORS.text.primary, fontFamily: FONTS.primary, textAlign: 'center', marginBottom: SPACING.lg },
+  waterFeedback: {
+    position: 'absolute',
+    top: 60,
+    alignSelf: 'center',
+    zIndex: 10,
+    backgroundColor: COLORS.primary.sky,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  waterFeedbackText: {
+    color: COLORS.background.primary,
+    fontWeight: '800',
+    fontSize: 14,
+    fontFamily: FONTS.primary,
+  },
   cupsRow: { flexDirection: 'row', justifyContent: 'center', gap: SPACING.sm, flexWrap: 'wrap', marginBottom: SPACING.md },
   addCupBtn: { width: 36, height: 52, borderRadius: 6, borderWidth: 2, borderColor: COLORS.primary.sky, justifyContent: 'center', alignItems: 'center' },
   cup: { width: 30, height: 52, borderRadius: 5, borderWidth: 2, borderColor: 'rgba(56,189,248,0.3)', backgroundColor: 'rgba(56,189,248,0.06)' },
@@ -581,6 +933,82 @@ const s = StyleSheet.create({
   calendarDayOtherMonth: {
     opacity: 0.3,
   },
+  notesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+    gap: SPACING.xs,
+  },
+  notesActions: {
+    flexDirection: 'row',
+    gap: SPACING.xs,
+  },
+  noteActionBtn: {
+    padding: SPACING.xs,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  notesHeaderText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.tertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  noteDisplay: {
+    fontSize: 15,
+    color: COLORS.text.primary,
+    lineHeight: 22,
+    fontFamily: FONTS.primary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: COLORS.background.secondary,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: SPACING.xl,
+    paddingBottom: RNPlatform.OS === 'ios' ? 40 : 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.xl,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
+  },
+  noteInput: {
+    backgroundColor: COLORS.background.tertiary,
+    borderRadius: 16,
+    padding: SPACING.md,
+    color: COLORS.text.primary,
+    fontSize: 16,
+    fontFamily: FONTS.primary,
+    minHeight: 150,
+    textAlignVertical: 'top',
+    marginBottom: SPACING.xl,
+  },
+  saveNoteBtn: {
+    backgroundColor: COLORS.primary.amber,
+    borderRadius: 30,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  saveNoteBtnText: {
+    color: COLORS.background.primary,
+    fontSize: 16,
+    fontWeight: 'bold',
+    fontFamily: FONTS.primary,
+  },
   calendarDayText: {
     fontSize: FONTS.sizes.sm,
     fontWeight: '600',
@@ -595,5 +1023,36 @@ const s = StyleSheet.create({
   },
   calendarDayTextOtherMonth: {
     color: COLORS.text.secondary,
+  },
+  scanSummary: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.secondary,
+    fontFamily: FONTS.primary,
+  },
+  scanList: {
+    marginTop: SPACING.md,
+    gap: SPACING.sm,
+  },
+  scanItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  scanBullet: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.primary.sky,
+  },
+  scanName: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
+    fontWeight: '600',
+  },
+  scanDetail: {
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.text.secondary,
+    fontFamily: FONTS.primary,
   },
 });

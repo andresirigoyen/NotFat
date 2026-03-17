@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 're
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 export default function PreferencesScreen() {
   const insets = useSafeAreaInsets();
@@ -10,7 +11,7 @@ export default function PreferencesScreen() {
 
   const [notifications, setNotifications] = React.useState(true);
   const [emailNotifications, setEmailNotifications] = React.useState(false);
-  const [darkMode, setDarkMode] = React.useState(false);
+  const [darkMode, setDarkMode] = React.useState(true);
   const [analytics, setAnalytics] = React.useState(true);
 
   const preferences = [
@@ -42,11 +43,12 @@ export default function PreferencesScreen() {
     <ScrollView 
       style={[styles.container, { paddingTop: insets.top }]}
       contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
     >
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Preferencias</Text>
         <View style={styles.placeholder} />
@@ -56,7 +58,7 @@ export default function PreferencesScreen() {
       {preferences.map((section, index) => (
         <View key={index} style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name={section.icon as any} size={20} color="#6B7280" />
+            <Ionicons name={section.icon as any} size={20} color={COLORS.primary.amber} />
             <Text style={styles.sectionTitle}>{section.title}</Text>
           </View>
           <View style={styles.sectionContent}>
@@ -66,8 +68,9 @@ export default function PreferencesScreen() {
                 <Switch
                   value={item.value}
                   onValueChange={item.onToggle}
-                  trackColor={{ false: '#E5E7EB', true: '#10B981' }}
-                  thumbColor={item.value ? '#FFFFFF' : '#F3F4F6'}
+                  trackColor={{ false: COLORS.background.border, true: COLORS.primary.amber }}
+                  thumbColor={item.value ? COLORS.background.primary : COLORS.text.secondary}
+                  ios_backgroundColor={COLORS.background.tertiary}
                 />
               </View>
             ))}
@@ -78,21 +81,21 @@ export default function PreferencesScreen() {
       {/* Account Actions */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Ionicons name="person" size={20} color="#6B7280" />
+          <Ionicons name="person" size={20} color={COLORS.primary.amber} />
           <Text style={styles.sectionTitle}>Cuenta</Text>
         </View>
         <View style={styles.sectionContent}>
           <TouchableOpacity style={styles.actionItem}>
             <Text style={styles.actionLabel}>Cambiar Contraseña</Text>
-            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionItem}>
             <Text style={styles.actionLabel}>Exportar Datos</Text>
-            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionItem, styles.dangerAction]}>
             <Text style={[styles.actionLabel, styles.dangerText]}>Eliminar Cuenta</Text>
-            <Ionicons name="chevron-forward" size={20} color="#EF4444" />
+            <Ionicons name="chevron-forward" size={20} color={COLORS.status.error} />
           </TouchableOpacity>
         </View>
       </View>
@@ -109,90 +112,98 @@ export default function PreferencesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.background.primary,
   },
   contentContainer: {
-    padding: 20,
+    padding: SPACING.lg,
+    paddingBottom: 100,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: SPACING.xl,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1F2937',
+    fontSize: FONTS.sizes.xl,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
   },
   placeholder: {
     width: 24,
   },
   section: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: COLORS.background.secondary,
+    borderRadius: BORDER_RADIUS.xl,
+    marginBottom: SPACING.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    ...SHADOWS.sm,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: SPACING.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: COLORS.background.border,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-    marginLeft: 8,
+    fontSize: FONTS.sizes.lg,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.text.primary,
+    marginLeft: SPACING.sm,
+    fontFamily: FONTS.primary,
   },
   sectionContent: {
-    padding: 4,
+    padding: SPACING.sm,
   },
   preferenceItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: SPACING.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.03)',
   },
   preferenceLabel: {
-    fontSize: 16,
-    color: '#374151',
+    fontSize: FONTS.sizes.base,
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
   },
   actionItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: SPACING.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.03)',
   },
   actionLabel: {
-    fontSize: 16,
-    color: '#374151',
+    fontSize: FONTS.sizes.base,
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
   },
   dangerAction: {
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderBottomWidth: 0,
   },
   dangerText: {
-    color: '#EF4444',
+    color: COLORS.status.error,
   },
   footer: {
     alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 20,
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.lg,
   },
   version: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 4,
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.secondary,
+    marginBottom: SPACING.xs,
+    fontFamily: FONTS.primary,
   },
   copyright: {
-    fontSize: 12,
-    color: '#9CA3AF',
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.text.muted,
+    fontFamily: FONTS.primary,
   },
 });

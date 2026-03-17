@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/store';
 
@@ -274,4 +275,108 @@ export const useNotifications = () => {
     updateNotificationPreferences,
     setupAllNotifications,
   };
+};
+
+// Additional hooks for notification preferences and logs
+export const useNotificationPreferences = (userId: string) => {
+  return useQuery({
+    queryKey: ['notification_preferences', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+};
+
+export const useCreateNotificationPreference = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (preferenceData: {
+      hour: number;
+      minute: number;
+      meal_type?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+      enabled?: boolean;
+      is_custom?: boolean;
+      label?: string;
+      message?: string;
+      icon?: string;
+      predefined_type?: string;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .insert({
+          ...preferenceData,
+          user_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['notification_preferences', data.user_id] });
+    },
+  });
+};
+
+export const useNotificationLogs = (userId: string) => {
+  return useQuery({
+    queryKey: ['notification_logs', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notification_logs')
+        .select(`
+          *,
+          notification_preferences (*)
+        `)
+        .eq('user_id', userId)
+        .order('sent_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+};
+
+export const useLogNotification = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (logData: {
+      notification_type: 'simple_reminder';
+      reminder_id?: string;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
+      const { data, error } = await supabase
+        .from('notification_logs')
+        .insert({
+          ...logData,
+          user_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['notification_logs', data.user_id] });
+    },
+  });
 };

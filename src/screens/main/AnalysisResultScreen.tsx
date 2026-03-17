@@ -1,14 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useAIAnalysis } from '@/hooks/useAIAnalysis';
+import { useCreateMealWithItems } from '@/hooks/useMeals';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 type Ingredient = {
@@ -30,7 +35,49 @@ const MOCK_INGREDIENTS: Ingredient[] = [
 
 export default function AnalysisResultScreen() {
   const navigation = useNavigation();
-  const [ingredients, setIngredients] = useState<Ingredient[]>(MOCK_INGREDIENTS);
+  const route = useRoute<any>();
+  const { imageUri, mealType = 'snack', mealDate } = route.params ?? {};
+  
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [analyzing, setAnalyzing] = useState(true);
+  const [saving, setSaving] = useState(false);
+  
+  const { analyzeMealImage } = useAIAnalysis();
+  const { mutateAsync: createMeal } = useCreateMealWithItems();
+
+  useEffect(() => {
+    if (!imageUri) {
+      setIngredients(MOCK_INGREDIENTS);
+      setAnalyzing(false);
+      return;
+    }
+
+    const analyzeImage = async () => {
+      try {
+        const analysisResult = await analyzeMealImage(imageUri);
+        if (analysisResult && analysisResult.ingredients) {
+          const mappedIngredients = analysisResult.ingredients.map((ing: any, index: number) => ({
+            id: index.toString(),
+            name: ing.name || 'Ingrediente desconocido',
+            calories: ing.calories || 0,
+            protein: ing.protein || 0,
+            carbs: ing.carbs || 0,
+            fat: ing.fat || 0,
+            confirmed: true,
+          }));
+          setIngredients(mappedIngredients);
+        }
+      } catch (error) {
+        console.error('Error analyzing image:', error);
+        // Fallback to mock data if analysis fails
+        setIngredients(MOCK_INGREDIENTS);
+      } finally {
+        setAnalyzing(false);
+      }
+    };
+
+    analyzeImage();
+  }, [imageUri, analyzeMealImage]);
 
   const toggleIngredient = (id: string) => {
     setIngredients((prev) =>
@@ -44,6 +91,66 @@ export default function AnalysisResultScreen() {
   const totalCarbs = confirmed.reduce((sum, i) => sum + i.carbs, 0);
   const totalFat = confirmed.reduce((sum, i) => sum + i.fat, 0);
 
+  const handleSaveMeal = async () => {
+    if (confirmed.length === 0) {
+      Alert.alert('Error', 'Por favor selecciona al menos un ingrediente');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await createMeal({
+        meal: {
+          name: `Comida ${mealType}`,
+          meal_type: mealType as 'breakfast' | 'lunch' | 'dinner' | 'snack',
+          source_type: 'camera' as const,
+          status: 'complete' as const,
+          meal_at: (mealDate && mealDate !== 'before') ? mealDate : new Date().toISOString(),
+          image_url: imageUri,
+          recorded_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          llm_used: 'gemini-2.5-flash' as const,
+          modified: false,
+          is_from_favorite: false,
+          image_url_aux: null,
+          feedback: null,
+          recommendation: null,
+          api_time_ms: null,
+          processing_time_ms: null,
+          prompt_version: '1.0',
+        },
+        items: confirmed.map(ing => ({
+          name: ing.name,
+          quantity: 100,
+          unit: 'g' as const,
+          calories: ing.calories,
+          protein: ing.protein,
+          carbs: ing.carbs,
+          fat: ing.fat,
+          barcode_number: null,
+          scanned: false,
+          servings: 1,
+          contributed: false,
+          nutriscore_grade: null,
+          nova_group: null,
+          notfat_score: null,
+          labels_tags: null,
+          additives_tags: null,
+          notfat_score_breakdown: null,
+          additives_details: null,
+          is_alcoholic: false,
+          has_ingredients_data: false,
+        })),
+      });
+      
+      Alert.alert('Éxito', 'Comida guardada correctamente');
+      navigation.navigate('Home' as never);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo guardar la comida');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
@@ -53,9 +160,15 @@ export default function AnalysisResultScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.photoBadgeRow}>
-          <View style={styles.thumbnailPlaceholder}>
-            <Ionicons name="image-outline" size={40} color="rgba(255,255,255,0.15)" />
-            <Text style={styles.thumbnailLabel}>Foto analizada</Text>
+          <View style={styles.thumbnailContainer}>
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} style={styles.thumbnailImage} />
+            ) : (
+              <View style={styles.thumbnailPlaceholder}>
+                <Ionicons name="image-outline" size={40} color="rgba(255,255,255,0.15)" />
+                <Text style={styles.thumbnailLabel}>Foto analizada</Text>
+              </View>
+            )}
           </View>
           <View style={styles.aiChip}>
             <Ionicons name="sparkles" size={14} color={COLORS.primary.amber} />
@@ -63,8 +176,15 @@ export default function AnalysisResultScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Ingredientes detectados</Text>
-        <Text style={styles.sectionSub}>Confirma o descarta lo que Gemini identificó</Text>
+        {analyzing ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary.amber} />
+            <Text style={styles.loadingText}>Analizando imagen con IA...</Text>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.sectionTitle}>Ingredientes detectados</Text>
+            <Text style={styles.sectionSub}>Confirma o descarta lo que Gemini identificó</Text>
 
         <View style={styles.ingredientsList}>
           {ingredients.map((ing) => (
@@ -116,16 +236,25 @@ export default function AnalysisResultScreen() {
             </View>
           </View>
         </View>
+          </>
+        )}
       </ScrollView>
 
       <View style={styles.ctaContainer}>
         <TouchableOpacity
           style={styles.confirmButton}
-          onPress={() => (navigation.navigate as any)('Main')}
+          onPress={handleSaveMeal}
+          disabled={saving || analyzing}
           activeOpacity={0.85}
         >
-          <Ionicons name="checkmark-circle" size={22} color={COLORS.background.primary} />
-          <Text style={styles.confirmButtonText}>Confirmar y Guardar en Dashboard</Text>
+          {saving ? (
+            <ActivityIndicator size="small" color={COLORS.background.primary} />
+          ) : (
+            <Ionicons name="checkmark-circle" size={22} color={COLORS.background.primary} />
+          )}
+          <Text style={styles.confirmButtonText}>
+            {saving ? 'Guardando...' : 'Confirmar y Guardar'}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -138,8 +267,24 @@ const styles = StyleSheet.create({
   backLabel: { color: COLORS.text.primary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.base, fontWeight: '600' },
   content: { paddingHorizontal: SPACING.xl, paddingBottom: 120 },
   photoBadgeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.lg, marginBottom: SPACING.xl },
+  thumbnailContainer: { width: 110, height: 110, borderRadius: BORDER_RADIUS.xl, overflow: 'hidden' },
+  thumbnailImage: { width: '100%', height: '100%', borderRadius: BORDER_RADIUS.xl },
   thumbnailPlaceholder: { width: 110, height: 110, backgroundColor: '#1A1A1A', borderRadius: BORDER_RADIUS.xl, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', gap: 6 },
   thumbnailLabel: { color: COLORS.text.secondary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.xs },
+  loadingContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    paddingVertical: SPACING.lg * 2,
+    gap: SPACING.md 
+  },
+  loadingText: { 
+    color: COLORS.text.secondary, 
+    fontFamily: FONTS.primary, 
+    fontSize: FONTS.sizes.base,
+    textAlign: 'center',
+    marginTop: SPACING.md 
+  },
   aiChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(252,211,77,0.1)', borderRadius: BORDER_RADIUS.full, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, gap: 6, borderWidth: 1, borderColor: 'rgba(252,211,77,0.25)', alignSelf: 'flex-start' },
   aiChipText: { color: COLORS.primary.amber, fontFamily: FONTS.primary, fontSize: FONTS.sizes.xs, fontWeight: '700' },
   sectionTitle: { color: COLORS.text.primary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.xl, fontWeight: '700', marginBottom: 4 },

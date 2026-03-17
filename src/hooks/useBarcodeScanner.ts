@@ -148,9 +148,21 @@ export function useBarcodeScanner() {
         .insert({
           user_id: user.id,
           name: productData.product.name || 'Producto Escaneado',
-          meal_type: 'snack', // Default, puede ser ajustado
+          meal_type: 'snack',
           source_type: 'scanner',
-          status: 'complete'
+          status: 'complete',
+          meal_at: new Date().toISOString(),
+          image_url: null,
+          recorded_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          llm_used: 'open-food-facts',
+          modified: false,
+          is_from_favorite: false,
+          image_url_aux: null,
+          feedback: null,
+          recommendation: null,
+          api_time_ms: productData.processing_ms || null,
+          processing_time_ms: productData.processing_ms || null,
+          prompt_version: '1.0',
         })
         .select()
         .single();
@@ -163,6 +175,8 @@ export function useBarcodeScanner() {
         .insert({
           meal_id: meal.id,
           name: productData.product.name,
+          quantity: productData.product.quantity || 100,
+          unit: 'g',
           calories: productData.product.calories,
           protein: productData.product.protein,
           carbs: productData.product.carbs,
@@ -172,8 +186,16 @@ export function useBarcodeScanner() {
           sodium: productData.product.sodium,
           nutriscore_grade: productData.product.nutriscore_grade,
           nova_group: productData.product.nova_group,
+          notfat_score: null,
+          labels_tags: productData.product.labels_tags || null,
+          additives_tags: productData.product.additives_tags || null,
+          notfat_score_breakdown: null,
+          additives_details: productData.product.additives_details || null,
+          is_alcoholic: productData.product.is_alcoholic || false,
+          has_ingredients_data: productData.product.ingredients ? true : false,
           barcode_number: productData.barcode,
           scanned: true,
+          servings: 1,
           contributed: false
         });
 

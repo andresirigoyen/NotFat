@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const SubscriptionScreen = ({ navigation }: any) => {
@@ -7,17 +7,12 @@ const SubscriptionScreen = ({ navigation }: any) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" hidden={true} />
       
-      <ImageBackground 
-        source={require('../../../assets/images/premium1.png')}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      >
-        <SafeAreaView style={{ flex: 1 }}>
-          <View style={styles.overlay}>
-            {/* Top Header */}
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>Plan de Subscripcion</Text>
-            </View>
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={styles.overlay}>
+          {/* Top Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Plan de Subscripcion</Text>
+          </View>
 
             {/* Main Content */}
             <View style={styles.content}>
@@ -61,7 +56,6 @@ const SubscriptionScreen = ({ navigation }: any) => {
             </View>
           </View>
         </SafeAreaView>
-      </ImageBackground>
     </View>
   );
 };
@@ -70,11 +64,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
-  },
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
   },
   overlay: {
     flex: 1,

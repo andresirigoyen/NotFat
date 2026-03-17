@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
+import { analytics } from '@/services/analytics';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 export default function OnboardingBirthDateScreen() {
@@ -69,6 +70,10 @@ export default function OnboardingBirthDateScreen() {
       await updateProfile.mutateAsync({
         birth_date: birthDate.toISOString(), // DateTime format for Prisma
         onboarding_step: 'goals',
+      });
+
+      analytics.trackOnboardingStep('birth_date', {
+        age: calculateAge(birthDate),
       });
 
       navigation.navigate('OnboardingGoals' as never);

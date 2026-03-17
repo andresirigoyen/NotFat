@@ -261,7 +261,7 @@ async function seedMeals(users: any[]) {
             contributed: Math.random() > 0.95,
             nutriscore_grade: getRandomEnum(['A', 'B', 'C', 'D', 'E']),
             nova_group: getRandomInt(1, 4),
-            nutria_score: getRandomInt(-10, 100),
+            notfat_score: getRandomInt(-10, 100),
             is_alcoholic: Math.random() > 0.98,
             has_ingredients_data: Math.random() > 0.3,
           });

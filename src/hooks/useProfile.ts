@@ -6,6 +6,8 @@ import { Database } from '@/types/database';
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 type NutritionGoalInsert = Database['public']['Tables']['nutrition_goals']['Insert'];
 type HydrationGoalInsert = Database['public']['Tables']['hydration_goals']['Insert'];
+type UserActivityProfileRow = Database['public']['Tables']['user_activity_profile']['Row'];
+type UserActivityProfileUpsert = Database['public']['Tables']['user_activity_profile']['Insert'];
 
 export const useProfile = () => {
   const queryClient = useQueryClient();
@@ -61,21 +63,64 @@ export const useProfile = () => {
     enabled: !!user?.id,
   });
 
+  const { data: activityProfile } = useQuery({
+    queryKey: ['user_activity_profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('user_activity_profile')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      // If missing row, treat as null
+      if (error && (error as any).code === 'PGRST116') return null;
+      if (error) throw error;
+      return data as UserActivityProfileRow;
+    },
+    enabled: !!user?.id,
+  });
+
   const updateProfile = useMutation({
     mutationFn: async (updates: ProfileUpdate) => {
       if (!user?.id) throw new Error('User not authenticated');
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id)
-        .select()
-        .single();
+      
+      const { data, error } = await supabase.functions.invoke('update-profile', {
+        body: { updates, userId: user.id },
+      });
       
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+    },
+  });
+
+  const uploadAvatar = useMutation({
+    mutationFn: async (imageUri: string) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
+      const fileName = `${user.id}/${Date.now()}.jpg`;
+      
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, blob, {
+          contentType: 'image/jpeg',
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Update profile with new avatar URL
+      return await updateProfile.mutateAsync({ avatar_url: publicUrl });
     },
   });
 
@@ -90,7 +135,7 @@ export const useProfile = () => {
           ...goals,
           user_id: user.id,
           start_date: new Date().toISOString(),
-          source: 'manual',
+          source: (goals as any).source || 'manual',
         })
         .select()
         .single();
@@ -124,37 +169,91 @@ export const useProfile = () => {
     },
   });
 
+  const upsertActivityProfile = useMutation({
+    mutationFn: async (payload: Partial<UserActivityProfileUpsert>) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('user_activity_profile')
+        .upsert({
+          user_id: user.id,
+          activity_system_version: 'v2',
+          ...payload,
+        } as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as UserActivityProfileRow;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user_activity_profile', user?.id] });
+    },
+  });
+
+  const mapWorkoutFrequencyToDailyActivityLevel = (
+    workoutFrequency?: string | null
+  ): 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extra_active' => {
+    switch ((workoutFrequency || '').toLowerCase()) {
+      case 'sedentary':
+        return 'sedentary';
+      case 'light':
+        return 'lightly_active';
+      case 'moderate':
+        return 'moderately_active';
+      case 'active':
+        return 'very_active';
+      case 'very_active':
+        return 'extra_active';
+      default:
+        return 'moderately_active';
+    }
+  };
+
+  const { signOut: authSignOut } = useAuthStore();
+
   return {
     profile,
     isLoading,
     nutritionGoals,
     hydrationGoals,
+    activityProfile,
     updateProfile,
+    uploadAvatar,
     updateNutritionGoals,
     updateHydrationGoals,
+    upsertActivityProfile,
+    signOut: authSignOut,
     generateAutomaticGoals: async () => {
       if (!profile) throw new Error('No profile found');
       
-      const { calculateFinalGoals, calculateAge } = await import('@/utils/nutrition');
+      const { calculateNutritionGoalsWithAI, calculateAge } = await import('@/utils/nutrition');
       
       const age = profile.birth_date ? calculateAge(profile.birth_date) : 30;
       const weight = profile.weight_value || 70;
       const height = profile.height_value || 170;
-      const gender = profile.gender || 'male';
+      const gender = (profile.gender as any) || 'male';
 
-      const goals = calculateFinalGoals({
+      const goals = await calculateNutritionGoalsWithAI({
         age,
         weight,
         height,
         gender,
-        activityLevel: 'moderately_active', // Default or from profile if available
+        activityLevel:
+          (activityProfile?.daily_activity_level as any) ||
+          mapWorkoutFrequencyToDailyActivityLevel(profile.workout_frequency),
         goal: (profile.nutrition_goal as any) || 'maintain',
+      }, profile);
+
+      const result = await updateNutritionGoals.mutateAsync({
+        calories: goals.calories,
+        protein: goals.protein,
+        carbs: goals.carbs,
+        fat: goals.fat,
+        source: 'ia' as any, // Marcar como generado por IA
       });
 
-      return await updateNutritionGoals.mutateAsync({
-        ...goals,
-        source: 'algorithm',
-      });
+      return result;
     },
     generateAutomaticHydrationGoal: async () => {
       if (!profile) throw new Error('No profile found');

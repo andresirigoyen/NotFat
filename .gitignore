@@ -25,8 +25,8 @@ web-build/
 out/
 
 # Database backups
-Nutria_Clone_DB.7z
-Nutria_Clone_DB/
+NotFat_Clone_DB.7z
+NotFat_Clone_DB/
 
 # Logs
 logs

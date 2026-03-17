@@ -11,10 +11,22 @@ serve(async (req) => {
   }
 
   try {
-    const { planType, userId, email } = await req.json()
+    const { planType, userId, email, subscriptionId, amount, currency } = await req.json()
     
     const mpAccessToken = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')
-    const price = planType === 'yearly' ? 79990 : 9990
+    if (!mpAccessToken) {
+      throw new Error('MERCADOPAGO_ACCESS_TOKEN no configurado')
+    }
+
+    // Pricing source of truth (CLP)
+    // - monthly: 4.990
+    // - yearly: 29.990
+    const inferredPrice = planType === 'yearly' ? 29990 : 4990
+    const price = typeof amount === 'number' && amount > 0 ? amount : inferredPrice
+    const currencyId = currency || "CLP"
+    if (!subscriptionId) {
+      throw new Error('subscriptionId requerido')
+    }
 
     const body = {
       items: [
@@ -22,19 +34,24 @@ serve(async (req) => {
           title: `Suscripción NotFat Premium - ${planType === 'yearly' ? 'Anual' : 'Mensual'}`,
           quantity: 1,
           unit_price: price,
-          currency_id: "CLP", // Chile por defecto, ajustable
+          currency_id: currencyId,
         }
       ],
       payer: {
         email: email
       },
       back_urls: {
-        success: "notfat://subscription/success",
-        failure: "notfat://subscription/failure",
-        pending: "notfat://subscription/pending"
+        success: `notfat://subscription?result=success&subscriptionId=${subscriptionId}`,
+        failure: `notfat://subscription?result=failure&subscriptionId=${subscriptionId}`,
+        pending: `notfat://subscription?result=pending&subscriptionId=${subscriptionId}`
       },
       auto_return: "approved",
-      external_reference: userId,
+      external_reference: subscriptionId,
+      metadata: {
+        user_id: userId,
+        plan_type: planType,
+        subscription_id: subscriptionId,
+      },
       notification_url: `${Deno.env.get('SUPABASE_PROJECT_URL')}/functions/v1/mp-webhook`
     }
 
@@ -49,7 +66,10 @@ serve(async (req) => {
 
     const data = await response.json()
 
-    return new Response(JSON.stringify({ init_point: data.init_point }), {
+    return new Response(JSON.stringify({ 
+      init_point: data.init_point,
+      preference_id: data.id,
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })

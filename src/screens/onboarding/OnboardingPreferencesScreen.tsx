@@ -6,7 +6,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
+import { useCreateNotificationPreference } from '@/hooks/useNotifications';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { analytics } from '@/services/analytics';
 
 // Sincronizado con Prisma: water_unit_enum
 const WATER_UNITS = [
@@ -24,6 +26,7 @@ export default function OnboardingPreferencesScreen() {
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
+  const { mutateAsync: createNotificationPreference } = useCreateNotificationPreference();
   
   // Estados para preferencias (sincronizados con Prisma)
   const [preferredBottleUnit, setPreferredBottleUnit] = useState<'ml' | 'oz'>('ml');
@@ -34,6 +37,74 @@ export default function OnboardingPreferencesScreen() {
 
   const availableBottleSizes = BOTTLE_SIZES[preferredBottleUnit];
 
+  const createDefaultNotificationPreferences = async () => {
+    if (!user) return;
+
+    const defaultPrefs = [
+      {
+        // Desayuno 8:00
+        hour: 8,
+        minute: 0,
+        meal_type: 'breakfast' as const,
+        enabled: true,
+        is_custom: false,
+        label: 'Desayuno',
+        message: 'Registra tu desayuno para empezar bien el día',
+        icon: '🍳',
+        predefined_type: 'meal_reminder',
+      },
+      {
+        // Almuerzo 13:00
+        hour: 13,
+        minute: 0,
+        meal_type: 'lunch' as const,
+        enabled: true,
+        is_custom: false,
+        label: 'Almuerzo',
+        message: 'No olvides registrar tu almuerzo',
+        icon: '🥗',
+        predefined_type: 'meal_reminder',
+      },
+      {
+        // Cena 20:00
+        hour: 20,
+        minute: 0,
+        meal_type: 'dinner' as const,
+        enabled: true,
+        is_custom: false,
+        label: 'Cena',
+        message: 'Registra tu cena antes de terminar el día',
+        icon: '🍽️',
+        predefined_type: 'meal_reminder',
+      },
+      {
+        // Resumen diario 21:00
+        hour: 21,
+        minute: 0,
+        enabled: true,
+        is_custom: false,
+        label: 'Resumen del día',
+        message: 'Revisa tu progreso diario en NotFat',
+        icon: '📊',
+        predefined_type: 'daily_summary',
+      },
+      {
+        // Hidratación cada día a las 11:00 (puedes ajustar luego a más frecuencia)
+        hour: 11,
+        minute: 0,
+        enabled: true,
+        is_custom: false,
+        label: 'Hidratación',
+        message: 'Toma agua y registra tu hidratación',
+        icon: '💧',
+        predefined_type: 'water_reminder',
+      },
+    ];
+
+    for (const pref of defaultPrefs) {
+      await createNotificationPreference(pref as any);
+    }
+  };
   const handleContinue = async () => {
     if (!user) return;
 
@@ -48,6 +119,16 @@ export default function OnboardingPreferencesScreen() {
         onboarding_step: 'completed',
         onboarding_completed: true, // Boolean?
       });
+
+      analytics.trackOnboardingStep('preferences', {
+        preferred_bottle_size: preferredBottleSize,
+        preferred_bottle_unit: preferredBottleUnit,
+        show_calories: showCalories,
+        show_hydration: showHydration,
+      });
+
+      // Crear preferencias de notificaciones por defecto (meal + agua + resumen)
+      await createDefaultNotificationPreferences();
 
       // Navegar a la pantalla principal
       navigation.reset({

@@ -45,6 +45,16 @@ export const useDailyTotals = (date?: Date) => {
         .lt('logged_at', tomorrow.toISOString());
 
       if (waterError) throw waterError;
+      
+      // 3. Fetch manual workouts
+      const { data: workoutData, error: workoutError } = await supabase
+        .from('manual_workouts')
+        .select('estimated_calories')
+        .eq('user_id', user.id)
+        .gte('workout_date', today.toISOString().split('T')[0])
+        .lte('workout_date', today.toISOString().split('T')[0]);
+
+      if (workoutError) throw workoutError;
 
       const totals = {
         calories: 0,
@@ -52,6 +62,7 @@ export const useDailyTotals = (date?: Date) => {
         carbs: 0,
         fat: 0,
         water: 0,
+        burned: 0,
         mealCount: mealData?.length || 0,
       };
 
@@ -70,6 +81,10 @@ export const useDailyTotals = (date?: Date) => {
         totals.water += Number(log.volume) || 0;
       });
 
+      workoutData?.forEach((workout: any) => {
+        totals.burned += workout.estimated_calories || 0;
+      });
+
       return {
         ...totals,
         calories: Math.round(totals.calories),
@@ -77,6 +92,7 @@ export const useDailyTotals = (date?: Date) => {
         carbs: Math.round(totals.carbs),
         fat: Math.round(totals.fat),
         water: Math.round(totals.water),
+        burned: Math.round(totals.burned),
       };
     },
     enabled: !!user?.id,

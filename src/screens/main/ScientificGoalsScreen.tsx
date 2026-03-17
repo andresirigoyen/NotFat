@@ -10,9 +10,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { ChevronLeft } from 'lucide-react-native';
 import { useScientificGoals } from '@/hooks/useScientificGoals';
 import { useProfile } from '@/hooks/useProfile';
-import { COLORS, SPACING, FONTS } from '@/constants/theme';
+import { COLORS, SPACING, FONTS, BORDER_RADIUS } from '@/constants/theme';
 
 const TYPOGRAPHY = {
   heading: {
@@ -243,7 +244,7 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color="#ffffff" />
+          <ChevronLeft size={24} color={COLORS.primary.amber} />
         </TouchableOpacity>
         <Text style={styles.title}>Objetivos Científicos</Text>
         <View style={styles.placeholder} />
@@ -390,15 +391,15 @@ const styles = StyleSheet.create({
   },
   introductionTitle: {
     ...TYPOGRAPHY.heading,
-    fontSize: 20,
-    color: '#000000',
+    fontSize: FONTS.sizes.xl,
+    color: COLORS.text.primary,
     textAlign: 'center',
     marginTop: SPACING.md,
     marginBottom: SPACING.md,
   },
   introductionText: {
     ...TYPOGRAPHY.body,
-    color: '#666666',
+    color: COLORS.text.secondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: SPACING.md,
@@ -407,46 +408,43 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary.amber,
     paddingHorizontal: SPACING.xl,
     paddingVertical: SPACING.md,
-    borderRadius: 25,
+    borderRadius: BORDER_RADIUS.xl,
     marginTop: SPACING.lg,
     minWidth: 200,
   },
   generateButtonText: {
     ...TYPOGRAPHY.button,
-    color: '#000000',
+    color: COLORS.background.primary,
     textAlign: 'center',
   },
   formulasCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+    backgroundColor: COLORS.background.secondary,
+    borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   formulasTitle: {
     ...TYPOGRAPHY.heading,
-    fontSize: 18,
-    color: '#000000',
+    fontSize: FONTS.sizes.lg,
+    color: COLORS.text.primary,
     marginBottom: SPACING.md,
   },
   formulaSection: {
     marginBottom: SPACING.md,
     paddingBottom: SPACING.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   formulaName: {
     ...TYPOGRAPHY.subheading,
-    color: '#000000',
+    color: COLORS.text.primary,
     marginBottom: SPACING.xs,
   },
   formulaValue: {
     ...TYPOGRAPHY.caption,
-    color: '#666666',
+    color: COLORS.text.secondary,
     fontFamily: 'monospace',
     marginBottom: SPACING.xs,
   },
@@ -456,20 +454,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   goalsCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+    backgroundColor: COLORS.background.secondary,
+    borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   goalsTitle: {
     ...TYPOGRAPHY.heading,
-    fontSize: 18,
-    color: '#000000',
+    fontSize: FONTS.sizes.lg,
+    color: COLORS.text.primary,
     marginBottom: SPACING.md,
   },
   goalsGrid: {
@@ -492,13 +487,13 @@ const styles = StyleSheet.create({
   },
   goalValue: {
     ...TYPOGRAPHY.heading,
-    fontSize: 16,
-    color: '#000000',
+    fontSize: FONTS.sizes.base,
+    color: COLORS.text.primary,
     marginBottom: 2,
   },
   goalLabel: {
     ...TYPOGRAPHY.caption,
-    color: '#666666',
+    color: COLORS.text.secondary,
     textAlign: 'center',
   },
   doneButton: {

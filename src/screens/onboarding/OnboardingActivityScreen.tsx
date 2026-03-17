@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
+import { analytics } from '@/services/analytics';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 // Sincronizado con Prisma: profiles.workout_frequency (String?)
@@ -64,7 +65,7 @@ const STEPS_GOALS = [
 export default function OnboardingActivityScreen() {
   const navigation = useNavigation();
   const { user } = useAuthStore();
-  const { updateProfile } = useProfile();
+  const { updateProfile, upsertActivityProfile } = useProfile();
   
   // Estados para actividad (sincronizados con Prisma)
   const [selectedWorkout, setSelectedWorkout] = useState<string>('');
@@ -84,11 +85,40 @@ export default function OnboardingActivityScreen() {
 
     setIsLoading(true);
     try {
+      // Mapear workout_frequency a daily_activity_level (user_activity_profile)
+      const dailyActivityLevel = (() => {
+        switch (selectedWorkout) {
+          case 'sedentary':
+            return 'sedentary';
+          case 'light':
+            return 'lightly_active';
+          case 'moderate':
+            return 'moderately_active';
+          case 'active':
+            return 'very_active';
+          case 'very_active':
+            return 'extra_active';
+          default:
+            return 'moderately_active';
+        }
+      })();
+
+      await upsertActivityProfile.mutateAsync({
+        daily_activity_level: dailyActivityLevel,
+        does_sport: selectedWorkout !== 'sedentary',
+      } as any);
+
       // Sincronizado con Prisma: profiles
       await updateProfile.mutateAsync({
         workout_frequency: selectedWorkout, // String?
         steps_goal: selectedStepsGoal, // Int @default(10000)
         onboarding_step: 'preferences',
+      });
+
+      analytics.trackOnboardingStep('activity', {
+        workout_frequency: selectedWorkout,
+        steps_goal: selectedStepsGoal,
+        daily_activity_level: dailyActivityLevel,
       });
 
       navigation.navigate('OnboardingPreferences' as never);

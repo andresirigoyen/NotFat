@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
+import { analytics } from '@/services/analytics';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 // Sincronizado con Prisma: profiles.nutrition_goal y profiles.achievement_goal
@@ -100,30 +101,20 @@ export default function OnboardingGoalsScreen() {
     setSelectedDietType(dietId);
   };
 
-  const handleContinue = async () => {
+  const persistGoals = async () => {
     if (!selectedNutritionGoal || !user) return;
 
-    setIsLoading(true);
-    try {
-      // Sincronizado con Prisma: profiles.nutrition_goal, profiles.achievement_goal, profiles.diet_type
-      await updateProfile.mutateAsync({
-        nutrition_goal: selectedNutritionGoal, // String @db.VarChar(255)
-        achievement_goal: selectedNutritionGoal, // String @db.VarChar(255)
-        diet_type: selectedDietType, // String @default("Balanced")
-        onboarding_step: 'completed',
-        onboarding_completed: true, // Boolean?
-      });
-
-      // Navegar a la pantalla principal
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main' as never }],
-      });
-    } catch (error) {
-      console.error('Error updating goals:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    // Sincronizado con Prisma: profiles.nutrition_goal, profiles.achievement_goal, profiles.diet_type
+    await updateProfile.mutateAsync({
+      nutrition_goal: selectedNutritionGoal,
+      achievement_goal: selectedNutritionGoal,
+      diet_type: selectedDietType,
+      onboarding_step: 'profile',
+    });
+    analytics.trackOnboardingStep('goals', {
+      nutrition_goal: selectedNutritionGoal,
+      diet_type: selectedDietType,
+    });
   };
 
   return (
@@ -261,7 +252,19 @@ export default function OnboardingGoalsScreen() {
         <View style={styles.actionSection}>
           <TouchableOpacity
             style={styles.aiButton}
-            onPress={() => navigation.navigate('OnboardingAIGoals' as never)}
+            onPress={async () => {
+              if (!selectedNutritionGoal || isLoading) return;
+              setIsLoading(true);
+              try {
+                await persistGoals();
+                navigation.navigate('OnboardingAIGoals' as never);
+              } catch (e) {
+                console.error('Error saving goals:', e);
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+            disabled={!selectedNutritionGoal || isLoading}
           >
             <LinearGradient
               colors={[COLORS.primary.sky, '#0EA5E9']}
@@ -276,7 +279,19 @@ export default function OnboardingGoalsScreen() {
 
           <TouchableOpacity
             style={styles.manualButton}
-            onPress={() => navigation.navigate('OnboardingProfile' as never)}
+            onPress={async () => {
+              if (!selectedNutritionGoal || isLoading) return;
+              setIsLoading(true);
+              try {
+                await persistGoals();
+                navigation.navigate('OnboardingProfile' as never);
+              } catch (e) {
+                console.error('Error saving goals:', e);
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+            disabled={!selectedNutritionGoal || isLoading}
           >
             <Ionicons name="create" size={20} color={COLORS.text.secondary} />
             <Text style={styles.manualButtonText}>Configurar manualmente</Text>

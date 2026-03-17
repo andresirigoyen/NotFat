@@ -83,16 +83,20 @@ const NoFatScreen = () => {
                   if (result) {
                     if (result.type === 'recipe' && result.recipeData) {
                       setGeneratedRecipe(result.recipeData);
+                      // Mostrar mensaje amigable
+                      const friendlyMessage = result.response || '¡He creado una receta deliciosa para ti! 🍽️';
                       setChatHistory(prev => [...prev, { 
                         role: 'ai', 
-                        message: result.response || '¡He creado una receta deliciosa para ti!'
+                        message: friendlyMessage
                       }]);
                     } else {
-                      // Es solo chat, limpiamos la receta anterior de la pantalla
+                      // Es solo chat, limpiamos la receta anterior
                       setGeneratedRecipe(null);
+                      // Mostrar respuesta limpia del hook
+                      const cleanMessage = result.response || 'No entendí bien. ¿Puedes repetir?';
                       setChatHistory(prev => [...prev, { 
                         role: 'ai', 
-                        message: result.response 
+                        message: cleanMessage
                       }]);
                     }
                   }
@@ -159,14 +163,57 @@ const NoFatScreen = () => {
             </View>
             
             <View style={styles.ingredientsSection}>
-              <Text style={styles.sectionTitle}>Ingredientes</Text>
+              <Text style={styles.sectionTitle}>Ingredientes ({generatedRecipe.servings || 1} porciones)</Text>
               {generatedRecipe.ingredients?.map((ingredient: string, idx: number) => (
                 <Text key={idx} style={styles.ingredientItem}>• {ingredient}</Text>
               ))}
             </View>
             
+            {/* Beneficios para la salud */}
+            {generatedRecipe.healthBenefits && (
+              <View style={styles.healthSection}>
+                <Text style={styles.sectionTitle}>💚 Beneficios para tu salud</Text>
+                {generatedRecipe.healthBenefits.map((benefit: string, idx: number) => (
+                  <Text key={idx} style={styles.healthItem}>✓ {benefit}</Text>
+                ))}
+              </View>
+            )}
+            
+            {/* Alérgenos y timing */}
+            <View style={styles.metaSection}>
+              {generatedRecipe.allergens && (
+                <View style={styles.metaItem}>
+                  <Text style={styles.metaLabel}>⚠️ Alérgenos:</Text>
+                  <Text style={styles.metaValue}>{Array.isArray(generatedRecipe.allergens) ? generatedRecipe.allergens.join(', ') : generatedRecipe.allergens}</Text>
+                </View>
+              )}
+              {generatedRecipe.mealTiming && (
+                <View style={styles.metaItem}>
+                  <Text style={styles.metaLabel}>⏰ Mejor momento:</Text>
+                  <Text style={styles.metaValue}>{generatedRecipe.mealTiming}</Text>
+                </View>
+              )}
+              {generatedRecipe.suggestedPairing && (
+                <View style={styles.metaItem}>
+                  <Text style={styles.metaLabel}>🥤 Sugerencia:</Text>
+                  <Text style={styles.metaValue}>{generatedRecipe.suggestedPairing}</Text>
+                </View>
+              )}
+            </View>
+            
+            {/* Tags dietéticas */}
+            {generatedRecipe.dietaryTags && (
+              <View style={styles.tagsSection}>
+                {generatedRecipe.dietaryTags.map((tag: string, idx: number) => (
+                  <View key={idx} style={styles.dietaryTag}>
+                    <Text style={styles.dietaryTagText}>{tag}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            
             <View style={styles.instructionsSection}>
-              <Text style={styles.sectionTitle}>Preparacion</Text>
+              <Text style={styles.sectionTitle}>Preparación</Text>
               {generatedRecipe.instructions?.map((instruction: string, idx: number) => (
                 <Text key={idx} style={styles.instructionItem}>
                   {idx + 1}. {instruction}
@@ -417,13 +464,19 @@ const styles = StyleSheet.create({
   },
   // Chat styles
   chatHistory: {
-    marginBottom: 24,
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
-  messageBubble: {
-    maxWidth: '80%',
-    padding: 16,
-    borderRadius: 20,
-    marginBottom: 12,
+  messageBubble: { 
+    maxWidth: '92%', 
+    padding: 12, 
+    borderRadius: 16, 
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   userBubble: {
     backgroundColor: '#7c2d12',
@@ -434,8 +487,10 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   messageText: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 20,
+    flexWrap: 'wrap',
+    maxWidth: '100%',
   },
   userText: {
     color: '#ffffff',
@@ -509,6 +564,57 @@ const styles = StyleSheet.create({
     color: '#475569',
     lineHeight: 24,
     marginBottom: 8,
+  },
+  healthSection: {
+    backgroundColor: '#dcfce7',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  healthItem: {
+    fontSize: 15,
+    color: '#166534',
+    lineHeight: 22,
+    marginBottom: 6,
+  },
+  metaSection: {
+    backgroundColor: '#fef3c7',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    flexWrap: 'wrap',
+  },
+  metaLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#92400e',
+    marginRight: 6,
+  },
+  metaValue: {
+    fontSize: 14,
+    color: '#78350f',
+    flex: 1,
+  },
+  tagsSection: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 20,
+    gap: 8,
+  },
+  dietaryTag: {
+    backgroundColor: '#7c2d12',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  dietaryTagText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
 

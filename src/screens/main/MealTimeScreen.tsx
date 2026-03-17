@@ -16,7 +16,7 @@ const MealTimeScreen = ({ navigation }: any) => {
       color: '#f59e0b'
     },
     {
-      id: 'morning_snack',
+      id: 'snack',
       name: 'Snack Mañana',
       time: '10:00 - 11:00',
       description: 'Un pequeño tentempié',
@@ -32,7 +32,7 @@ const MealTimeScreen = ({ navigation }: any) => {
       color: '#22c55e'
     },
     {
-      id: 'afternoon_snack',
+      id: 'snack',
       name: 'Snack Tarde',
       time: '16:00 - 17:00',
       description: 'Recarga de energía',
@@ -48,7 +48,7 @@ const MealTimeScreen = ({ navigation }: any) => {
       color: '#3b82f6'
     },
     {
-      id: 'evening_snack',
+      id: 'snack',
       name: 'Snack Noche',
       time: '21:00 - 22:00',
       description: 'Algo ligero antes de dormir',
@@ -116,13 +116,17 @@ const MealTimeScreen = ({ navigation }: any) => {
           <Button
             title="Registrar para Ayer"
             variant="secondary"
-            onPress={() => navigation.navigate('MealLogger', { mealType: 'yesterday' })}
+            onPress={() => {
+              const yesterday = new Date();
+              yesterday.setDate(yesterday.getDate() - 1);
+              navigation.navigate('MealLogger', { mealDate: yesterday.toISOString() });
+            }}
             style={{ marginBottom: 12 }}
           />
           <Button
             title="Registrar para Antes"
             variant="secondary"
-            onPress={() => navigation.navigate('MealLogger', { mealType: 'before' })}
+            onPress={() => navigation.navigate('MealLogger', { mealDate: 'before' })}
           />
         </View>
 

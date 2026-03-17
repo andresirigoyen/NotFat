@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/services/supabase';
 
 interface ProcessPromptResponse {
   type: 'chat' | 'recipe';
@@ -13,17 +14,64 @@ interface ProcessPromptResponse {
       protein: number;
       carbs: number;
       fat: number;
+      fiber?: number;
+      sugar?: number;
     };
     time: number;
     difficulty: string;
+    servings?: number;
+    dietaryTags?: string[];
+    healthBenefits?: string[];
+    allergens?: string[];
+    mealTiming?: string;
+    suggestedPairing?: string;
   } | null;
+}
+
+interface UserProfile {
+  id: string;
+  first_name?: string;
+  diet_type?: string;
+  nutrition_goal?: string;
+  workout_frequency?: string;
+  gender?: string;
+  height_value?: number;
+  weight_value?: number;
+  height_unit?: string;
+  weight_unit?: string;
 }
 
 export const useAIChat = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  const processPrompt = async (message: string): Promise<ProcessPromptResponse | null> => {
+  // Obtener perfil del usuario al iniciar
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, first_name, diet_type, nutrition_goal, workout_frequency, gender, height_value, weight_value, height_unit, weight_unit')
+            .eq('id', user.id)
+            .single();
+          
+          if (profile) {
+            setUserProfile(profile);
+            console.log('👤 Perfil cargado:', profile);
+          }
+        }
+      } catch (err) {
+        console.error('Error cargando perfil:', err);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  const processPrompt = async (message: string, profileData?: UserProfile): Promise<ProcessPromptResponse | null> => {
     console.log('🚀 processPrompt called with:', message);
     
     if (!message.trim()) {
@@ -36,6 +84,15 @@ export const useAIChat = () => {
     console.log('📡 Calling unified endpoint...');
 
     try {
+      // Obtener usuario autenticado para enviar su ID al backend
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) {
+        throw new Error('Usuario no autenticado');
+      }
+
+      // Usar perfil pasado o el del estado
+      const profileToSend = profileData || userProfile;
+      
       // Timeout de 25 segundos
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Timeout: La IA está tardando demasiado en responder')), 25000);
@@ -46,7 +103,11 @@ export const useAIChat = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ 
+          message,
+          userId: user.id,
+          userProfile: profileToSend 
+        }),
       });
 
       const response = await Promise.race([apiCall, timeoutPromise]) as Response;

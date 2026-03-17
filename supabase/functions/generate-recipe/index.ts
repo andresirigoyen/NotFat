@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { getPrismaClient } from "../_shared/db.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,98 +12,78 @@ serve(async (req) => {
   }
 
   try {
-    const { ingredients } = await req.json()
+    const { ingredients: requestedIngredients, userId } = await req.json()
+    const prisma = getPrismaClient();
 
-    if (!ingredients) {
-      return new Response(
-        JSON.stringify({ error: 'Ingredientes requeridos' }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        }
-      )
+    if (!requestedIngredients) {
+      return new Response(JSON.stringify({ error: 'Ingredients are required' }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      })
     }
 
-    // Configuración de Gemini
     const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'GOOGLE_GEMINI_API_KEY no configurada' }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
-        }
-      )
-    }
+    if (!apiKey) throw new Error('GOOGLE_GEMINI_API_KEY is not configured')
 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
 
-    const prompt = `Crea una receta saludable con: "${ingredients}"
+    const prompt = `Create a healthy recipe using: "${requestedIngredients}"
+    
+    Respond ONLY with this exact JSON:
+    {
+      "name": "dish name",
+      "description": "brief description",
+      "ingredients": "ingredient list string",
+      "instructions": "step-by-step instructions string",
+      "nutrition": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 },
+      "time": number,
+      "difficulty": "Easy" or "Medium"
+    }`
 
-Responde en JSON con:
-- name: nombre del plato
-- description: descripción breve
-- ingredients: lista con cantidades
-- instructions: 3-5 pasos numerados
-- nutrition: { calories, protein, carbs, fat }
-- time: minutos
-- difficulty: "Fácil" o "Medio"
-
-SOLO JSON, sin código.`
-
-    const response = await fetch(apiUrl, {
+    const aiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
-        generationConfig: {
-          temperature: 0.8,
-          maxOutputTokens: 800, // Reducido para mayor velocidad
-          candidateCount: 1,
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    })
+
+    const body = await aiResponse.json()
+    const content = body.candidates[0].content.parts[0].text
+    const recipeData = JSON.parse(content.replace(/```json|```/g, '').trim())
+
+    // 3. Persist Recipe if userId is provided
+    let recipeId = null;
+    if (userId) {
+      const recipe = await prisma.recipes.create({
+        data: {
+          name: recipeData.name,
+          description: recipeData.description,
+          ingredients: recipeData.ingredients,
+          instructions: recipeData.instructions,
+          calories: recipeData.nutrition?.calories,
+          protein: recipeData.nutrition?.protein,
+          carbs: recipeData.nutrition?.carbs,
+          fat: recipeData.nutrition?.fat,
+          prep_time: recipeData.time,
+          difficulty: recipeData.difficulty.toLowerCase(),
+          created_by: userId,
+          is_public: false
         }
-      })
-    })
-
-    // Timeout de 20 segundos para recetas
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout de 20 segundos')), 20000)
-    })
-
-    const result = await Promise.race([response.json(), timeoutPromise])
-    
-    if (!result.candidates || result.candidates.length === 0) {
-      throw new Error('No se obtuvo respuesta de Gemini')
-    }
-
-    const content = result.candidates[0].content.parts[0].text
-    
-    // Limpiar y parsear el JSON
-    let recipe;
-    try {
-      const cleanContent = content.replace(/```json|```/g, '').trim()
-      recipe = JSON.parse(cleanContent)
-    } catch (parseError: any) {
-      throw new Error(`Error al parsear respuesta de Gemini: ${parseError?.message}`)
+      });
+      recipeId = recipe.id;
     }
 
     return new Response(JSON.stringify({ 
-      recipe: recipe 
+      recipe: recipeData,
+      recipeId 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error: any) {
-    console.error('Error en generate-recipe:', error)
-    return new Response(
-      JSON.stringify({ 
-        error: error.message || 'Error interno del servidor' 
-      }), 
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
-    )
+    console.error('Error in generate-recipe:', error)
+    return new Response(JSON.stringify({ error: error.message }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500 
+    })
   }
 })

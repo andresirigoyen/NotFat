@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
+import { analytics } from '@/services/analytics';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 // Sincronizado con Prisma: nutrition_goals table
@@ -23,7 +24,7 @@ interface AIGeneratedGoals {
 export default function OnboardingAIGoalsScreen() {
   const navigation = useNavigation();
   const { user } = useAuthStore();
-  const { updateProfile } = useProfile();
+  const { updateProfile, generateAutomaticGoals, generateAutomaticHydrationGoal } = useProfile();
   
   // Estados para la generación de metas con IA
   const [isGenerating, setIsGenerating] = useState(false);
@@ -31,7 +32,10 @@ export default function OnboardingAIGoalsScreen() {
   const [showResults, setShowResults] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Generar metas con IA (simulado - en producción llamaría a Edge Function)
+  useEffect(() => {
+    analytics.trackScreenView('OnboardingAIGoals');
+  }, []);
+
   const generateAIGoals = async () => {
     if (!user) return;
 
@@ -40,23 +44,33 @@ export default function OnboardingAIGoalsScreen() {
     setShowResults(false);
 
     try {
-      // Simulación de llamada a IA (en producción sería una Edge Function)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Generar metas reales según tu lógica de negocio (utils/nutrition + IA)
+      const goals = await generateAutomaticGoals();
+      const hydration = await generateAutomaticHydrationGoal();
 
-      // Simular respuesta de IA basada en perfil del usuario
-      const mockAIResponse: AIGeneratedGoals = {
-        calories: 2200,
-        protein: 120,
-        carbs: 275,
-        fat: 73,
-        water_ml: 2500,
-        steps_daily: 10000,
-        workout_frequency: 'moderate',
-        reasoning: 'Basado en tu perfil (edad, peso, altura y nivel de actividad), he calculado metas personalizadas para ayudarte a alcanzar tus objetivos de forma saludable y sostenible.'
+      const result: AIGeneratedGoals = {
+        calories: goals.calories ?? 0,
+        protein: goals.protein ?? 0,
+        carbs: goals.carbs ?? 0,
+        fat: goals.fat ?? 0,
+        water_ml: hydration.target ?? 0,
+        steps_daily: (goals as any).steps_daily ?? 10000,
+        workout_frequency: (goals as any).workout_frequency ?? 'moderate',
+        reasoning: 'Estas metas se calcularon con tu edad, peso, altura, objetivo y nivel de actividad para que sean realistas y sostenibles.',
       };
 
-      setAiGoals(mockAIResponse);
+      setAiGoals(result);
       setShowResults(true);
+
+      analytics.trackOnboardingStep('ai_goals_generated', {
+        calories: result.calories,
+        protein: result.protein,
+        carbs: result.carbs,
+        fat: result.fat,
+        water_ml: result.water_ml,
+        steps_daily: result.steps_daily,
+        workout_frequency: result.workout_frequency,
+      });
     } catch (err) {
       setError('No pudimos generar tus metas. Intenta nuevamente.');
       console.error('AI Goals Error:', err);
@@ -70,27 +84,23 @@ export default function OnboardingAIGoalsScreen() {
     if (!aiGoals || !user) return;
 
     try {
-      // Sincronizado con Prisma: profiles
       await updateProfile.mutateAsync({
-        onboarding_step: 'completed',
-        onboarding_completed: true,
+        onboarding_step: 'preferences',
       });
 
-      // Aquí también se guardarían en la tabla nutrition_goals de Prisma
-      // await saveNutritionGoals({
-      //   user_id: user.id,
-      //   calories: aiGoals.calories,
-      //   protein: aiGoals.protein,
-      //   carbs: aiGoals.carbs,
-      //   fat: aiGoals.fat,
-      //   start_date: new Date().toISOString(),
-      //   source: 'ia'
-      // });
+      if (aiGoals) {
+        analytics.trackOnboardingStep('ai_goals_accepted', {
+          calories: aiGoals.calories,
+          protein: aiGoals.protein,
+          carbs: aiGoals.carbs,
+          fat: aiGoals.fat,
+          water_ml: aiGoals.water_ml,
+          steps_daily: aiGoals.steps_daily,
+          workout_frequency: aiGoals.workout_frequency,
+        });
+      }
 
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main' as never }],
-      });
+      navigation.navigate('OnboardingPreferences' as never);
     } catch (error) {
       console.error('Error saving AI goals:', error);
       Alert.alert('Error', 'No pudimos guardar tus metas. Intenta nuevamente.');
@@ -99,6 +109,7 @@ export default function OnboardingAIGoalsScreen() {
 
   // Opción manual
   const handleManualSetup = () => {
+    analytics.trackOnboardingStep('ai_goals_manual_override');
     navigation.navigate('OnboardingGoals' as never);
   };
 

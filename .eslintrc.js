@@ -19,7 +19,7 @@ module.exports = {
     'supabase/**',
     '**/*.original.tsx',
     '**/*.backup.tsx',
-    'Nutria_Clone_DB/**',
+    'NotFat_Clone_DB/**',
   ],
   rules: {
     '@typescript-eslint/no-explicit-any': 'off',

@@ -8,7 +8,7 @@ interface ValidationRequest {
 }
 
 interface ValidationResponse {
-  status(code: number): void;
+  status(code: number): ValidationResponse;
   json(data: any): void;
 }
 

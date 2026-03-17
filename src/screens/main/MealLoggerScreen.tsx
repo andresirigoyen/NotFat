@@ -9,11 +9,14 @@ import { useCreateMealWithItems } from '@/hooks/useMeals';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PermissionPopover } from '@/components/ui/PermissionPopover';
 import VoiceInputButton from '@/components/VoiceInputButton';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
-const MealLoggerScreen = ({ navigation }: any) => {
+const MealLoggerScreen = ({ navigation, route }: any) => {
   const navigationHook = useNavigation();
+  const initialType = route?.params?.mealType || 'breakfast';
+  const initialDate = route?.params?.mealDate;
   const [mealName, setMealName] = React.useState('');
-  const [selectedType, setSelectedType] = React.useState('breakfast');
+  const [selectedType, setSelectedType] = React.useState(initialType);
   const [showPermissionPopover, setShowPermissionPopover] = React.useState(false);
   const [permissionType, setPermissionType] = React.useState<'camera' | 'microphone' | 'mediaLibrary'>('camera');
   const [analyzing, setAnalyzing] = React.useState(false);
@@ -45,7 +48,8 @@ const MealLoggerScreen = ({ navigation }: any) => {
         // Navigate to analysis result
         (navigationHook as any).navigate('AnalysisResult', { 
           imageUri: photoUri,
-          mealType: selectedType
+          mealType: selectedType,
+          mealDate: initialDate
         });
       }
     } catch (error) {
@@ -70,7 +74,8 @@ const MealLoggerScreen = ({ navigation }: any) => {
         // Navigate to analysis result
         (navigationHook as any).navigate('AnalysisResult', { 
           imageUri,
-          mealType: selectedType
+          mealType: selectedType,
+          mealDate: initialDate
         });
       }
     } catch (error) {
@@ -80,12 +85,18 @@ const MealLoggerScreen = ({ navigation }: any) => {
     }
   };
 
+  const handleBarcodePress = async () => {
+    // Navigate to barcode scanner
+    (navigationHook as any).navigate('BarcodeScanner');
+  };
+
   const handleVoicePress = async () => {
     const hasPermission = await requestMicrophoneAccess();
     if (hasPermission) {
       // Navigate to voice input screen
-      (navigationHook as any).navigate('VoiceInputScreen', { 
-        mealType: selectedType 
+      (navigationHook as any).navigate('VoiceInput', { 
+        mealType: selectedType,
+        mealDate: initialDate
       });
     }
   };
@@ -97,13 +108,19 @@ const MealLoggerScreen = ({ navigation }: any) => {
     }
 
     try {
+      // Basic nutritional estimation based on meal name (simplified)
+      const estimatedCalories = Math.max(200, mealName.length * 15); // Basic estimation
+      const estimatedProtein = Math.round(estimatedCalories * 0.2 / 4); // 20% protein
+      const estimatedCarbs = Math.round(estimatedCalories * 0.5 / 4); // 50% carbs
+      const estimatedFat = Math.round(estimatedCalories * 0.3 / 9); // 30% fat
+
       await createMeal({
         meal: {
           name: mealName,
           meal_type: selectedType as any,
           source_type: 'text',
           status: 'complete',
-          meal_at: new Date().toISOString(),
+          meal_at: (initialDate && initialDate !== 'before') ? initialDate : new Date().toISOString(),
           image_url: null,
           recorded_timezone: null,
           llm_used: null,
@@ -120,20 +137,20 @@ const MealLoggerScreen = ({ navigation }: any) => {
           name: mealName,
           quantity: 1,
           unit: 'unit',
-          calories: 0,
-          protein: 0,
-          carbs: 0,
-          fat: 0,
+          calories: estimatedCalories,
+          protein: estimatedProtein,
+          carbs: estimatedCarbs,
+          fat: estimatedFat,
           barcode_number: null,
           scanned: false,
           servings: 1,
           contributed: false,
           nutriscore_grade: null,
           nova_group: null,
-          nutria_score: null,
+          notfat_score: null,
           labels_tags: null,
           additives_tags: null,
-          nutria_score_breakdown: null,
+          notfat_score_breakdown: null,
           additives_details: null,
           is_alcoholic: false,
           has_ingredients_data: false,
@@ -157,7 +174,7 @@ const MealLoggerScreen = ({ navigation }: any) => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigationHook.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#1F2937" />
+            <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Registrar Comida</Text>
           <View style={styles.placeholder} />
@@ -179,7 +196,7 @@ const MealLoggerScreen = ({ navigation }: any) => {
                 <Ionicons 
                   name={type.icon as any} 
                   size={20} 
-                  color={selectedType === type.value ? '#FFFFFF' : '#6B7280'} 
+                  color={selectedType === type.value ? COLORS.text.primary : COLORS.text.muted} 
                 />
                 <Text style={[
                   styles.mealTypeText,
@@ -198,32 +215,32 @@ const MealLoggerScreen = ({ navigation }: any) => {
           
           <View style={styles.actionGrid}>
             <TouchableOpacity style={styles.actionButton} onPress={handleCameraPress}>
-              <View style={[styles.actionIcon, { backgroundColor: '#FEE2E2' }]}>
-                <Ionicons name="camera" size={24} color="#EF4444" />
+              <View style={[styles.actionIcon, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
+                <Ionicons name="camera" size={24} color={COLORS.status.error} />
               </View>
               <Text style={styles.actionTitle}>Cámara</Text>
               <Text style={styles.actionSubtitle}>Toma una foto</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionButton} onPress={handleGalleryPress}>
-              <View style={[styles.actionIcon, { backgroundColor: '#DBEAFE' }]}>
-                <Ionicons name="images" size={24} color="#3B82F6" />
+              <View style={[styles.actionIcon, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
+                <Ionicons name="images" size={24} color={COLORS.status.info} />
               </View>
               <Text style={styles.actionTitle}>Galería</Text>
               <Text style={styles.actionSubtitle}>Elige una imagen</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionButton} onPress={handleVoicePress}>
-              <View style={[styles.actionIcon, { backgroundColor: '#D1FAE5' }]}>
-                <Ionicons name="mic" size={24} color="#10B981" />
+              <View style={[styles.actionIcon, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
+                <Ionicons name="mic" size={24} color={COLORS.status.success} />
               </View>
               <Text style={styles.actionTitle}>Voz</Text>
               <Text style={styles.actionSubtitle}>Describe con voz</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionButton} onPress={() => (navigationHook as any).navigate('BarcodeScannerScreen')}>
-              <View style={[styles.actionIcon, { backgroundColor: '#FED7AA' }]}>
-                <Ionicons name="barcode" size={24} color="#F59E0B" />
+            <TouchableOpacity style={styles.actionButton} onPress={handleBarcodePress}>
+              <View style={[styles.actionIcon, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
+                <Ionicons name="barcode" size={24} color={COLORS.status.warning} />
               </View>
               <Text style={styles.actionTitle}>Código</Text>
               <Text style={styles.actionSubtitle}>Escanea barcode</Text>
@@ -241,7 +258,7 @@ const MealLoggerScreen = ({ navigation }: any) => {
               value={mealName}
               onChangeText={setMealName}
               placeholder="Nombre de la comida..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={COLORS.text.muted}
             />
             
             <TouchableOpacity 
@@ -250,7 +267,7 @@ const MealLoggerScreen = ({ navigation }: any) => {
               disabled={!mealName.trim() || saving}
             >
               {saving ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={COLORS.text.primary} />
               ) : (
                 <Text style={styles.saveButtonText}>Guardar</Text>
               )}
@@ -278,7 +295,7 @@ const MealLoggerScreen = ({ navigation }: any) => {
             <Text style={styles.sectionTitle}>¿Cuándo comiste?</Text>
             <TouchableOpacity style={styles.timeBadge} onPress={handleNowPress}>
               <Text style={styles.timeBadgeText}>Ahora</Text>
-              <Ionicons name="time" size={16} color="#7c2d12" />
+              <Ionicons name="time" size={16} color={COLORS.primary.amber} />
             </TouchableOpacity>
           </View>
         </View>
@@ -296,13 +313,13 @@ const MealLoggerScreen = ({ navigation }: any) => {
           // Handle permission granted
         }}
         onDeny={() => setShowPermissionPopover(false)}
-        primaryColor="#10B981"
+        primaryColor={COLORS.primary.amber}
       />
 
       {/* Loading Overlay */}
       {(analyzing || saving) && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#10B981" />
+          <ActivityIndicator size="large" color={COLORS.primary.amber} />
           <Text style={styles.loadingText}>
             {analyzing ? 'Analizando imagen...' : 'Guardando comida...'}
           </Text>
@@ -315,7 +332,7 @@ const MealLoggerScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.background.primary,
   },
   scrollView: {
     flex: 1,
@@ -324,79 +341,79 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.md,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1F2937',
+    fontSize: FONTS.sizes.xl,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
   },
   placeholder: {
     width: 24,
   },
   section: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
+    paddingHorizontal: SPACING.lg,
+    marginBottom: SPACING.xl,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 16,
+    fontSize: FONTS.sizes.lg,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.text.primary,
+    marginBottom: SPACING.md,
+    fontFamily: FONTS.primary,
   },
   sectionSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 16,
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.text.muted,
+    marginBottom: SPACING.md,
     textAlign: 'center',
+    fontFamily: FONTS.primary,
   },
   mealTypes: {
     flexDirection: 'row',
-    gap: 12,
+    gap: SPACING.sm,
   },
   mealTypeButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.xs,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    borderColor: COLORS.background.border,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.background.card,
   },
   mealTypeButtonSelected: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
+    backgroundColor: COLORS.primary.amber,
+    borderColor: COLORS.primary.amber,
   },
   mealTypeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginLeft: 4,
+    fontSize: FONTS.sizes.xs,
+    fontWeight: FONTS.weights.semibold,
+    color: COLORS.text.muted,
+    marginLeft: SPACING.xs,
+    fontFamily: FONTS.primary,
   },
   mealTypeTextSelected: {
-    color: '#FFFFFF',
+    color: COLORS.background.primary,
   },
   actionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
+    gap: SPACING.md,
   },
   actionButton: {
     width: '47%',
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: COLORS.background.card,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.lg,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    ...SHADOWS.sm,
   },
   actionIcon: {
     width: 48,
@@ -404,53 +421,53 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: SPACING.sm,
   },
   actionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
+    fontSize: FONTS.sizes.base,
+    fontWeight: FONTS.weights.semibold,
+    color: COLORS.text.primary,
+    marginBottom: SPACING.xs,
+    fontFamily: FONTS.primary,
   },
   actionSubtitle: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.text.muted,
     textAlign: 'center',
+    fontFamily: FONTS.primary,
   },
   manualEntry: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: COLORS.background.card,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.lg,
+    ...SHADOWS.sm,
   },
   textInput: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#1F2937',
-    backgroundColor: '#FFFFFF',
-    marginBottom: 16,
+    borderColor: COLORS.background.border,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    fontSize: FONTS.sizes.base,
+    color: COLORS.text.primary,
+    backgroundColor: COLORS.background.tertiary,
+    marginBottom: SPACING.md,
+    fontFamily: FONTS.primary,
   },
   saveButton: {
-    backgroundColor: '#10B981',
-    borderRadius: 12,
-    paddingVertical: 14,
+    backgroundColor: COLORS.primary.amber,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: SPACING.sm,
     alignItems: 'center',
   },
   saveButtonDisabled: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: COLORS.interactive.disabled,
   },
   saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: FONTS.sizes.base,
+    fontWeight: FONTS.weights.semibold,
+    color: COLORS.background.primary,
+    fontFamily: FONTS.primary,
   },
   timeRow: {
     flexDirection: 'row',
@@ -460,18 +477,19 @@ const styles = StyleSheet.create({
   timeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: 'rgba(252, 211, 77, 0.1)',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#F59E0B',
+    borderColor: COLORS.primary.amber,
   },
   timeBadgeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#7c2d12',
-    marginRight: 4,
+    fontSize: FONTS.sizes.sm,
+    fontWeight: FONTS.weights.semibold,
+    color: COLORS.primary.amber,
+    marginRight: SPACING.xs,
+    fontFamily: FONTS.primary,
   },
   loadingOverlay: {
     position: 'absolute',
@@ -484,10 +502,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '600',
+    marginTop: SPACING.sm,
+    fontSize: FONTS.sizes.base,
+    color: COLORS.text.primary,
+    fontWeight: FONTS.weights.semibold,
+    fontFamily: FONTS.primary,
   },
 });
 

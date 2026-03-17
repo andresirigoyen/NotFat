@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { getPrismaClient } from "../_shared/db.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -6,175 +7,149 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  console.log('🚀 process-prompt function called')
-  
   if (req.method === 'OPTIONS') {
-    console.log('✅ OPTIONS request handled')
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { message } = await req.json()
-    console.log('📝 Message received:', message)
+    const { message, userId, userProfile: providedProfile } = await req.json()
+    const prisma = getPrismaClient();
 
-    if (!message) {
-      console.log('❌ No message provided')
-      return new Response(
-        JSON.stringify({ error: 'Mensaje requerido' }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        }
-      )
-    }
-
-    // Configuración de Gemini
-    const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
-    console.log('🔑 API Key exists:', !!apiKey)
-    
-    if (!apiKey) {
-      console.log('❌ GOOGLE_GEMINI_API_KEY not configured')
-      return new Response(
-        JSON.stringify({ error: 'GOOGLE_GEMINI_API_KEY no configurada' }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
-        }
-      )
-    }
-
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
-    console.log('🌐 Calling Gemini API...')
-
-    // Prompt inteligente que detecta intención y devuelve estructura unificada
-    const prompt = `Eres NotFat AI, un asistente nutricional experto.
-
-Analiza este mensaje del usuario: "${message}"
-
-Determina si el usuario quiere:
-1. Una conversación/chat normal sobre nutrición
-2. Una receta o ideas de cocina
-
-Responde SIEMPRE en formato JSON con esta estructura:
-{
-  "type": "chat" | "recipe",
-  "response": "tu respuesta en texto natural",
-  "recipeData": {
-    "name": "nombre del plato (si type=recipe)",
-    "description": "descripción breve",
-    "ingredients": ["ingrediente 1", "ingrediente 2"],
-    "instructions": ["paso 1", "paso 2"],
-    "nutrition": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 },
-    "time": 30,
-    "difficulty": "Fácil"
-  }
-}
-
-Si type="chat", recipeData puede ser null.
-Si type="recipe", incluye todos los datos de la receta.
-
-Responde como un coach nutricional profesional pero cercano. Sé específico y directo.`
-
-    console.log('💭 Prompt prepared, calling API...')
-    
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1000,
-          candidateCount: 1,
-        }
+    if (!message || !userId) {
+      return new Response(JSON.stringify({ error: 'Message and userId are required' }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
       })
-    })
-
-    console.log('📡 API Response status:', response.status)
-    
-    // Timeout de 20 segundos
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout de 20 segundos')), 20000)
-    })
-
-    const result = await Promise.race([response.json(), timeoutPromise])
-    console.log('📊 API Result received')
-    
-    if (!result.candidates || result.candidates.length === 0) {
-      console.log('❌ No candidates in response')
-      throw new Error('No se obtuvo respuesta de Gemini')
     }
 
-    const responseText = result.candidates[0].content.parts[0].text
-    console.log('✅ Response text generated:', responseText.substring(0, 100) + '...')
+    // 1. Fetch user profile and context if not provided
+    const userProfile = providedProfile || await prisma.profiles.findUnique({
+      where: { id: userId }
+    });
 
-    // Parsear el JSON de la respuesta
-    let parsedResponse;
+    // 1b. Fetch nutrition context about scanned/processed foods using raw SQL on views
+    let processedContextStr = "";
     try {
-      const cleanContent = responseText.replace(/```json|```/g, '').trim()
-      parsedResponse = JSON.parse(cleanContent)
-    } catch (parseError: any) {
-      console.error('❌ Error parsing JSON:', parseError)
-      // Si no es JSON válido, tratar como chat normal
-      parsedResponse = {
-        type: 'chat',
-        response: responseText.trim(),
-        recipeData: null
+      // Últimos 7 días de ratio de calorías escaneadas
+      const weeklyRows = await prisma.$queryRawUnsafe<any[]>(`
+        SELECT day, total_calories, scanned_calories, scanned_calories_ratio
+        FROM daily_calories_with_scanned_ratio
+        WHERE user_id = $1
+          AND day >= (CURRENT_DATE - INTERVAL '7 days')
+        ORDER BY day DESC
+        LIMIT 7;
+      `, userId);
+
+      // Top productos escaneados globales para el usuario (basado en food_items)
+      const topProducts = await prisma.$queryRawUnsafe<any[]>(`
+        SELECT fi.name, SUM(fi.calories) AS total_calories_from_scans, COUNT(*) AS times_scanned
+        FROM food_items fi
+        JOIN meals m ON fi.meal_id = m.id
+        WHERE m.user_id = $1
+          AND fi.scanned = TRUE
+        GROUP BY fi.name
+        HAVING COUNT(*) >= 2
+        ORDER BY SUM(fi.calories) DESC
+        LIMIT 3;
+      `, userId);
+
+      if (weeklyRows && weeklyRows.length > 0) {
+        const lastDay = weeklyRows[0];
+        const avgRatio =
+          weeklyRows.reduce((acc, r) => acc + Number(r.scanned_calories_ratio || 0), 0) /
+          weeklyRows.length;
+
+        processedContextStr += `\n\nScan Analytics (últimos 7 días):\n- Promedio de calorías desde alimentos escaneados: ${(avgRatio * 100).toFixed(1)}%\n`;
+        processedContextStr += `- Día más reciente: ${(Number(lastDay.scanned_calories_ratio || 0) * 100).toFixed(1)}% de las calorías vinieron de alimentos escaneados.\n`;
+      }
+
+      if (topProducts && topProducts.length > 0) {
+        const productsStr = topProducts
+          .map((p) => `${p.name || 'Producto sin nombre'} (${Number(p.total_calories_from_scans || 0).toFixed(0)} kcal totales, ${Number(p.times_scanned || 0)} escaneos)`)
+          .join("; ");
+        processedContextStr += `- Productos escaneados que más calorías aportan: ${productsStr}\n`;
+      }
+    } catch (err) {
+      console.error("Error fetching processed food analytics:", err);
+    }
+
+    // 2. Log user message
+    await prisma.coach_messages.create({
+      data: {
+        user_id: userId,
+        role: 'user',
+        content: message
+      }
+    });
+
+    // 3. Prepare AI Prompt
+    const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
+    if (!apiKey) throw new Error('GOOGLE_GEMINI_API_KEY is not configured')
+
+    const model = Deno.env.get('DEFAULT_LLM_MODEL') || 'gemini-2.5-flash'
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+
+    let userContextStr = ""
+    if (userProfile) {
+      const parts = []
+      if (userProfile.first_name) parts.push(`Name: ${userProfile.first_name}`)
+      if (userProfile.diet_type) parts.push(`Diet: ${userProfile.diet_type}`)
+      if (userProfile.nutrition_goal) parts.push(`Goal: ${userProfile.nutrition_goal}`)
+      userContextStr = "\n\nUser Context:\n- " + parts.join("\n- ")
+    }
+
+    const prompt = `You are NotFat AI, an expert nutritional coach.${userContextStr}${processedContextStr}
+    
+    User Message: "${message}"
+    
+    Respond ONLY with this exact JSON:
+    {
+      "type": "chat" or "recipe",
+      "response": "your natural response",
+      "recipeData": {
+        "name": "dish name",
+        "ingredients": ["ing 1", "ing 2"],
+        "instructions": ["step 1", "step 2"],
+        "nutrition": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }
       }
     }
+    If it's just chat, recipeData should be null.`
 
-    return new Response(JSON.stringify({ 
-      type: parsedResponse.type,
-      response: parsedResponse.response,
-      recipeData: parsedResponse.recipeData
-    }), {
+    const aiResponse = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    })
+
+    const body = await aiResponse.json()
+    const responseText = body.candidates[0].content.parts[0].text
+    
+    let parsed;
+    try {
+      parsed = JSON.parse(responseText.replace(/```json|```/g, '').trim())
+    } catch (e) {
+      parsed = { type: 'chat', response: responseText.trim(), recipeData: null }
+    }
+
+    // 4. Log AI response
+    await prisma.coach_messages.create({
+      data: {
+        user_id: userId,
+        role: 'assistant',
+        content: parsed.response,
+        metadata: parsed.recipeData ? { recipe: parsed.recipeData } : undefined
+      }
+    });
+
+    return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error: any) {
-    console.error('❌ Error en process-prompt:', error)
-    
-    // Extraer message del error si es posible
-    let userMessage = ''
-    try {
-      const body = await req.clone().json()
-      userMessage = body.message || ''
-    } catch (e) {
-      userMessage = ''
-    }
-    
-    // Fallback response
-    const fallbackResponse = getFallbackResponse(userMessage)
-    console.log('🔄 Using fallback response')
-    
-    return new Response(JSON.stringify({ 
-      type: 'chat',
-      response: fallbackResponse,
-      recipeData: null
-    }), {
+    console.error('Error in process-prompt:', error)
+    return new Response(JSON.stringify({ error: error.message }), { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
+      status: 500 
     })
   }
 })
-
-// Fallback responses comunes
-function getFallbackResponse(message: string): string {
-  const lowerMessage = message.toLowerCase()
-  
-  if (lowerMessage.includes('hola') || lowerMessage.includes('buenos')) {
-    return "¡Hola! Soy tu coach nutricional NotFat. ¿En qué puedo ayudarte hoy?"
-  }
-  
-  if (lowerMessage.includes('receta') || lowerMessage.includes('cocinar') || lowerMessage.includes('cenar') || lowerMessage.includes('comer')) {
-    return "Puedo ayudarte con recetas deliciosas. ¿Qué ingredientes tienes disponibles?"
-  }
-  
-  if (lowerMessage.includes('peso') || lowerMessage.includes('bajar') || lowerMessage.includes('dieta')) {
-    return "Para un peso saludable, combina alimentación balanceada con ejercicio. Come cada 3-4 horas, incluye proteína en cada comida y mantente hidratado."
-  }
-  
-  return "Soy tu asistente nutricional NotFat. Puedo ayudarte con recetas, consejos de alimentación y planes personalizados. ¿Qué te gustaría saber?"
-}

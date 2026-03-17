@@ -1,20 +1,36 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { useAuthStore } from '@/store';
 
 export default function SignUpScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const { signUp } = useAuthStore();
 
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
   const [acceptTerms, setAcceptTerms] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     if (!name || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Por favor completa todos los campos');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert('Error', 'Correo inválido');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
       return;
     }
 
@@ -28,8 +44,27 @@ export default function SignUpScreen() {
       return;
     }
 
-    // Aquí iría la lógica de registro
-    Alert.alert('Éxito', 'Registro completado exitosamente');
+    try {
+      setIsLoading(true);
+      const { error } = await signUp(email.trim(), password, name.trim());
+      if (error) {
+        console.error('SignUp error:', error);
+        Alert.alert('Error', error.message || 'No pudimos crear tu cuenta. Intenta nuevamente.');
+        return;
+      }
+      Alert.alert(
+        'Cuenta creada',
+        'Te hemos enviado un correo de confirmación (si está configurado). Inicia sesión para continuar.',
+        [
+          {
+            text: 'Ir a iniciar sesión',
+            onPress: () => navigation.navigate('Login' as never),
+          },
+        ]
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -130,8 +165,12 @@ export default function SignUpScreen() {
         </View>
 
         {/* Sign Up Button */}
-        <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
-          <Text style={styles.signUpButtonText}>Crear Cuenta</Text>
+        <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp} disabled={isLoading}>
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.signUpButtonText}>Crear Cuenta</Text>
+          )}
         </TouchableOpacity>
 
         {/* Divider */}
@@ -156,7 +195,7 @@ export default function SignUpScreen() {
         {/* Sign In Link */}
         <View style={styles.signInContainer}>
           <Text style={styles.signInText}>¿Ya tienes cuenta? </Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Login' as never)}>
             <Text style={styles.signInLink}>Iniciar Sesión</Text>
           </TouchableOpacity>
         </View>

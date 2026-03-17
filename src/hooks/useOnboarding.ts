@@ -67,7 +67,7 @@ export interface OnboardingStep {
 export const useOnboarding = () => {
   const navigation = useNavigation();
   const { user } = useAuthStore();
-  const { updateProfile, profile } = useProfile();
+  const { updateProfile, profile, activityProfile } = useProfile();
   const [currentStep, setCurrentStep] = useState<string>('welcome');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -95,25 +95,31 @@ export const useOnboarding = () => {
       step: 'goals',
       title: '¿Cuáles son tus metas?',
       subtitle: 'Personalizamos tu experiencia según tus objetivos',
-      completed: !!profile?.nutrition_goal,
+      completed: !!(profile?.nutrition_goal && profile?.diet_type),
     },
     {
       step: 'profile',
       title: 'Cuéntanos sobre ti',
       subtitle: 'Tu información física nos ayuda a crear metas personalizadas',
-      completed: !!(profile?.first_name && profile?.height_value && profile?.weight_value),
+      completed: !!(profile?.first_name && profile?.last_name && profile?.height_value && profile?.weight_value),
     },
     {
       step: 'activity',
       title: '¿Cuál es tu nivel de actividad?',
       subtitle: 'Esto nos ayuda a ajustar tus metas calóricas y de pasos',
-      completed: !!profile?.workout_frequency,
+      completed: !!(activityProfile?.daily_activity_level || profile?.workout_frequency),
     },
     {
       step: 'preferences',
       title: 'Preferencias Finales',
       subtitle: 'Personaliza tu experiencia con estas configuraciones',
-      completed: !!(profile?.preferred_bottle_size && profile?.show_calories !== undefined),
+      completed: !!(
+        profile?.preferred_bottle_size &&
+        profile?.preferred_bottle_unit &&
+        profile?.show_calories !== undefined &&
+        profile?.show_hydration !== undefined &&
+        profile?.onboarding_completed
+      ),
     },
   ];
 

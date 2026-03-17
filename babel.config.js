@@ -22,7 +22,12 @@ module.exports = function(api) {
           }
         }
       ],
-      'babel-plugin-transform-import-meta'
+      [
+        'babel-plugin-transform-import-meta',
+        {
+          metaObjectProperty: '__meta__'
+        }
+      ]
     ]
   };
 };

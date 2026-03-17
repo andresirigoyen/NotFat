@@ -39,11 +39,13 @@ const { width } = Dimensions.get('window');
 interface HealthScoreCardProps {
   date?: string;
   onRefresh?: () => void;
+  processedRatioToday?: number;
 }
 
 export const HealthScoreCard: React.FC<HealthScoreCardProps> = ({
   date,
   onRefresh,
+  processedRatioToday,
 }) => {
   const {
     healthScore,
@@ -194,8 +196,19 @@ export const HealthScoreCard: React.FC<HealthScoreCardProps> = ({
           </View>
         </View>
 
+        {typeof processedRatioToday === 'number' && (
+          <View style={styles.processedContainer}>
+            <Ionicons name="barcode-outline" size={16} color={COLORS.primary.amber} />
+            <Text style={styles.processedText}>
+              {processedRatioToday >= 1
+                ? `${processedRatioToday}% de tus calorías de hoy provienen de alimentos escaneados.`
+                : 'Casi ninguna caloría de hoy proviene de alimentos escaneados.'}
+            </Text>
+          </View>
+        )}
+
         {/* Insights */}
-        {healthScore.insights && healthScore.insights.length > 0 && (
+        {(healthScore?.insights && healthScore?.insights?.length > 0) && (
           <View style={styles.insightsContainer}>
             <Text style={styles.insightsTitle}>Insights del Día</Text>
             {healthScore.insights.slice(0, 2).map((insight, index) => (
@@ -208,9 +221,9 @@ export const HealthScoreCard: React.FC<HealthScoreCardProps> = ({
         )}
 
         {/* Fortalezas y Debilidades */}
-        {(healthScore.strengths.length > 0 || healthScore.weaknesses.length > 0) && (
+        {((healthScore?.strengths?.length > 0) || (healthScore?.weaknesses?.length > 0)) && (
           <View style={styles.analysisContainer}>
-            {healthScore.strengths.length > 0 && (
+            {(healthScore?.strengths && healthScore?.strengths?.length > 0) && (
               <View style={styles.strengthContainer}>
                 <Text style={styles.sectionTitle}>✅ Fortalezas</Text>
                 {healthScore.strengths.slice(0, 2).map((strength, index) => (
@@ -218,8 +231,8 @@ export const HealthScoreCard: React.FC<HealthScoreCardProps> = ({
                 ))}
               </View>
             )}
-
-            {healthScore.weaknesses.length > 0 && (
+ 
+            {(healthScore?.weaknesses && healthScore?.weaknesses?.length > 0) && (
               <View style={styles.weaknessContainer}>
                 <Text style={styles.sectionTitle}>⚠️ A Mejorar</Text>
                 {healthScore.weaknesses.slice(0, 2).map((weakness, index) => (
@@ -231,7 +244,7 @@ export const HealthScoreCard: React.FC<HealthScoreCardProps> = ({
         )}
 
         {/* Recomendaciones */}
-        {healthScore.recommendations && healthScore.recommendations.length > 0 && (
+        {(healthScore?.recommendations && healthScore?.recommendations?.length > 0) && (
           <View style={styles.recommendationsContainer}>
             <Text style={styles.recommendationsTitle}>💡 Recomendaciones</Text>
             {healthScore.recommendations.slice(0, 2).map((rec, index) => (
@@ -396,6 +409,17 @@ const styles = StyleSheet.create({
   recommendationText: {
     ...TYPOGRAPHY.caption,
     color: '#333333',
+  },
+  processedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: SPACING.sm,
+    gap: SPACING.xs,
+  },
+  processedText: {
+    ...TYPOGRAPHY.caption,
+    color: '#666666',
+    flex: 1,
   },
   loadingContainer: {
     justifyContent: 'center',

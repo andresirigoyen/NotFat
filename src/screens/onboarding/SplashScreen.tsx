@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { COLORS, SPACING } from '@/constants/theme';
+import { useAuthStore } from '@/store';
+import { useProfile } from '@/hooks/useProfile';
 
 type SplashRouteParams = {
   Splash: {
@@ -14,10 +16,44 @@ type SplashRouteParams = {
 export default function SplashScreen() {
   const navigation = useNavigation();
   const route = useRoute<RouteProp<SplashRouteParams, 'Splash'>>();
+  const { user, loading: authLoading } = useAuthStore();
+  const { profile, isLoading: profileLoading } = useProfile();
+
+  const nextScreen = useMemo(() => {
+    // Explicit override (used by Welcome close button)
+    if (route.params?.nextScreen) return route.params.nextScreen;
+
+    if (!user) return 'Welcome';
+    if (!profile) return 'OnboardingGender';
+
+    if (profile.onboarding_completed) return 'Main';
+
+    const step = profile.onboarding_step || 'gender';
+    switch (step) {
+      case 'gender':
+        return 'OnboardingGender';
+      case 'birth_date':
+        return 'OnboardingBirthDate';
+      case 'goals':
+        return 'OnboardingGoals';
+      case 'profile':
+        return 'OnboardingProfile';
+      case 'activity':
+        return 'OnboardingActivity';
+      case 'preferences':
+        return 'OnboardingPreferences';
+      case 'completed':
+        return 'Main';
+      default:
+        return 'OnboardingGender';
+    }
+  }, [profile, route.params?.nextScreen, user]);
 
   useEffect(() => {
-    const nextScreen = route.params?.nextScreen || 'Welcome';
-    const duration = route.params?.duration || 2500;
+    const duration = route.params?.duration || 1200;
+
+    // Wait for auth/profile resolution unless explicit override
+    if (!route.params?.nextScreen && (authLoading || profileLoading)) return;
 
     // Simular tiempo de carga de la app (e.g. validando sesión, cargando fuentes)
     const timer = setTimeout(() => {
@@ -29,7 +65,7 @@ export default function SplashScreen() {
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [navigation, route]);
+  }, [authLoading, navigation, nextScreen, profileLoading, route.params?.duration, route.params?.nextScreen]);
 
   return (
     <Animated.View 
@@ -39,7 +75,7 @@ export default function SplashScreen() {
     >
       <View style={styles.content}>
         <Image 
-          source={require('../../../assets/images/logo.png')} 
+          source={require('../../../assets/images/NotFat.png')} 
           style={styles.logo}
           resizeMode="contain"
         />

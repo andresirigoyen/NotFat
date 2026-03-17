@@ -8,7 +8,7 @@ import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 export default function LoginScreen() {
   const navigation = useNavigation();
-  const { signIn, user, loading } = useAuthStore();
+  const { signIn, resetPassword, user, loading } = useAuthStore();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -65,6 +65,24 @@ export default function LoginScreen() {
       Alert.alert('Error', errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      Alert.alert('Recuperar contraseña', 'Ingresa tu correo para enviarte un enlace de recuperación.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      Alert.alert('Recuperar contraseña', 'Correo inválido.');
+      return;
+    }
+    const { error } = await resetPassword(email.trim());
+    if (error) {
+      console.error('Reset password error:', error);
+      Alert.alert('Error', 'No pudimos enviar el correo de recuperación. Intenta nuevamente.');
+    } else {
+      Alert.alert('Correo enviado', 'Si el correo existe, te enviaremos un enlace para restablecer tu contraseña.');
     }
   };
 
@@ -159,7 +177,7 @@ export default function LoginScreen() {
                 <Text style={styles.rememberMeText}>Recordarme</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => Alert.alert('Recuperar Contraseña', 'Próximamente')}>
+              <TouchableOpacity onPress={handleForgotPassword}>
                 <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
               </TouchableOpacity>
             </View>

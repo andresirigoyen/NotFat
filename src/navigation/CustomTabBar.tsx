@@ -128,11 +128,6 @@ const styles = StyleSheet.create({
     height: 70,
     borderRadius: 35,
     zIndex: 100,
-    shadowColor: '#7c2d12',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10,
   },
   gradient: {
     width: 70,
@@ -140,7 +135,7 @@ const styles = StyleSheet.create({
     borderRadius: 35,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 4,
+    borderWidth: 0.5,
     borderColor: '#ffffff',
   },
 });

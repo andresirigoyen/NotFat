@@ -1,24 +1,55 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LineChart, BarChart } from 'react-native-chart-kit';
-import { Info, ChevronRight } from 'lucide-react-native';
+import { Info } from 'lucide-react-native';
 import { useWeeklyStats } from '@/hooks/useWeeklyStats';
 import { useProfile } from '@/hooks/useProfile';
+import { useBodyMetrics, useAddBodyMetric } from '@/hooks/useBodyMetrics';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
 
-const ProgressScreen = () => {
+const ProgressScreen = ({ navigation }: any) => {
   const tabs = ['Esta semana', 'La semana pasada', 'Hace un mes'];
   const [activeTab, setActiveTab] = React.useState(0);
+  const [showWeightModal, setShowWeightModal] = React.useState(false);
+  const [showInfoModal, setShowInfoModal] = React.useState(false);
+  const [newWeight, setNewWeight] = React.useState('');
+  const [isSavingWeight, setIsSavingWeight] = React.useState(false);
   
   const { data: weeklyStats, isLoading: statsLoading } = useWeeklyStats();
   const { profile, nutritionGoals, isLoading: profileLoading } = useProfile();
+  const { data: bodyMetrics } = useBodyMetrics(profile?.id || '');
+  const { mutateAsync: addBodyMetric } = useAddBodyMetric();
+  
+  // Get latest body metrics
+  const latestMetrics = bodyMetrics?.[bodyMetrics.length - 1];
+
+  const handleAddWeight = async () => {
+    const parsed = Number(newWeight.replace(',', '.'));
+    if (!parsed || Number.isNaN(parsed) || parsed <= 0) {
+      Alert.alert('Peso inválido', 'Ingresa un peso válido mayor a 0.');
+      return;
+    }
+
+    try {
+      setIsSavingWeight(true);
+      await addBodyMetric({ weight_value: parsed, weight_unit: profile?.weight_unit || 'kg' } as any);
+      setShowWeightModal(false);
+      setNewWeight('');
+    } catch (error) {
+      console.error('Error adding weight:', error);
+      Alert.alert('Error', 'No pudimos guardar tu peso. Intenta nuevamente.');
+    } finally {
+      setIsSavingWeight(false);
+    }
+  };
 
   if (statsLoading || profileLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#7c2d12" />
+        <ActivityIndicator size="large" color={COLORS.primary.amber} />
       </View>
     );
   }
@@ -31,42 +62,46 @@ const ProgressScreen = () => {
     labels: weeklyStats?.labels || ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
     datasets: [{
       data: weeklyStats?.data || [0, 0, 0, 0, 0, 0, 0],
-      color: (opacity = 1) => `rgba(124, 45, 18, ${opacity})`,
+      color: (opacity = 1) => `rgba(252, 211, 77, ${opacity})`,
       strokeWidth: 4
     }]
   };
 
   const chartConfig = {
-    backgroundColor: '#ffffff',
-    backgroundGradientFrom: '#ffffff',
-    backgroundGradientTo: '#ffffff',
+    backgroundColor: COLORS.background.secondary,
+    backgroundGradientFrom: COLORS.background.secondary,
+    backgroundGradientTo: COLORS.background.secondary,
     decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(124, 45, 18, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(148, 163, 184, ${opacity})`,
-    style: { borderRadius: 16 },
+    color: (opacity = 1) => `rgba(252, 211, 77, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    style: { borderRadius: BORDER_RADIUS.lg },
     propsForDots: {
       r: '6',
       strokeWidth: '3',
-      stroke: '#ffffff'
+      stroke: COLORS.background.primary
     },
     propsForBackgroundLines: {
       strokeDasharray: '6',
-      stroke: '#f1f5f9'
+      stroke: 'rgba(255,255,255,0.1)'
     }
+  };
+
+  const weightChartConfig = {
+    ...chartConfig,
+    color: (opacity = 1) => `rgba(252, 211, 77, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    propsForLabels: {
+      fontSize: 12,
+      fontWeight: '700',
+      fill: '#FFFFFF',
+    },
+    barPercentage: 0.55,
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.topHeader}>
-          <Text style={styles.brandEmoji}>🦦</Text>
-          <Text style={styles.brandText}>NotFat</Text>
-          <TouchableOpacity style={styles.weightBadge}>
-            <Text style={styles.weightText}>{profile?.weight_value || '--'} {profile?.weight_unit || 'kg'}</Text>
-            <ChevronRight size={16} color="#7c2d12" />
-          </TouchableOpacity>
-        </View>
+        <View style={styles.topSpacer} />
 
         {/* Tab Switcher */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll}>
@@ -115,7 +150,9 @@ const ProgressScreen = () => {
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <Text style={styles.chartTitle}>Calorías consumidas</Text>
-            <TouchableOpacity><Info size={20} color="#94a3b8" /></TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowInfoModal(true)} activeOpacity={0.8}>
+              <Info size={20} color="#94a3b8" />
+            </TouchableOpacity>
           </View>
           
           <LineChart
@@ -142,7 +179,16 @@ const ProgressScreen = () => {
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
             <Text style={styles.summaryTitle}>Progreso de peso</Text>
-            <TouchableOpacity style={styles.addWeightBtn}><Text style={styles.addWeightText}>+</Text></TouchableOpacity>
+            <TouchableOpacity
+              style={styles.addWeightBtn}
+              onPress={() => {
+                console.log('Open weight modal');
+                setShowWeightModal(true);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.addWeightText}>+</Text>
+            </TouchableOpacity>
           </View>
           <View style={styles.emptyWeightBox}>
              <BarChart
@@ -154,7 +200,7 @@ const ProgressScreen = () => {
                height={150}
                yAxisLabel=""
                yAxisSuffix={profile?.weight_unit || 'kg'}
-               chartConfig={chartConfig}
+               chartConfig={weightChartConfig}
                style={{ borderRadius: 16 }}
                fromZero={true}
              />
@@ -163,6 +209,68 @@ const ProgressScreen = () => {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      <Modal
+        visible={showWeightModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowWeightModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Agregar peso</Text>
+            <Text style={styles.modalSubtitle}>Guarda una nueva medición en tu progreso</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Ej. 74.8"
+              placeholderTextColor={COLORS.text.muted}
+              keyboardType="decimal-pad"
+              value={newWeight}
+              onChangeText={setNewWeight}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalSecondaryBtn} onPress={() => setShowWeightModal(false)} disabled={isSavingWeight}>
+                <Text style={styles.modalSecondaryText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalPrimaryBtn} onPress={handleAddWeight} disabled={isSavingWeight}>
+                <Text style={styles.modalPrimaryText}>{isSavingWeight ? 'Guardando...' : 'Guardar'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showInfoModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowInfoModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>¿Qué muestra este gráfico?</Text>
+            <Text style={styles.modalSubtitle}>
+              Aquí ves tu consumo de calorías por día según las comidas registradas en tu cuenta.
+            </Text>
+            <Text style={styles.infoText}>
+              • La línea amarilla corresponde a tu evolución diaria.
+            </Text>
+            <Text style={styles.infoText}>
+              • La meta diaria se calcula desde tu objetivo nutricional.
+            </Text>
+            <Text style={styles.infoText}>
+              • Usa los botones de rango para ver 7 días, 30 días o 3 meses.
+            </Text>
+            <TouchableOpacity
+              style={[styles.modalPrimaryBtn, { marginTop: SPACING.lg }]}
+              onPress={() => setShowInfoModal(false)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.modalPrimaryText}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -170,214 +278,277 @@ const ProgressScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF3ED',
+    backgroundColor: COLORS.background.primary,
   },
   center: {
     justifyContent: 'center',
     alignItems: 'center',
   },
   scrollContent: {
-    padding: 24,
+    padding: SPACING.xl,
   },
-  topHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  brandEmoji: {
-    fontSize: 28,
-  },
-  brandText: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#7c2d12',
-    marginLeft: 10,
-    flex: 1,
-  },
-  weightBadge: {
-    backgroundColor: '#ffffff',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  weightText: {
-    color: '#7c2d12',
-    fontWeight: '800',
-    fontSize: 16,
+  topSpacer: {
+    height: SPACING.sm,
   },
   tabScroll: {
-    marginBottom: 24,
+    marginBottom: SPACING.lg,
   },
   tabBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 24,
-    backgroundColor: '#ffffff',
-    marginRight: 12,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: BORDER_RADIUS.xl,
+    backgroundColor: COLORS.background.secondary,
+    marginRight: SPACING.sm,
   },
   tabBtnActive: {
-    backgroundColor: '#7c2d12',
+    backgroundColor: COLORS.primary.amber,
   },
   tabText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#334155',
+    fontSize: FONTS.sizes.base,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.text.secondary,
+    fontFamily: FONTS.primary,
   },
   tabTextActive: {
-    color: '#ffffff',
+    color: COLORS.background.primary,
   },
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    gap: 16,
+    marginBottom: SPACING.xl,
+    gap: SPACING.md,
   },
   statsCard: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    borderRadius: 28,
-    padding: 20,
+    backgroundColor: COLORS.background.secondary,
+    borderRadius: BORDER_RADIUS['2xl'],
+    padding: SPACING.lg,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   cardTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#64748b',
+    fontSize: FONTS.sizes.sm,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.text.secondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 12,
+    marginBottom: SPACING.sm,
+    fontFamily: FONTS.primary,
   },
   cardMainInfo: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginBottom: 12,
+    marginBottom: SPACING.sm,
   },
   cardValue: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#1e293b',
+    fontSize: FONTS.sizes['2xl'],
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
   },
   cardUnit: {
-    fontSize: 12,
-    color: '#94a3b8',
-    marginLeft: 4,
-    fontWeight: '800',
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.text.secondary,
+    marginLeft: SPACING.xs,
+    fontWeight: FONTS.weights.bold,
+    fontFamily: FONTS.primary,
   },
   progressPlaceholder: {
     height: 8,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 4,
     width: '100%',
-    marginBottom: 12,
+    marginBottom: SPACING.sm,
   },
   progressInner: {
     height: '100%',
-    backgroundColor: '#7c2d12',
+    backgroundColor: COLORS.primary.amber,
     borderRadius: 4,
   },
   cardSubtitle: {
-    fontSize: 11,
-    color: '#94a3b8',
-    fontWeight: '700',
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.text.secondary,
+    fontWeight: FONTS.weights.bold,
     textAlign: 'center',
+    fontFamily: FONTS.primary,
   },
   daysValueBox: {
-    marginBottom: 12,
+    marginBottom: SPACING.sm,
   },
   daysValue: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#1e293b',
+    fontSize: FONTS.sizes['3xl'],
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
   },
   dotRow: {
     flexDirection: 'row',
-    gap: 4,
-    marginBottom: 12,
+    gap: SPACING.xs,
+    marginBottom: SPACING.sm,
   },
   summaryDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   dotActive: {
-    backgroundColor: '#7c2d12',
+    backgroundColor: COLORS.primary.amber,
   },
   chartCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 32,
-    padding: 20,
-    marginBottom: 20,
+    backgroundColor: COLORS.background.secondary,
+    borderRadius: BORDER_RADIUS['2xl'],
+    padding: SPACING.lg,
+    marginBottom: SPACING.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   chartHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: SPACING.lg,
   },
   chartTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#334155',
+    fontSize: FONTS.sizes.lg,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
   },
   chartStyle: {
-    paddingRight: 40,
-    marginTop: 10,
+    paddingRight: SPACING.xl,
+    marginTop: SPACING.sm,
   },
   chartFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
-    gap: 10,
+    marginTop: SPACING.md,
+    gap: SPACING.sm,
   },
   chartFooterText: {
-    color: '#94a3b8',
-    fontSize: 13,
-    fontWeight: '700',
+    color: COLORS.text.secondary,
+    fontSize: FONTS.sizes.sm,
+    fontWeight: FONTS.weights.bold,
+    fontFamily: FONTS.primary,
   },
   goalLine: {
     width: 30,
     height: 2,
-    backgroundColor: '#7c2d12',
+    backgroundColor: COLORS.primary.amber,
     borderStyle: 'dashed',
     opacity: 0.5,
   },
   summaryCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 32,
-    padding: 24,
-    marginBottom: 20,
+    backgroundColor: COLORS.background.secondary,
+    borderRadius: BORDER_RADIUS['2xl'],
+    padding: SPACING.xl,
+    marginBottom: SPACING.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   summaryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: SPACING.lg,
   },
   summaryTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#334155',
+    fontSize: FONTS.sizes.lg,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
   },
   addWeightBtn: {
     width: 32,
     height: 32,
-    borderRadius: 10,
-    backgroundColor: '#FAF3ED',
+    borderRadius: BORDER_RADIUS.sm,
+    backgroundColor: 'rgba(252,211,77,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(252,211,77,0.25)',
   },
   addWeightText: {
-    fontSize: 20,
-    color: '#7c2d12',
-    fontWeight: '800',
+    fontSize: FONTS.sizes.lg,
+    color: COLORS.primary.amber,
+    fontWeight: FONTS.weights.bold,
   },
   emptyWeightBox: {
     alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    padding: SPACING.xl,
+  },
+  modalCard: {
+    backgroundColor: COLORS.background.secondary,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  modalTitle: {
+    fontSize: FONTS.sizes.xl,
+    fontWeight: FONTS.weights.bold,
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
+  },
+  modalSubtitle: {
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.lg,
+    color: COLORS.text.secondary,
+    fontFamily: FONTS.primary,
+  },
+  infoText: {
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
+    fontSize: FONTS.sizes.sm,
+    lineHeight: 20,
+    marginBottom: SPACING.sm,
+  },
+  modalInput: {
+    backgroundColor: COLORS.background.primary,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    color: COLORS.text.primary,
+    fontFamily: FONTS.primary,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+    marginTop: SPACING.lg,
+  },
+  modalSecondaryBtn: {
+    flex: 1,
+    borderRadius: BORDER_RADIUS.full,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  modalSecondaryText: {
+    color: COLORS.text.secondary,
+    fontFamily: FONTS.primary,
+    fontWeight: FONTS.weights.semibold,
+  },
+  modalPrimaryBtn: {
+    flex: 1,
+    borderRadius: BORDER_RADIUS.full,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    backgroundColor: COLORS.primary.amber,
+  },
+  modalPrimaryText: {
+    color: COLORS.background.primary,
+    fontFamily: FONTS.primary,
+    fontWeight: FONTS.weights.semibold,
   },
 });
 

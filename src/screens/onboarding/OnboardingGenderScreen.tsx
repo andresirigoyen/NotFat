@@ -11,6 +11,7 @@ import Animated, {
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { analytics } from '@/services/analytics';
 
 const GENDER_OPTIONS = [
   {
@@ -112,6 +113,7 @@ export default function OnboardingGenderScreen() {
   const progressWidth = useSharedValue(0);
 
   useEffect(() => {
+    analytics.trackScreenView('OnboardingGender');
     const timer = setTimeout(() => {
       setIsReady(true);
       progressWidth.value = withSpring(25, { damping: 12, stiffness: 90 });
@@ -141,6 +143,7 @@ export default function OnboardingGenderScreen() {
         // Fallback en caso de incompatibilidad con useMutation
         console.warn("updateProfile fallback method called");
       }
+      analytics.trackOnboardingStep('gender', { gender: selectedGender });
       navigation.navigate('OnboardingBirthDate' as never);
     } catch (error) {
       console.error('Error updating gender:', error);

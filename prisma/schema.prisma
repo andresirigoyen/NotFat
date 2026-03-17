@@ -248,10 +248,10 @@ model food_items {
   contributed            Boolean    @default(false)
   nutriscore_grade       String?
   nova_group             Int?
-  nutria_score           Int?
+  notfat_score           Int?
   labels_tags            Json?
   additives_tags         Json?
-  nutria_score_breakdown Json?
+  notfat_score_breakdown Json?
   additives_details      Json?
   is_alcoholic           Boolean    @default(false)
   has_ingredients_data   Boolean?
@@ -1212,7 +1212,7 @@ model scanner_daily_stats {
   unique_users           BigInt?
   unique_products        BigInt?
   avg_processing_seconds Float?
-  missing_nutria_score   BigInt?
+  missing_notfat_score   BigInt?
   missing_nutriscore     BigInt?
   missing_nova           BigInt?
   missing_additives_data BigInt?

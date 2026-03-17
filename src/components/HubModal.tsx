@@ -22,6 +22,8 @@ type HubModalProps = {
   onClose: () => void;
 };
 
+import { useNavigation } from '@react-navigation/native';
+
 const OPTIONS = [
   {
     icon: 'camera',
@@ -29,6 +31,7 @@ const OPTIONS = [
     sub: 'Análisis IA',
     color: COLORS.primary.amber,
     bg: 'rgba(252,211,77,0.12)',
+    screen: 'AnalysisResult',
   },
   {
     icon: 'mic',
@@ -36,6 +39,7 @@ const OPTIONS = [
     sub: 'Dictado natural',
     color: '#A78BFA',
     bg: 'rgba(167,139,250,0.12)',
+    screen: 'MealLogger',
   },
   {
     icon: 'barcode',
@@ -43,6 +47,7 @@ const OPTIONS = [
     sub: 'Escanear producto',
     color: COLORS.primary.sky,
     bg: 'rgba(56,189,248,0.12)',
+    screen: 'BarcodeScanner',
   },
   {
     icon: 'search',
@@ -50,6 +55,7 @@ const OPTIONS = [
     sub: 'Ingreso manual',
     color: '#34D399',
     bg: 'rgba(52,211,153,0.12)',
+    screen: 'MealLogger',
   },
 ];
 
@@ -129,11 +135,20 @@ export default function HubModal({ visible, onClose }: HubModalProps) {
     })
   ).current;
 
+  const navigation = useNavigation();
+
   const handlePress = (index: number) => {
     Animated.sequence([
       Animated.timing(scales[index], { toValue: 0.92, duration: 80, useNativeDriver: true }),
       Animated.spring(scales[index], { toValue: 1, useNativeDriver: true }),
-    ]).start();
+    ]).start(() => {
+      // Navegar a la pantalla correspondiente después de la animación
+      const option = OPTIONS[index];
+      if (option.screen) {
+        onClose();
+        (navigation as any).navigate(option.screen);
+      }
+    });
   };
 
   return (
