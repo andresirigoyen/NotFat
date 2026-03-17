@@ -130,7 +130,7 @@ jobs:
       run: npm ci
       
     - name: Create preview build
-      run: npx --yes eas-cli@latest build --profile preview --non-interactive
+      run: npx --yes eas-cli@latest build --platform all --profile preview --non-interactive
       env:
         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
@@ -160,7 +160,7 @@ jobs:
       run: npm ci
       
     - name: Deploy to staging
-      run: npx --yes eas-cli@latest build --profile preview --non-interactive
+      run: npx --yes eas-cli@latest build --platform all --profile preview --non-interactive
       env:
         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         
@@ -199,12 +199,7 @@ jobs:
       run: npm ci
       
     - name: Deploy to production
-      run: npx --yes eas-cli@latest build --profile production --non-interactive
-      env:
-        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        
-    - name: Submit to App Stores
-      run: npx --yes eas-cli@latest submit --profile production --non-interactive
+      run: npx --yes eas-cli@latest build --platform all --profile production --non-interactive
       env:
         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         
