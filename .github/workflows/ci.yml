@@ -81,6 +81,8 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
     
     steps:
     - name: Checkout code
@@ -100,8 +102,7 @@ jobs:
       
     - name: Run Snyk security scan
       uses: snyk/actions/node@master
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      if: env.SNYK_TOKEN != ''
 
   build-preview:
     name: Build Preview
@@ -129,7 +130,7 @@ jobs:
       run: npm ci
       
     - name: Create preview build
-      run: eas build --profile preview --non-interactive
+      run: npx --yes eas-cli@latest build --profile preview --non-interactive
       env:
         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
@@ -159,7 +160,7 @@ jobs:
       run: npm ci
       
     - name: Deploy to staging
-      run: eas build --profile preview --non-interactive
+      run: npx --yes eas-cli@latest build --profile preview --non-interactive
       env:
         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         
@@ -198,12 +199,12 @@ jobs:
       run: npm ci
       
     - name: Deploy to production
-      run: eas build --profile production --non-interactive
+      run: npx --yes eas-cli@latest build --profile production --non-interactive
       env:
         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         
     - name: Submit to App Stores
-      run: eas submit --profile production --non-interactive
+      run: npx --yes eas-cli@latest submit --profile production --non-interactive
       env:
         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         
