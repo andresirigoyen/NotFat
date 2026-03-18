@@ -110,7 +110,7 @@ jobs:
     needs: [lint-and-test, prisma-validation]
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-    if: ${{ github.event_name == 'pull_request' && secrets.EXPO_TOKEN != '' }}
+    if: ${{ github.event_name == 'pull_request' && env.EXPO_TOKEN != '' }}
     
     steps:
     - name: Checkout code
@@ -142,7 +142,7 @@ jobs:
     needs: [lint-and-test, prisma-validation]
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-    if: ${{ github.ref == 'refs/heads/develop' && secrets.EXPO_TOKEN != '' }}
+    if: ${{ github.ref == 'refs/heads/develop' && env.EXPO_TOKEN != '' }}
     
     steps:
     - name: Checkout code
@@ -183,7 +183,7 @@ jobs:
     needs: [lint-and-test, prisma-validation]
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-    if: ${{ github.ref == 'refs/heads/main' && secrets.EXPO_TOKEN != '' }}
+    if: ${{ github.ref == 'refs/heads/main' && env.EXPO_TOKEN != '' }}
     
     steps:
     - name: Checkout code
