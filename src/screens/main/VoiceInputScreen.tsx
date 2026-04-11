@@ -1,5 +1,5 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,15 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useCreateMealWithItems } from '@/hooks/useMeals';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/services/SupabaseContext';
 import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 const VoiceInputScreen = () => {
@@ -26,33 +29,121 @@ const VoiceInputScreen = () => {
   
   const [transcript, setTranscript] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const isWeb = Platform.OS === 'web';
   
-  const { isRecording, isProcessing: voiceProcessing, startRecording, stopRecording } = useVoiceInput();
+  const { isRecording, isProcessing: voiceProcessing, startRecording, stopRecording, audioUri } = useVoiceInput();
   const { mutateAsync: createMeal } = useCreateMealWithItems();
 
+  // Monitor task status when we have a taskId
+  const { data: taskData } = useQuery({
+    queryKey: ['task', taskId],
+    queryFn: async () => {
+      if (!taskId) return null;
+      const { data } = await supabase
+        .from('task_queue')
+        .select('status, metadata, error_message')
+        .eq('id', taskId)
+        .single();
+      return data;
+    },
+    enabled: !!taskId,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (data?.status === 'completed' || data?.status === 'error') {
+        return false;
+      }
+      return 2000; // Poll every 2 seconds
+    },
+  });
+
+  // When task completes, get the result
+  useEffect(() => {
+    if (taskData?.status === 'completed' && taskData.metadata) {
+      const transcription = taskData.metadata?.transcription || taskData.metadata?.analysis?.transcription;
+      const mealName = taskData.metadata?.analysis?.name;
+      
+      if (transcription) {
+        setTranscript(transcription);
+      } else if (mealName) {
+        setTranscript(mealName);
+      }
+      setIsProcessing(false);
+      setTaskId(null);
+    } else if (taskData?.status === 'error') {
+      Alert.alert('Error', taskData.error_message || 'No se pudo procesar el audio');
+      setIsProcessing(false);
+      setTaskId(null);
+    }
+  }, [taskData]);
+
+  console.log('[VoiceInput] isRecording:', isRecording, 'voiceProcessing:', voiceProcessing, 'taskId:', taskId, 'taskData:', taskData);
+
   const handleVoiceInput = async () => {
+    console.log('[VoiceInput] handleVoiceInput called, Platform:', Platform.OS);
+    
+    if (isWeb) {
+      Alert.alert('Disponible en móvil', 'La entrada de voz no está disponible en web.');
+      return;
+    }
+
     try {
       setIsProcessing(true);
-      
-      // Start recording
+      setTranscript(''); // Clear previous transcript
+      console.log('[VoiceInput] Starting recording...');
       await startRecording();
-      
-      // Simulate recording for demo (in real implementation, this would be handled by the hook)
-      setTimeout(() => {
-        stopRecording();
-        
-        // Mock transcript for demo - in real implementation this would come from voice processing
-        const mockTranscript = "Una ensalada con pollo a la parrilla, arroz integral y vegetales";
-        setTranscript(mockTranscript);
-        setIsProcessing(false);
-      }, 3000);
-      
-    } catch (error) {
-      console.error('Error in voice input:', error);
-      Alert.alert('Error', 'No se pudo procesar el audio');
+      console.log('[VoiceInput] Recording started successfully');
+    } catch (error: any) {
+      console.error('[VoiceInput] Error starting recording:', error);
+      Alert.alert('Error', `No se pudo iniciar la grabación: ${error.message}`);
       setIsProcessing(false);
     }
   };
+
+  const handleStopRecording = async () => {
+    console.log('[VoiceInput] handleStopRecording called');
+    try {
+      console.log('[VoiceInput] Stopping recording...');
+      const capturedTaskId = await stopRecording();
+      console.log('[VoiceInput] Recording stopped, taskId:', capturedTaskId);
+      
+      if (capturedTaskId) {
+        setTaskId(capturedTaskId);
+        console.log('[VoiceInput] Monitoring task:', capturedTaskId);
+      } else {
+        console.log('[VoiceInput] No taskId returned, audio may not have been processed');
+        setIsProcessing(false);
+      }
+    } catch (error: any) {
+      console.error('[VoiceInput] Error stopping recording:', error);
+      Alert.alert('Error', `No se pudo procesar el audio: ${error.message}`);
+      setIsProcessing(false);
+    }
+  };
+
+  // Show message if on web
+  if (isWeb) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <View style={styles.instructionCard}>
+          <View style={styles.iconContainer}>
+            <Ionicons name="mic-off" size={40} color={colors.text.muted} />
+          </View>
+          <Text style={[styles.instructionTitle, { textAlign: 'center' }]}>Entrada de voz</Text>
+          <Text style={[styles.instructionText, { textAlign: 'center', color: colors.text.secondary }]}>
+            La entrada por voz no está disponible en versión web.{'\n'}
+            Por favor usa la app en un dispositivo móvil o simulador.
+          </Text>
+          <TouchableOpacity 
+            style={[styles.voiceButton, { backgroundColor: colors.primary.amber, marginTop: SPACING.xl }]}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.voiceButtonText}>Volver</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const handleSaveMeal = async () => {
     if (!transcript.trim()) {
@@ -148,6 +239,7 @@ const VoiceInputScreen = () => {
               (isProcessing || voiceProcessing) && styles.voiceButtonDisabled
             ]}
             onPressIn={handleVoiceInput}
+            onPressOut={handleStopRecording}
             disabled={isProcessing || voiceProcessing}
             activeOpacity={0.8}
           >
@@ -163,7 +255,7 @@ const VoiceInputScreen = () => {
           </TouchableOpacity>
           
           <Text style={styles.voiceButtonText}>
-            {isRecording ? 'Grabando...' : isProcessing ? 'Procesando...' : 'Mantén presionado para hablar'}
+            {isRecording ? 'Suelta para terminar' : isProcessing ? 'Procesando...' : 'Mantén presionado para hablar'}
           </Text>
         </View>
 

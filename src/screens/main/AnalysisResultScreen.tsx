@@ -50,30 +50,66 @@ export default function AnalysisResultScreen() {
   const { mutateAsync: createMeal } = useCreateMealWithItems();
 
   useEffect(() => {
-    if (!imageUri) {
+    console.log('[AnalysisResult] Image URI:', imageUri);
+    
+    if (!imageUri || imageUri === 'undefined' || imageUri === 'null') {
+      console.log('[AnalysisResult] No image URI, using mock data');
       setIngredients(MOCK_INGREDIENTS);
       setAnalyzing(false);
       return;
     }
 
     const analyzeImage = async () => {
+      console.log('[AnalysisResult] Starting analysis...');
       try {
         const analysisResult = await analyzeMealImage(imageUri);
-        if (analysisResult && analysisResult.ingredients) {
-          const mappedIngredients = analysisResult.ingredients.map((ing: any, index: number) => ({
+        console.log('[AnalysisResult] Analysis result:', JSON.stringify(analysisResult, null, 2));
+        
+        if (!analysisResult) {
+          console.log('[AnalysisResult] No result returned, using mock data');
+          setIngredients(MOCK_INGREDIENTS);
+          return;
+        }
+
+        // Handle different response structures
+        let ingredientsList = [];
+        
+        // Try different possible structures
+        if (analysisResult.ingredients && Array.isArray(analysisResult.ingredients)) {
+          ingredientsList = analysisResult.ingredients;
+        } else if (analysisResult.ingredients && typeof analysisResult.ingredients === 'object') {
+          // Might be nested in another object
+          ingredientsList = Object.values(analysisResult.ingredients).filter(Array.isArray).flat() || [];
+        } else if (analysisResult.name && analysisResult.calories) {
+          // Response might be structured differently - create ingredient from top-level data
+          ingredientsList = [{
+            name: analysisResult.name,
+            calories: analysisResult.calories,
+            protein: analysisResult.macros?.protein || analysisResult.protein || 0,
+            carbs: analysisResult.macros?.carbs || analysisResult.carbs || 0,
+            fat: analysisResult.macros?.fat || analysisResult.fat || 0,
+          }];
+        }
+
+        console.log('[AnalysisResult] Ingredients list:', ingredientsList);
+
+        if (ingredientsList.length > 0) {
+          const mappedIngredients = ingredientsList.map((ing: any, index: number) => ({
             id: index.toString(),
             name: ing.name || 'Ingrediente desconocido',
-            calories: ing.calories || 0,
-            protein: ing.protein || 0,
-            carbs: ing.carbs || 0,
-            fat: ing.fat || 0,
+            calories: Number(ing.calories) || 0,
+            protein: Number(ing.protein) || 0,
+            carbs: Number(ing.carbs) || 0,
+            fat: Number(ing.fat) || 0,
             confirmed: true,
           }));
           setIngredients(mappedIngredients);
+        } else {
+          console.log('[AnalysisResult] No ingredients found in response, using mock data');
+          setIngredients(MOCK_INGREDIENTS);
         }
-      } catch (error) {
-        console.error('Error analyzing image:', error);
-        // Fallback to mock data if analysis fails
+      } catch (error: any) {
+        console.error('[AnalysisResult] Error analyzing image:', error);
         setIngredients(MOCK_INGREDIENTS);
       } finally {
         setAnalyzing(false);
@@ -112,7 +148,7 @@ export default function AnalysisResultScreen() {
           meal_at: (mealDate && mealDate !== 'before') ? mealDate : new Date().toISOString(),
           image_url: imageUri,
           recorded_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          llm_used: 'gemini-2.5-flash' as const,
+          llm_used: 'gemini-2.0-flash' as const,
           modified: false,
           is_from_favorite: false,
           image_url_aux: null,

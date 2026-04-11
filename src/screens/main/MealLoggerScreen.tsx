@@ -1,6 +1,6 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
 import React from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -38,52 +38,82 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
   ];
 
   const handleCameraPress = async () => {
-    const hasPermission = await requestCameraAccess();
-    if (hasPermission) {
-      await handleTakePhoto();
+    console.log('[MealLogger] handleCameraPress called, Platform:', Platform.OS);
+    
+    if (Platform.OS === 'web') {
+      Alert.alert('Disponible en móvil', 'La cámara no está disponible en web. Por favor usa la opción de Galería o instala la app en tu teléfono.');
+      return;
     }
-  };
 
-  const handleTakePhoto = async () => {
     try {
       setAnalyzing(true);
-      const photoUri = await takePhoto();
-      if (photoUri) {
-        // Navigate to analysis result
-        (navigationHook as any).navigate('AnalysisResult', { 
-          imageUri: photoUri,
-          mealType: selectedType,
-          mealDate: initialDate
-        });
+      console.log('[MealLogger] Requesting camera permission...');
+      const hasPermission = await requestCameraAccess();
+      console.log('[MealLogger] Camera permission:', hasPermission);
+      
+      if (!hasPermission) {
+        Alert.alert('Permiso requerido', 'Necesitamos acceso a la cámara para tomar fotos de tu comida.');
+        setAnalyzing(false);
+        return;
       }
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo tomar la foto. Por favor intenta nuevamente.');
+
+      console.log('[MealLogger] Taking photo...');
+      const photoUri = await takePhoto();
+      console.log('[MealLogger] Photo URI received:', photoUri);
+
+      if (!photoUri) {
+        console.log('[MealLogger] No photo taken, user cancelled or error');
+        setAnalyzing(false);
+        return;
+      }
+
+      console.log('[MealLogger] Photo captured successfully, navigating to AnalysisResult...');
+      (navigationHook as any).navigate('AnalysisResult', { 
+        imageUri: photoUri,
+        mealType: selectedType,
+        mealDate: initialDate
+      });
+    } catch (error: any) {
+      console.error('[MealLogger] Camera error:', error);
+      Alert.alert('Error', `No se pudo tomar la foto: ${error.message}`);
     } finally {
       setAnalyzing(false);
     }
   };
 
   const handleGalleryPress = async () => {
-    const hasPermission = await requestMediaLibraryAccess();
-    if (hasPermission) {
-      await handlePickImage();
-    }
-  };
-
-  const handlePickImage = async () => {
+    console.log('[MealLogger] handleGalleryPress called, Platform:', Platform.OS);
     try {
       setAnalyzing(true);
-      const imageUri = await pickImage();
-      if (imageUri) {
-        // Navigate to analysis result
-        (navigationHook as any).navigate('AnalysisResult', { 
-          imageUri,
-          mealType: selectedType,
-          mealDate: initialDate
-        });
+      console.log('[MealLogger] Requesting media library permission...');
+      const hasPermission = await requestMediaLibraryAccess();
+      console.log('[MealLogger] Media library permission:', hasPermission);
+      
+      if (!hasPermission) {
+        Alert.alert('Permiso requerido', 'Necesitamos acceso a la galería para seleccionar fotos.');
+        setAnalyzing(false);
+        return;
       }
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo seleccionar la imagen. Por favor intenta nuevamente.');
+
+      console.log('[MealLogger] Picking image...');
+      const imageUri = await pickImage();
+      console.log('[MealLogger] Image URI received:', imageUri);
+
+      if (!imageUri) {
+        console.log('[MealLogger] No image selected, user cancelled');
+        setAnalyzing(false);
+        return;
+      }
+
+      console.log('[MealLogger] Image selected successfully, navigating to AnalysisResult...');
+      (navigationHook as any).navigate('AnalysisResult', { 
+        imageUri,
+        mealType: selectedType,
+        mealDate: initialDate
+      });
+    } catch (error: any) {
+      console.error('[MealLogger] Gallery error:', error);
+      Alert.alert('Error', `No se pudo seleccionar la imagen: ${error.message}`);
     } finally {
       setAnalyzing(false);
     }
@@ -95,13 +125,24 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
   };
 
   const handleVoicePress = async () => {
-    const hasPermission = await requestMicrophoneAccess();
-    if (hasPermission) {
-      // Navigate to voice input screen
+    try {
+      console.log('[MealLogger] Requesting microphone permission...');
+      const hasPermission = await requestMicrophoneAccess();
+      console.log('[MealLogger] Microphone permission:', hasPermission);
+      
+      if (!hasPermission) {
+        Alert.alert('Permiso requerido', 'Necesitamos acceso al micrófono para usar comandos de voz.');
+        return;
+      }
+
+      console.log('[MealLogger] Navigating to VoiceInput...');
       (navigationHook as any).navigate('VoiceInput', { 
         mealType: selectedType,
         mealDate: initialDate
       });
+    } catch (error) {
+      console.error('[MealLogger] Voice error:', error);
+      Alert.alert('Error', 'No se pudo abrir la entrada de voz.');
     }
   };
 

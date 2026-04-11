@@ -31,7 +31,7 @@ const OPTIONS = [
     sub: 'Análisis IA',
     color: COLORS.primary.amber,
     bg: 'rgba(252,211,77,0.12)',
-    screen: 'AnalysisResult',
+    screen: 'MealLogger', // Changed from AnalysisResult - let user take photo first
   },
   {
     icon: 'mic',

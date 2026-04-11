@@ -6,35 +6,80 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Función para transcribir audio usando OpenAI Whisper
-async function transcribeAudio(audioUrl: string): Promise<string> {
-  try {
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+// Función para procesar audio usando Google Gemini (gratis)
+async function processAudioWithGemini(audioUrl: string): Promise<any> {
+  const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY');
+  if (!apiKey) {
+    throw new Error('GOOGLE_GEMINI_API_KEY not configured');
+  }
+
+  // Descargar el audio
+  const audioResponse = await fetch(audioUrl);
+  const audioBuffer = await audioResponse.arrayBuffer();
+  const audioBase64 = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+
+  const prompt = `Eres un experto en nutrición. Este audio describe una comida. 
+1. Transcribe lo que el usuario dijo
+2. Analiza la comida descrita y extrae en JSON:
+{
+  "name": "nombre del plato",
+  "transcription": "texto transcrito",
+  "ingredients": [{"name": "ingrediente", "quantity": 100, "unit": "g"}],
+  "calories": 250,
+  "protein": 20,
+  "carbs": 30,
+  "fat": 10,
+  "meal_type": "lunch"
+}
+Responde ÚNICAMENTE con el JSON, sin texto extra.`;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        url: audioUrl,
-        model: 'whisper-1',
-        language: 'es',
-        response_format: 'text',
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`)
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType: 'audio/m4a', data: audioBase64 } }
+          ]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 1024,
+        }
+      })
     }
+  );
 
-    return await response.text()
-  } catch (error) {
-    console.error('Error transcribing audio:', error)
-    throw error
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  
+  if (!result.candidates || result.candidates.length === 0) {
+    throw new Error('No se pudo procesar el audio');
+  }
+
+  const content = result.candidates[0].content.parts[0].text;
+  const cleanContent = content.replace(/```json|```/g, '').trim();
+  
+  try {
+    return JSON.parse(cleanContent);
+  } catch {
+    // Intentar extraer JSON del texto
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    throw new Error('No se pudo parsear la respuesta');
   }
 }
 
-// Función para analizar texto con IA
+// Función legacy para analizar texto con IA (ya no se usa, mantenida por compatibilidad)
 async function analyzeMealText(text: string): Promise<any> {
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -135,11 +180,8 @@ serve(async (req) => {
       .eq('id', taskId)
 
     try {
-      // 1. Transcribir audio
-      const transcription = await transcribeAudio(task.audio_url)
-
-      // 2. Analizar texto transcribido
-      const analysis = await analyzeMealText(transcription)
+      // Usar Gemini para procesar audio (gratis)
+      const analysis = await processAudioWithGemini(task.audio_url);
 
       // 3. Crear comida con los resultados
       const { data: user } = await supabase.auth.getUser()
@@ -150,15 +192,15 @@ serve(async (req) => {
       const mealData = {
         user_id: user.user.id,
         name: analysis.name,
-        meal_type: analysis.meal_type,
+        meal_type: analysis.meal_type || 'snack',
         source_type: 'voice',
         status: 'complete',
         total_calories: analysis.calories,
         total_protein: analysis.protein,
         total_carbs: analysis.carbs,
         total_fat: analysis.fat,
-        llm_used: 'gpt-4.1-mini',
-        text_description: transcription,
+        llm_used: 'gemini-2.0-flash',
+        text_description: analysis.transcription,
       }
 
       const { data: meal, error: mealError } = await supabase
@@ -170,16 +212,16 @@ serve(async (req) => {
       if (mealError) throw mealError
 
       // 4. Agregar ingredientes si existen
-      if (analysis.ingredients && analysis.ingredients.length > 0) {
+      if (analysis.ingredients && analysis.ingredients.length > 0 && analysis.calories > 0) {
         const foodItems = analysis.ingredients.map((ingredient: any) => ({
           meal_id: meal.id,
           name: ingredient.name,
-          quantity: ingredient.quantity,
+          quantity: ingredient.quantity || 100,
           unit: ingredient.unit || 'g',
-          calories: Math.round((analysis.calories * ingredient.quantity) / 100), // Estimación proporcional
-          protein: Math.round((analysis.protein * ingredient.quantity) / 100),
-          carbs: Math.round((analysis.carbs * ingredient.quantity) / 100),
-          fat: Math.round((analysis.fat * ingredient.quantity) / 100),
+          calories: Math.round((analysis.calories * (ingredient.quantity || 100)) / 100),
+          protein: Math.round((analysis.protein * (ingredient.quantity || 100)) / 100),
+          carbs: Math.round((analysis.carbs * (ingredient.quantity || 100)) / 100),
+          fat: Math.round((analysis.fat * (ingredient.quantity || 100)) / 100),
         }))
 
         await supabase.from('food_items').insert(foodItems)
@@ -192,7 +234,7 @@ serve(async (req) => {
           status: 'completed',
           processing_completed_at: new Date().toISOString(),
           metadata: {
-            transcription,
+            transcription: analysis.transcription,
             analysis,
             meal_id: meal.id,
           },

@@ -10,8 +10,7 @@ import * as FileSystem from 'expo-file-system';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/SupabaseContext';
 import { useAuthStore } from '@/store';
-import { useMicrophonePermissions } from 'expo-camera';
-import { useAudioRecorder, RecordingOptions, RecordingPresets } from 'expo-audio';
+import { Audio } from 'expo-av';
 
 interface VoiceInputState {
   isRecording: boolean;
@@ -31,13 +30,24 @@ interface TaskQueue {
 
 export function useVoiceInput() {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [permissionResponse, requestPermission] = useMicrophonePermissions();
-  // ✅ FIX #4: Ref para el intervalo de monitoreo — permite limpiarlo si el componente se desmonta
+  const [permissionStatus, setPermissionStatus] = useState<boolean>(false);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const monitorIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+
+  useEffect(() => {
+    checkPermissions();
+  }, []);
+
+  const checkPermissions = async () => {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      setPermissionStatus(status === 'granted');
+    } catch (error) {
+      console.error('Error checking permissions:', error);
+    }
+  };
 
   // Crear entrada en task_queue
   const createTaskMutation = useMutation({
@@ -89,127 +99,78 @@ export function useVoiceInput() {
     },
   });
 
-  // Procesar audio con Edge Function
-  const processAudioMutation = useMutation({
-    mutationFn: async (taskId: string) => {
-      const { data, error } = await supabase.functions.invoke('process-voice-input', {
-        body: { taskId },
-      });
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
   const startRecording = useCallback(async () => {
     try {
-      if (permissionResponse?.status !== 'granted') {
-        const { status } = await requestPermission();
+      if (!permissionStatus) {
+        const { status } = await Audio.requestPermissionsAsync();
         if (status !== 'granted') {
           Alert.alert('Error', 'Se requieren permisos de audio para usar esta función');
           return;
         }
+        setPermissionStatus(true);
       }
 
-      const { Audio } = require('expo-audio');
-      if (Audio && Audio.setAudioModeAsync) {
-        await Audio.setAudioModeAsync({ allowsRecordingIOS: true });
-      }
+      // Configurar modo de audio
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+      });
 
-      await recorder.record();
+      // Crear nueva grabación
+      const newRecording = new Audio.Recording();
+      await newRecording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await newRecording.startAsync();
+      
+      setRecording(newRecording);
+      console.log('Recording started');
 
     } catch (error) {
       console.error('Error starting recording:', error);
       Alert.alert('Error', 'No se pudo iniciar la grabación');
     }
-  }, [permissionResponse, requestPermission, recorder]);
+  }, [permissionStatus]);
 
-  const stopRecording = useCallback(async () => {
-    if (!recorder.isRecording) return;
+  const stopRecording = useCallback(async (): Promise<string | null> => {
+    if (!recording) {
+      console.log('No active recording to stop');
+      return null;
+    }
 
     try {
       setIsProcessing(true);
 
-      await recorder.stop();
-      const uri = recorder.uri;
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      
+      setRecording(null);
 
       if (!uri) {
         throw new Error('No se pudo obtener el URI del audio');
       }
 
+      console.log('Recording stopped, URI:', uri);
+
+      // Subir audio y crear tarea
       const audioUrl = await uploadAudioMutation.mutateAsync(uri);
       const task = await createTaskMutation.mutateAsync(audioUrl);
 
-      const monitorProcessing = () => {
-        let attempts = 0;
-        const maxAttempts = 30;
-
-        // ✅ FIX #4: Guardar referencia del intervalo para poder cancelarlo
-        monitorIntervalRef.current = setInterval(async () => {
-          attempts++;
-
-          try {
-            const { data: status } = await supabase
-              .from('task_queue')
-              .select('status, error_message')
-              .eq('id', task.id)
-              .single();
-
-            if (!status) return;
-
-            if (status.status === 'completed') {
-              if (monitorIntervalRef.current) clearInterval(monitorIntervalRef.current);
-              monitorIntervalRef.current = null;
-              setIsProcessing(false);
-              queryClient.invalidateQueries({ queryKey: ['meals'] });
-
-              Alert.alert(
-                '¡Listo!',
-                'Tu entrada de voz ha sido procesada correctamente',
-                [{ text: 'OK' }]
-              );
-
-            } else if (status.status === 'error') {
-              if (monitorIntervalRef.current) clearInterval(monitorIntervalRef.current);
-              monitorIntervalRef.current = null;
-              setIsProcessing(false);
-              Alert.alert(
-                'Error',
-                'No se pudo procesar tu audio. Intenta nuevamente.',
-                [{ text: 'OK' }]
-              );
-
-            } else if (attempts >= maxAttempts) {
-              if (monitorIntervalRef.current) clearInterval(monitorIntervalRef.current);
-              monitorIntervalRef.current = null;
-              setIsProcessing(false);
-              Alert.alert(
-                'Tiempo agotado',
-                'El procesamiento está tomando más tiempo de lo esperado. Revisa más tarde.',
-                [{ text: 'OK' }]
-              );
-            }
-          } catch (error) {
-            console.error('Error checking task status:', error);
-          }
-        }, 10000);
-      };
-
-      monitorProcessing();
-
-    } catch (error) {
+      console.log('Task created:', task.id);
+      return task.id;
+    } catch (error: any) {
       console.error('Error stopping recording:', error);
       setIsProcessing(false);
-      Alert.alert('Error', 'No se pudo procesar el audio');
+      throw error;
     }
-  }, [recorder, uploadAudioMutation, createTaskMutation, queryClient]);
+  }, [recording, uploadAudioMutation, createTaskMutation]);
 
-  const cancelRecording = useCallback(async () => {
-    if (!recorder.isRecording) return;
+const cancelRecording = useCallback(async () => {
+    if (!recording) return;
 
     try {
-      await recorder.stop();
-      // ✅ FIX #4: Limpiar el intervalo si se cancela durante el monitoreo
+      await recording.stopAndUnloadAsync();
+      setRecording(null);
+      
       if (monitorIntervalRef.current) {
         clearInterval(monitorIntervalRef.current);
         monitorIntervalRef.current = null;
@@ -219,29 +180,30 @@ export function useVoiceInput() {
     } catch (error) {
       console.error('Error canceling recording:', error);
     }
-  }, [recorder]);
+  }, [recording]);
 
-  // ✅ FIX #4: Cleanup al desmontar — evita setState sobre componente desmontado
+  // Cleanup al desmontar
   useEffect(() => {
     return () => {
       if (monitorIntervalRef.current) {
         clearInterval(monitorIntervalRef.current);
-        monitorIntervalRef.current = null;
+      }
+      if (recording) {
+        recording.stopAndUnloadAsync().catch(() => {});
       }
     };
   }, []);
 
   return {
-    isRecording: recorder.isRecording,
+    isRecording: recording !== null,
     isProcessing,
-    audioUri: recorder.uri,
-    duration: recorder.currentTime,
+    audioUri: recording?.getURI() || null,
+    duration: 0,
     startRecording,
     stopRecording,
     cancelRecording,
     isLoading: uploadAudioMutation.isPending || 
               createTaskMutation.isPending || 
-              processAudioMutation.isPending ||
               isProcessing,
   };
 }

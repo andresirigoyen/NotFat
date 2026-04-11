@@ -26,31 +26,22 @@ serve(async (req) => {
       throw new Error('GOOGLE_GEMINI_API_KEY is not configured')
     }
 
-    // Usar gemini-2.5-flash tal como solicitó el usuario
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
+    // Usar gemini-2.0-flash para análisis de imágenes (más económico)
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
 
-    const prompt = `Analiza esta imagen de comida y devuelve un JSON estricto con la siguiente estructura:
+    const prompt = `Analiza esta imagen de comida y devuelve un JSON con:
     {
-      "name": "Nombre descriptivo del plato en español",
-      "calories": calorias_totales_estimadas,
-      "macros": {
-        "protein": gramos_proteina,
-        "carbs": gramos_carbohidratos,
-        "fat": gramos_grasa
-      },
+      "name": "Nombre del plato en español",
+      "calories": 500,
+      "protein": 30,
+      "carbs": 50,
+      "fat": 20,
       "ingredients": [
-        {
-          "name": "nombre del ingrediente",
-          "calories": calorias,
-          "protein": proteina,
-          "carbs": carbohidratos,
-          "fat": grasa
-        }
-      ],
-      "health_score": puntuacion_1_a_10,
-      "explanation": "Breve explicación de por qué es saludable o no"
+        {"name": "ingrediente1", "calories": 100, "protein": 10, "carbs": 20, "fat": 5},
+        {"name": "ingrediente2", "calories": 150, "protein": 15, "carbs": 25, "fat": 8}
+      ]
     }
-    IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, nada de texto extra.`
+    IMPORTANTE: Solo devuelve JSON válido, sin texto adicional.`
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -84,8 +75,20 @@ serve(async (req) => {
     }
 
     const content = result.candidates[0].content.parts[0].text
-    const cleanContent = content.replace(/```json|```/g, '').trim()
-    const analysis = JSON.parse(cleanContent)
+    let analysis;
+    try {
+      const cleanContent = content.replace(/```json|```/g, '').trim();
+      analysis = JSON.parse(cleanContent);
+    } catch (parseError) {
+      console.error('Failed to parse JSON:', content);
+      // Try to extract JSON from the text
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        analysis = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No se pudo parsear el análisis de la imagen');
+      }
+    }
 
     // Solo devolvemos el análisis al frontend para que el usuario confirme
     return new Response(JSON.stringify(analysis), {
