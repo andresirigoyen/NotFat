@@ -30,19 +30,26 @@ serve(async (req) => {
     const model = 'gemini-1.5-flash'
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
-    const prompt = `Analiza esta imagen de comida y devuelve un JSON con:
+    const prompt = `Analiza esta imagen y actúa como un experto nutricionista visual. Identifica todos los alimentos presentes.
+    
+    INSTRUCCIONES CLAVE:
+    1. Si no estás seguro al 100%, haz tu mejor estimación basada en colores y texturas (ej. "Proteína cocida", "Vegetales mixtos").
+    2. NUNCA devuelvas 0 calorías si ves comida. Estima valores realistas.
+    3. Si la imagen es borrosa o difícil, identifica el plato principal (ej. "Plato de carne", "Ensalada variada").
+    
+    FORMATO DE RESPUESTA (JSON):
     {
-      "name": "Nombre del plato en español",
-      "calories": 500,
-      "protein": 30,
-      "carbs": 50,
-      "fat": 20,
+      "name": "Nombre descriptivo del plato",
+      "calories": 450,
+      "protein": 25,
+      "carbs": 35,
+      "fat": 15,
       "ingredients": [
-        {"name": "ingrediente1", "calories": 100, "protein": 10, "carbs": 20, "fat": 5},
-        {"name": "ingrediente2", "calories": 150, "protein": 15, "carbs": 25, "fat": 8}
+        {"name": "Ingrediente 1", "calories": 200, "protein": 15, "carbs": 5, "fat": 8},
+        {"name": "Ingrediente 2", "calories": 250, "protein": 10, "carbs": 30, "fat": 7}
       ]
     }
-    IMPORTANTE: Solo devuelve JSON válido, sin texto adicional.`
+    IMPORTANTE: Solo JSON. Sin explicaciones.`
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -62,8 +69,16 @@ serve(async (req) => {
           ]
         }],
         generationConfig: {
+          temperature: 0.4, // Menor temperatura para análisis más preciso
+          topP: 0.9,
           responseMimeType: "application/json"
-        }
+        },
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+        ]
       })
     })
 

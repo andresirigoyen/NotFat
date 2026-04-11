@@ -75,13 +75,10 @@ export default function AnalysisResultScreen() {
         let ingredientsList = [];
         
         // Try different possible structures
-        if (analysisResult.ingredients && Array.isArray(analysisResult.ingredients)) {
+        if (analysisResult.ingredients && Array.isArray(analysisResult.ingredients) && analysisResult.ingredients.length > 0) {
           ingredientsList = analysisResult.ingredients;
-        } else if (analysisResult.ingredients && typeof analysisResult.ingredients === 'object') {
-          // Might be nested in another object
-          ingredientsList = Object.values(analysisResult.ingredients).filter(Array.isArray).flat() || [];
-        } else if (analysisResult.name && analysisResult.calories) {
-          // Response might be structured differently - create ingredient from top-level data
+        } else if (analysisResult.name && (analysisResult.calories > 0)) {
+          // Fallback: create ingredient from top-level data if ingredients array is empty or missing
           ingredientsList = [{
             name: analysisResult.name,
             calories: analysisResult.calories,
@@ -91,19 +88,19 @@ export default function AnalysisResultScreen() {
           }];
         }
 
-        console.log('[AnalysisResult] Ingredients list:', ingredientsList);
+        console.log('[AnalysisResult] Ingredients list found:', ingredientsList.length);
 
         if (ingredientsList.length > 0) {
           const mappedIngredients = ingredientsList.map((ing: any, index: number) => ({
             id: index.toString(),
-            name: ing.name || 'Ingrediente desconocido',
-            calories: Number(ing.calories) || 0,
-            protein: Number(ing.protein) || 0,
-            carbs: Number(ing.carbs) || 0,
-            fat: Number(ing.fat) || 0,
+            name: ing.name || 'Ingrediente detectado',
+            calories: Math.round(Number(ing.calories) || 0),
+            protein: parseFloat(String(ing.protein || 0)).toFixed(1),
+            carbs: parseFloat(String(ing.carbs || 0)).toFixed(1),
+            fat: parseFloat(String(ing.fat || 0)).toFixed(1),
             confirmed: true,
           }));
-          setIngredients(mappedIngredients);
+          setIngredients(mappedIngredients as any);
         } else {
           console.log('[AnalysisResult] No ingredients found in response, using mock data');
           setIngredients(MOCK_INGREDIENTS);
