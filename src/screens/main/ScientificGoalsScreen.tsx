@@ -32,8 +32,8 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
   const [generatedGoals, setGeneratedGoals] = useState<any>(null);
 
   useEffect(() => {
-    if (nutritionGoals?.source === 'algorithm' && !showResults) {
-      // Si ya tiene objetivos calculados por el algoritmo, los mostramos
+    console.log('ScientificGoals - nutritionGoals:', nutritionGoals);
+    if (nutritionGoals?.source === 'algorithm') {
       setGeneratedGoals({
         calories: nutritionGoals.calories,
         protein: nutritionGoals.protein,
@@ -52,6 +52,7 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
         }
       });
       setShowResults(true);
+      console.log('ScientificGoals - Showing results');
     }
   }, [nutritionGoals]);
 
