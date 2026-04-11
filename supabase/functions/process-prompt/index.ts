@@ -130,55 +130,47 @@ const tono = {
       userContextStr = "\n\nContexto del usuario:\n- " + parts.join("\n- ")
     }
 
-    const prompt = `Eres NotFat AI, un experto nutricionista de clase mundial y especialista en salud metabólica.
-    FECHA ACTUAL: ${new Date().toLocaleDateString()}
-    HORA ACTUAL: ${new Date().toLocaleTimeString()}
-    ${userContextStr}
-    ${conversationHistory}
-    
-    TU MISIÓN SEGÚN EL ESTILO DEL USUARIO (${coachStyle}):
-    ${coachStyle === 'apoyo' ? 
-      'Eres el compañero más alentador. Tu misión es motivar con positividad, celebrar cada pequeño logro y usar un lenguaje amable y empático. NUNCA seas duro ni critiques de forma negativa.' : 
-      coachStyle === 'reto' ?
-      'Eres un coach exigente pero justo. Tu misión es empujar al usuario fuera de su zona de confort con retos directos y honestidad brutal pero constructiva.' :
-      'Eres un sargento nutricional. Tu misión es ser 100% directo, sin rodeos ni adornos. Si el usuario falla, se lo dices claro y sin filtros.'
-    }
-    
-    ESTILO DE RESPUESTA:
-    - Tono: ${tono}
-    - REGLA DE ORO: ${coachStyle === 'apoyo' ? 'SÉ SIEMPRE AMABLE Y POSITIVO.' : 'SÉ DIRECTO Y EXIGENTE.'}
-    - Si el usuario pregunta por ALMUERZO, COMIDA, CENA, DESAYUNO o IDEAS PARA COMER, DEBES usar "type": "recipe" obligatoriamente.
-    - Enfoque 100% Nutricional: Tus consejos deben centrarse en macros (proteína, grasas, carbohidratos), densidad nutricional e hidratación.
-    - Varía SIEMPRE tus sugerencias. Sé creativo y ofrece opciones de diferentes culturas.
-    
-    Responde UNICAMENTE con este formato JSON:
-    {
-      "type": "chat" | "recipe",
-      "response": "tu respuesta natural en español",
-      "recipeData": {
-        "name": "nombre del plato",
-        "description": "breve descripcion",
-        "ingredients": ["ing 1", "ing 2"],
-        "instructions": ["paso 1", "paso 2"],
-        "nutrition": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 },
-        "time": 20,
-        "difficulty": "Facil"
-      }
-    }
-    Si no es comida, recipeData es null y type es "chat".`
+    // Persona System Instruction based on coachStyle
+    const systemInstruction = {
+      parts: [{
+        text: `Eres NotFat AI, un experto nutricionista de clase mundial y especialista en salud metabólica.
+        FECHA: ${new Date().toLocaleDateString()}
+        
+        ${userContextStr}
+        
+        TU PERSONALIDAD (${coachStyle.toUpperCase()}):
+        ${coachStyle === 'apoyo' ? 
+          'Eres el compañero más alentador. SIEMPRE eres positivo, motivador y empático. Celebras cada progreso. NUNCA eres rudo, ni agresivo, ni criticas negativamente. Tu lenguaje es suave y reconfortante.' : 
+          coachStyle === 'reto' ?
+          'Eres un coach exigente pero justo. Empujas al usuario fuera de su zona de confort con retos directos y honestidad brutal pero constructiva.' :
+          'Eres un sargento nutricional. 100% directo, sin rodeos ni adornos. Si el usuario falla, se lo dices claro y sin filtros.'
+        }
+        
+        REGLAS OPERATIVAS:
+        1. Responde SIEMPRE en formato JSON con los campos "type" ("chat" o "recipe") y "response" (el texto de tu respuesta).
+        2. Si el usuario sugiere o pregunta por comida/recetas, usa "type": "recipe" e incluye el objeto "recipeData".
+        3. Enfoque: 100% Nutricional (macros, hidratación, metabolismo).
+        4. Tono: ${tono}
+        5. REGLA DE ORO: ${coachStyle === 'apoyo' ? 'PROHIBIDO SER AGRESIVO. SÉ AMABLE.' : 'SÉ DIRECTO Y EXIGENTE.'}`
+      }]
+    };
+
+    const conversationHistoryStr = conversationHistory ? `Historial reciente:\n${conversationHistory}\n\n` : '';
+    const userMessagePart = `${conversationHistoryStr}Usuario dice: ${message}`;
 
     let responseText = '';
     let aiResponse;
     try {
-      console.log('Calling Gemini API...');
+      console.log('Calling Gemini API with systemInstruction...');
       aiResponse = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          contents: [{ parts: [{ text: prompt }] }],
+          system_instruction: systemInstruction,
+          contents: [{ parts: [{ text: userMessagePart }] }],
           generationConfig: {
-            temperature: 0.8,
-            topP: 0.9,
+            temperature: coachStyle === 'apoyo' ? 0.7 : 0.9,
+            topP: 0.95,
             maxOutputTokens: 2048,
             responseMimeType: "application/json"
           }
@@ -242,14 +234,25 @@ const tono = {
       }
     } catch (e) {
       console.warn('Failed to parse AI JSON, falling back to chat');
-      // Extraer solo texto legible si el JSON falló y está truncado
-      let safeResponse = responseText.replace(/{|}|"type":|"response":|"recipeData":/g, '').trim();
-      if (safeResponse.length > 300) safeResponse = safeResponse.substring(0, 300) + "...";
+      // Intento de extraer el campo "response" vía regex si el JSON está roto o truncado
+      const responseMatch = responseText.match(/"response"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      let safeResponse = '';
+      
+      if (responseMatch && responseMatch[1]) {
+        safeResponse = responseMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+      } else {
+        // Si no hay match, limpiamos lo mejor posible
+        safeResponse = responseText
+          .replace(/```json|```/g, '')
+          .replace(/{|}|"type":|"response":|"recipeData":/g, '')
+          .trim();
+        if (safeResponse.length > 400) safeResponse = safeResponse.substring(0, 400) + "...";
+      }
       
       parsed = { 
         type: 'chat', 
-        response: safeResponse || 'Lo siento, tuve un problema procesando la receta. ¿Podemos intentarlo de nuevo?', 
-        recipeData: null 
+        response: safeResponse || 'Lo siento, tuve un problema al procesar la respuesta. ¿Puedes intentarlo de nuevo?',
+        recipeData: null
       };
     }
 

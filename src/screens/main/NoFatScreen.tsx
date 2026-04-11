@@ -160,13 +160,19 @@ const NoFatScreen = () => {
                     try {
                       const result = await processPrompt(userMessage);
                       if (result) {
+                        // Limpiar respuesta de restos de JSON o markdown si vienen en el campo response
+                        const cleanMessage = (result.response || '')
+                          .replace(/```json[\s\S]*?```/g, '')
+                          .replace(/{[\s\S]*?}/g, '')
+                          .trim();
+
                         if (result.type === 'recipe' && result.recipeData) {
                           setGeneratedRecipe(result.recipeData);
-                          const friendlyMessage = result.response || '¡He creado una receta deliciosa para ti! 🍽️';
+                          const friendlyMessage = cleanMessage || '¡He creado una receta deliciosa para ti! 🍽️';
                           setChatHistory(prev => [...prev, { role: 'ai', message: friendlyMessage }]);
                         } else {
                           setGeneratedRecipe(null);
-                          setChatHistory(prev => [...prev, { role: 'ai', message: result.response || 'No entendí bien.' }]);
+                          setChatHistory(prev => [...prev, { role: 'ai', message: cleanMessage || 'No entendí bien.' }]);
                         }
                       }
                     } catch (err) {
