@@ -81,9 +81,9 @@ export default function SignUpScreen() {
           console.warn('[SignUp] Analytics error (ignored):', analyticsError);
         }
 
-        navigation.reset({
+        (navigation as any).reset({
           index: 0,
-          routes: [{ name: 'OnboardingGender' } as any],
+          routes: [{ name: 'OnboardingGender' }],
         });
       } else {
         // Si requiere confirmación (session es null), mostramos el aviso habitual
@@ -94,7 +94,7 @@ export default function SignUpScreen() {
           [
             {
               text: 'OK, ir a Login',
-              onPress: () => navigation.navigate('Login' as any),
+              onPress: () => (navigation.navigate as any)('Login'),
             },
           ]
         );
