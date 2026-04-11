@@ -84,9 +84,12 @@ DECLARE
   v_full_name TEXT;
   v_first_name TEXT;
   v_last_name TEXT;
+  v_email TEXT;
   v_gender TEXT;
   v_role TEXT;
 BEGIN
+  -- Extraer datos de la metadata o del registro directo
+  v_email      := COALESCE(NEW.email, NEW.raw_user_meta_data->>'email', '');
   v_full_name  := COALESCE(NEW.raw_user_meta_data->>'full_name', '');
   v_first_name := COALESCE(NEW.raw_user_meta_data->>'first_name', split_part(v_full_name, ' ', 1));
   v_last_name  := COALESCE(
@@ -109,7 +112,7 @@ BEGIN
     updated_at, created_at
   ) VALUES (
     NEW.id,
-    NEW.email,
+    v_email,
     v_full_name,
     v_first_name,
     v_last_name,
@@ -126,7 +129,13 @@ BEGIN
     'free', 'reto',
     NOW(), NOW()
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    full_name = EXCLUDED.full_name,
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    updated_at = NOW()
+  WHERE profiles.email IS NULL OR profiles.email = '';
 
   RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
