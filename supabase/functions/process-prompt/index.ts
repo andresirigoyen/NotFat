@@ -34,20 +34,18 @@ serve(async (req) => {
 
     const supabase = getSupabaseAdmin()
 
-    // Fetch user profile
-    let userProfile = providedProfile;
-    if (!userProfile) {
-      try {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('id, first_name, diet_type, nutrition_goal, coach_style')
-          .eq('id', userId)
-          .single();
-        userProfile = profileData;
-      } catch (e) {
-        console.log('Profile not found, continuing without context');
-        userProfile = null;
-      }
+    // Fetch latest user profile directly from DB to ensure 100% sync
+    let userProfile = null;
+    try {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, first_name, diet_type, nutrition_goal, coach_style')
+        .eq('id', userId)
+        .single();
+      userProfile = profileData;
+      console.log('✅ Profile synced from DB:', userProfile?.first_name);
+    } catch (e) {
+      console.log('Profile not found or error, continuing with fallback');
     }
 
     // Determinar el tono según coach_style
@@ -108,33 +106,7 @@ const tono = {
       'bye': '¡Hasta luego! Remember, small steps every day.',
     };
 
-    // OPTIMIZACIÓN: Verificar cache de respuestas recientes (últimos 2 minutos)
-    try {
-      const { data: recentMessage } = await supabase
-        .from('coach_messages')
-        .select('content, created_at')
-        .eq('user_id', userId)
-        .ilike('content', `%${message.trim()}%`)
-        .gte('created_at', new Date(Date.now() - 2 * 60 * 1000).toISOString())
-        .eq('role', 'assistant')
-        .limit(1)
-        .single();
-      
-      if (recentMessage) {
-        console.log('✅ Cache hit - returning recent response');
-        return new Response(JSON.stringify({
-          type: 'chat',
-          response: recentMessage.content,
-          recipeData: null,
-          cached: true,
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        });
-      }
-    } catch (e) {
-      // No cache hit, continuar normally
-    }
+    // Cache removed to ensure variety and fresh AI responses
 
     const messageLower = message.toLowerCase().trim();
     if (simpleResponses[messageLower]) {
@@ -158,21 +130,20 @@ const tono = {
       userContextStr = "\n\nContexto del usuario:\n- " + parts.join("\n- ")
     }
 
-    const prompt = `Eres NotFat AI, un experto coach nutricional con este estilo de comunicación: ${tono}.${userContextStr}${conversationHistory}
+    const prompt = `Eres NotFat AI, un experto nutricionista de clase mundial y especialista en salud metabólica.${userContextStr}${conversationHistory}
+    
+    TU MISIÓN: Ayudar al usuario a alcanzar su peso ideal y optimizar su nutrición mediante consejos basados en ciencia, planes de comidas creativos y motivación disruptiva.
     
     Mensaje actual del usuario: "${message}"
     
-    ESTILO DE COMUNICACIÓN:
-    - Ajusta tu tono segun preferencia del usuario: ${coachStyle}
+    REGLAS DE ORO:
+    1. Si el usuario pregunta por ALMUERZO, COMIDA, CENA, DESAYUNO o IDEAS PARA COMER, DEBES usar "type": "recipe" obligatoriamente.
+    2. Enfoque 100% Nutricional: Tus consejos deben centrarse en macros (proteína, grasas, carbohidratos), densidad nutricional e hidratación.
+    3. Varía SIEMPRE tus sugerencias. Usa ingredientes frescos, variados y de temporada.
     
-    INSTRUCCIONES CRÍTICAS:
-    1. Varía SIEMPRE tus sugerencias. No repitas recetas que ya hayas mencionado en el historial.
-    2. Sé creativo y ofrece opciones de diferentes culturas o estilos culinarios, siempre manteniendo el enfoque saludable.
-    3. Si el usuario te pide almuerzo/cena/desayuno, intenta sorprenderlo con algo nuevo cada vez.
-    
-    Responde UNICAMENTE con este JSON exacto:
+    Responde UNICAMENTE con este formato JSON:
     {
-      "type": "chat" o "recipe",
+      "type": "chat" | "recipe",
       "response": "tu respuesta natural en español",
       "recipeData": {
         "name": "nombre del plato",
@@ -184,7 +155,7 @@ const tono = {
         "difficulty": "Facil"
       }
     }
-    Si es solo chat, recipeData debe ser null.`
+    Si no es comida, recipeData es null y type es "chat".`
 
     let responseText = '';
     let aiResponse;
@@ -196,10 +167,11 @@ const tono = {
         body: JSON.stringify({ 
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.7,
-            topP: 0.9,
-            topK: 20,
-            maxOutputTokens: 512,
+            temperature: 0.95,
+            topP: 0.95,
+            topK: 64,
+            maxOutputTokens: 1024,
+            responseMimeType: "application/json"
           }
         })
       })

@@ -253,7 +253,14 @@ export default function CoachScreen({ route }: any) {
 
           {/* Chat History */}
           <View style={styles.chatHistory}>
-            {messages?.filter(msg => msg.content && !msg.content.startsWith('{')).map((msg) => (
+            {messages?.filter(msg => {
+              if (!msg.content) return false;
+              const trimmed = msg.content.trim();
+              if (trimmed.startsWith('{') || trimmed.includes('"title":') || trimmed.includes('"role":')) return false;
+              return true;
+            })
+            .slice(-6) // Mantener solo las últimas 3 conversaciones (6 mensajes)
+            .map((msg) => (
                 <View
                   key={msg.id}
                   style={[
