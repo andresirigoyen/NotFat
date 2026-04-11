@@ -67,7 +67,7 @@ export default function SplashScreen() {
         navigationTriggered.current = true;
         navigation.reset({
           index: 0,
-          routes: [{ name: (nextScreen === 'Splash' ? 'Welcome' : nextScreen) as any }],
+          routes: [{ name: (nextScreen === 'Splash' ? 'Welcome' : nextScreen) } as any],
         });
       }
     }, 6000);
@@ -86,7 +86,7 @@ export default function SplashScreen() {
       
       navigation.reset({
         index: 0,
-        routes: [{ name: nextScreen as never }],
+        routes: [{ name: nextScreen } as any],
       });
     }, duration);
 
