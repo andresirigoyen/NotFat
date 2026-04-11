@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { ChevronLeft } from 'lucide-react-native';
 import { useScientificGoals } from '@/hooks/useScientificGoals';
 import { useProfile } from '@/hooks/useProfile';
 import { getStyles } from './ScientificGoalsScreen.styles';
@@ -22,13 +22,38 @@ interface ScientificGoalsScreenProps {
 export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
   navigation,
 }) => {
-  const [generatedGoals, setGeneratedGoals] = useState<any>(null);
-  const [showResults, setShowResults] = useState(false);
-  
-  const { profile, isLoading: profileLoading } = useProfile();
-  const { generateAndSaveGoals, isLoading: goalsLoading } = useScientificGoals();
   const { colors, isDark } = useThemeColors();
   const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+  
+  const { profile, nutritionGoals, isLoading: profileLoading } = useProfile();
+  const { generateAndSaveGoals, isLoading: goalsLoading } = useScientificGoals();
+  
+  const [showResults, setShowResults] = useState(false);
+  const [generatedGoals, setGeneratedGoals] = useState<any>(null);
+
+  useEffect(() => {
+    if (nutritionGoals?.source === 'algorithm' && !showResults) {
+      // Si ya tiene objetivos calculados por el algoritmo, los mostramos
+      setGeneratedGoals({
+        calories: nutritionGoals.calories,
+        protein: nutritionGoals.protein,
+        carbs: nutritionGoals.carbs,
+        fat: nutritionGoals.fat,
+        fiber: nutritionGoals.fiber || 25,
+        water: nutritionGoals.water || 2000,
+        bmr: 'Calculado',
+        tdee: nutritionGoals.calories,
+        calculations: {
+          bmr_formula: 'Mifflin-St Jeor',
+          activity_multiplier: 'Perfil',
+          protein_formula: 'Gramos por kilo',
+          carb_formula: 'Balanceado',
+          fat_formula: 'Balanceado',
+        }
+      });
+      setShowResults(true);
+    }
+  }, [nutritionGoals]);
 
   useEffect(() => {
     if (profile && !profileLoading) {
@@ -44,7 +69,7 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
           'Para calcular objetivos científicos, necesitas completar tu perfil con altura, peso, fecha de nacimiento y género.',
           [
             { text: 'Completar Perfil', onPress: () => navigation.navigate('Profile') },
-            { text: 'Cancelar', style: 'cancel' }
+            { text: 'Cancelar', style: 'cancel', onPress: () => navigation.goBack() }
           ]
         );
       }
@@ -69,34 +94,25 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
       : 'N/A';
 
     return (
-      <View style={styles.profileCard}>
-        <Text style={styles.profileTitle}>Tu Perfil</Text>
-        <View style={styles.profileInfo}>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Edad:</Text>
-            <Text style={styles.infoValue}>{age} años</Text>
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Análisis de Datos</Text>
+        <View style={styles.profileGrid}>
+          <View style={styles.profileItem}>
+            <Text style={styles.profileLabel}>Edad</Text>
+            <Text style={styles.profileValue}>{age} años</Text>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Peso:</Text>
-            <Text style={styles.infoValue}>{profile.weight_value} kg</Text>
+          <View style={styles.profileItem}>
+            <Text style={styles.profileLabel}>Peso actual</Text>
+            <Text style={styles.profileValue}>{profile.weight_value} kg</Text>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Altura:</Text>
-            <Text style={styles.infoValue}>{profile.height_value} cm</Text>
+          <View style={styles.profileItem}>
+            <Text style={styles.profileLabel}>Altura</Text>
+            <Text style={styles.profileValue}>{profile.height_value} cm</Text>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Género:</Text>
-            <Text style={styles.infoValue}>
-              {profile.gender === 'male' ? 'Masculino' : 
-               profile.gender === 'female' ? 'Femenino' : 'Otro'}
-            </Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Actividad:</Text>
-            <Text style={styles.infoValue}>
-              {profile.activity_level ? 
-                `${(profile.activity_level * 100).toFixed(0)}%` : 
-                'No especificado'}
+          <View style={styles.profileItem}>
+            <Text style={styles.profileLabel}>Actividad</Text>
+            <Text style={styles.profileValue}>
+              {profile.activity_level ? `${(profile.activity_level * 100).toFixed(0)}%` : 'Manual'}
             </Text>
           </View>
         </View>
@@ -108,40 +124,29 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
     if (!generatedGoals) return null;
 
     return (
-      <View style={styles.formulasCard}>
-        <Text style={styles.formulasTitle}>Fórmulas Científicas Utilizadas</Text>
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Metodología Científica</Text>
         
-        <View style={styles.formulaSection}>
-          <Text style={styles.formulaName}>BMR (Tasa Metabólica Basal)</Text>
-          <Text style={styles.formulaValue}>
-            {generatedGoals.calculations.bmr_formula}
-          </Text>
-          <Text style={styles.formulaResult}>
-            BMR: {generatedGoals.bmr} kcal/día
-          </Text>
+        <View style={styles.formulaItem}>
+          <Text style={styles.formulaName}>Tasa Metabólica Basal (BMR)</Text>
+          <Text style={styles.formulaDesc}>Fórmula de Mifflin-St Jeor (Estándar de oro)</Text>
+          <Text style={styles.formulaResult}>{generatedGoals.bmr} kcal/día</Text>
         </View>
 
-        <View style={styles.formulaSection}>
-          <Text style={styles.formulaName}>TDEE (Gasto Total Diario)</Text>
-          <Text style={styles.formulaValue}>
-            BMR × {generatedGoals.calculations.activity_multiplier}
-          </Text>
-          <Text style={styles.formulaResult}>
-            TDEE: {generatedGoals.tdee} kcal/día
-          </Text>
+        <View style={styles.formulaItem}>
+          <Text style={styles.formulaName}>Gasto Energético (TDEE)</Text>
+          <Text style={styles.formulaDesc}>Multiplicador de actividad física aplicado</Text>
+          <Text style={styles.formulaResult}>{generatedGoals.tdee} kcal de mantenimiento</Text>
         </View>
 
-        <View style={styles.formulaSection}>
-          <Text style={styles.formulaName}>Distribución de Macronutrientes</Text>
-          <Text style={styles.formulaValue}>
-            Proteína: {generatedGoals.calculations.protein_formula}
-          </Text>
-          <Text style={styles.formulaValue}>
-            Carbohidratos: {generatedGoals.calculations.carb_formula}
-          </Text>
-          <Text style={styles.formulaValue}>
-            Grasas: {generatedGoals.calculations.fat_formula}
-          </Text>
+        <View style={styles.formulaItem}>
+          <Text style={styles.formulaName}>Macronutrientes</Text>
+          <Text style={styles.formulaDesc}>Basado en requerimientos de masa muscular</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+            <Text style={styles.formulaResult}>P: {generatedGoals.protein}g</Text>
+            <Text style={styles.formulaResult}>C: {generatedGoals.carbs}g</Text>
+            <Text style={styles.formulaResult}>G: {generatedGoals.fat}g</Text>
+          </View>
         </View>
       </View>
     );
@@ -150,58 +155,28 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
   const renderGoals = () => {
     if (!generatedGoals) return null;
 
+    const goalCards = [
+      { label: 'Calorías', value: generatedGoals.calories, icon: 'flame', color: '#FF6B6B' },
+      { label: 'Proteína', value: `${generatedGoals.protein}g`, icon: 'fitness', color: '#2196F3' },
+      { label: 'Carbos', value: `${generatedGoals.carbs}g`, icon: 'nutrition', color: '#FF9800' },
+      { label: 'Grasas', value: `${generatedGoals.fat}g`, icon: 'water', color: '#4CAF50' },
+      { label: 'Fibra', value: `${generatedGoals.fiber}g`, icon: 'leaf', color: '#9C27B0' },
+      { label: 'Agua', value: `${generatedGoals.water}ml`, icon: 'water-outline', color: '#03A9F4' },
+    ];
+
     return (
-      <View style={styles.goalsCard}>
-        <Text style={styles.goalsTitle}>Tus Objetivos Diarios</Text>
-        
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Tus Objetivos Calculados</Text>
         <View style={styles.goalsGrid}>
-          <View style={styles.goalItem}>
-            <View style={[styles.goalIcon, { backgroundColor: '#FFE5E5' }]}>
-              <Ionicons name="flame" size={24} color="#FF6B6B" />
+          {goalCards.map((g, i) => (
+            <View key={i} style={styles.goalCard}>
+              <View style={[styles.goalIconContainer, { backgroundColor: `${g.color}15` }]}>
+                <Ionicons name={g.icon as any} size={22} color={g.color} />
+              </View>
+              <Text style={styles.goalValue}>{g.value}</Text>
+              <Text style={styles.goalLabel}>{g.label}</Text>
             </View>
-            <Text style={styles.goalValue}>{generatedGoals.calories}</Text>
-            <Text style={styles.goalLabel}>Calorías</Text>
-          </View>
-
-          <View style={styles.goalItem}>
-            <View style={[styles.goalIcon, { backgroundColor: '#E5F5FF' }]}>
-              <Ionicons name="fitness" size={24} color="#2196F3" />
-            </View>
-            <Text style={styles.goalValue}>{generatedGoals.protein}g</Text>
-            <Text style={styles.goalLabel}>Proteína</Text>
-          </View>
-
-          <View style={styles.goalItem}>
-            <View style={[styles.goalIcon, { backgroundColor: '#FFF3E0' }]}>
-              <Ionicons name="nutrition" size={24} color="#FF9800" />
-            </View>
-            <Text style={styles.goalValue}>{generatedGoals.carbs}g</Text>
-            <Text style={styles.goalLabel}>Carbohidratos</Text>
-          </View>
-
-          <View style={styles.goalItem}>
-            <View style={[styles.goalIcon, { backgroundColor: '#E8F5E8' }]}>
-              <Ionicons name="water" size={24} color="#4CAF50" />
-            </View>
-            <Text style={styles.goalValue}>{generatedGoals.fat}g</Text>
-            <Text style={styles.goalLabel}>Grasas</Text>
-          </View>
-
-          <View style={styles.goalItem}>
-            <View style={[styles.goalIcon, { backgroundColor: '#F3E5F5' }]}>
-              <Ionicons name="leaf" size={24} color="#9C27B0" />
-            </View>
-            <Text style={styles.goalValue}>{generatedGoals.fiber}g</Text>
-            <Text style={styles.goalLabel}>Fibra</Text>
-          </View>
-
-          <View style={styles.goalItem}>
-            <View style={[styles.goalIcon, { backgroundColor: '#E1F5FE' }]}>
-              <Ionicons name="water-outline" size={24} color="#03A9F4" />
-            </View>
-            <Text style={styles.goalValue}>{generatedGoals.water}ml</Text>
-            <Text style={styles.goalLabel}>Agua</Text>
-          </View>
+          ))}
         </View>
       </View>
     );
@@ -209,53 +184,56 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
 
   if (profileLoading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary?.amber} />
-          <Text style={styles.loadingText}>Cargando perfil...</Text>
-        </View>
-      </SafeAreaView>
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={colors.primary.amber} />
+        <Text style={styles.loadingText}>Analizando perfil...</Text>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color={colors.primary?.amber} />
+          <Ionicons name="chevron-back" size={24} color={colors.primary.amber} />
         </TouchableOpacity>
-        <Text style={styles.title}>Objetivos Científicos</Text>
+        <Text style={styles.title}>Analítica de Ciencia</Text>
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
         {renderProfileInfo()}
 
         {!showResults ? (
-          <View style={styles.introductionCard}>
-            <Ionicons name="analytics" size={48} color={colors.primary?.amber} />
-            <Text style={styles.introductionTitle}>
-              Objetivos Basados en Ciencia
+          <View style={styles.introContainer}>
+            <View style={styles.iconCircle}>
+              <Ionicons name="analytics" size={40} color={colors.primary.amber} />
+            </View>
+            <Text style={styles.introTitle}>
+              Objetivos Científicos
             </Text>
-            <Text style={styles.introductionText}>
-              Calcularemos tus objetivos nutricionales usando fórmulas científicas 
-              validadas como Mifflin-St Jeor para tu metabolismo basal y 
-              distribuciones óptimas de macronutrientes.
+            <Text style={styles.introText}>
+              Usaremos la inteligencia de NotFat y fórmulas de nutrición clínica como Mifflin-St Jeor para determinar tus requerimientos biológicos exactos.
             </Text>
-            <Text style={styles.introductionText}>
-              Los resultados estarán basados en tu edad, peso, altura, 
-              género y nivel de actividad física.
+            <Text style={styles.introText}>
+              Este análisis considera tu tasa metabólica basal (BMR) y el efecto térmico de tus actividades diarias.
             </Text>
             
             <TouchableOpacity
-              style={styles.generateButton}
+              style={[styles.mainButton, { width: '100%' }]}
               onPress={handleGenerateGoals}
               disabled={goalsLoading}
+              activeOpacity={0.8}
             >
               {goalsLoading ? (
-                <ActivityIndicator size="small" color="#ffffff" />
+                <ActivityIndicator size="small" color={colors.background.primary} />
               ) : (
-                <Text style={styles.generateButtonText}>Calcular Mis Objetivos</Text>
+                <Text style={styles.mainButtonText}>Calcular mis objetivos</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -265,10 +243,21 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
             {renderGoals()}
             
             <TouchableOpacity
-              style={styles.doneButton}
+              style={styles.mainButton}
               onPress={() => navigation.goBack()}
+              activeOpacity={0.8}
             >
-              <Text style={styles.doneButtonText}>Listo</Text>
+              <Text style={styles.mainButtonText}>Aplicar y salir</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handleGenerateGoals}
+              disabled={goalsLoading}
+            >
+              <Text style={styles.secondaryButtonText}>
+                {goalsLoading ? 'Recalculando...' : 'Recalcular objetivos'}
+              </Text>
             </TouchableOpacity>
           </>
         )}

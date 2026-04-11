@@ -11,6 +11,7 @@ import {
   Platform,
   ActivityIndicator,
   Dimensions,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -229,7 +230,7 @@ export default function CoachScreen({ route }: any) {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>NotFat AI Coach</Text>
           <View style={styles.profileCircle}>
-            <Text style={{ fontSize: 22 }}>🦦</Text>
+            <Image source={require('../../../assets/icon.png')} style={{ width: 44, height: 44, borderRadius: 22 }} resizeMode="contain" />
           </View>
         </View>
 
@@ -284,8 +285,8 @@ export default function CoachScreen({ route }: any) {
                   ]}
                 >
                   {msg.role === 'assistant' && (
-                    <View style={styles.assistantAvatarContainer}>
-                      <Text style={styles.messageAvatar}>🦦</Text>
+                    <View style={styles.messageAvatarContainer}>
+                      <Image source={require('../../../assets/icon.png')} style={{ width: 34, height: 34, borderRadius: 17 }} resizeMode="contain" />
                     </View>
                   )}
                   <View style={{ flex: 1 }}>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/store';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface WaterLog {
   id: string;
@@ -28,6 +29,7 @@ export const useHydration = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
 
   // Default hydration goals based on user profile
   const getDefaultGoal = (weight?: number, weightUnit?: string) => {
@@ -184,6 +186,10 @@ export const useHydration = () => {
       if (insertError) throw insertError;
 
       setWaterLogs(prev => [data, ...prev]);
+      
+      // Invalidate queries to sync with other screens
+      queryClient.invalidateQueries({ queryKey: ['water_logs'] });
+      queryClient.invalidateQueries({ queryKey: ['daily_totals'] });
     } catch (err: any) {
       setError(err.message || 'Error al registrar consumo de agua');
       console.error('Add water log error:', err);
@@ -209,6 +215,10 @@ export const useHydration = () => {
       if (error) throw error;
 
       setWaterLogs(prev => prev.filter(log => log.id !== logId));
+      
+      // Invalidate queries to sync with other screens
+      queryClient.invalidateQueries({ queryKey: ['water_logs'] });
+      queryClient.invalidateQueries({ queryKey: ['daily_totals'] });
     } catch (err: any) {
       setError(err.message || 'Error al eliminar registro de agua');
       console.error('Delete water log error:', err);
@@ -232,9 +242,10 @@ export const useHydration = () => {
         .select()
         .single();
 
-      if (error) throw error;
-
       setHydrationGoal(data);
+      
+      // Invalidate queries to sync with other screens
+      queryClient.invalidateQueries({ queryKey: ['daily_totals'] });
     } catch (err: any) {
       setError(err.message || 'Error al actualizar meta de hidratación');
       console.error('Update hydration goal error:', err);

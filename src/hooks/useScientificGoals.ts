@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/services/SupabaseContext';
+import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/store';
 
 interface UserProfile {
@@ -71,7 +71,7 @@ export function useScientificGoals() {
         .from('user_activity_profile')
         .select('does_sport, daily_activity_level')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       // 3. Calcular edad
       const age = calculateAge(profile.birth_date!);
@@ -118,8 +118,8 @@ export function useScientificGoals() {
           bmr_formula: 'Mifflin-St Jeor',
           activity_multiplier: activityLevel.multiplier,
           protein_formula: activityProfile?.does_sport ? '1.6-2.2g/kg peso' : '0.8-1.2g/kg peso',
-          carb_formula: '45-65% de calorías totales',
-          fat_formula: '20-35% de calorías totales',
+          carb_formula: 'balanceado',
+          fat_formula: 'balanceado',
         },
       };
 
@@ -141,29 +141,47 @@ export function useScientificGoals() {
         fiber: goals.fiber,
         water: goals.water,
         source: 'algorithm',
+        is_active: true,
         start_date: new Date().toISOString().split('T')[0],
       };
 
-      // Primero, desactivar objetivos anteriores
+      // 1. Desactivar objetivos anteriores (Nutrición)
       await supabase
         .from('nutrition_goals')
         .update({ is_active: false })
         .eq('user_id', user.id)
         .eq('is_active', true);
 
-      // Insertar nuevos objetivos
+      // 2. Insertar nuevos objetivos de nutrición
       const { data, error } = await supabase
         .from('nutrition_goals')
         .insert(goalsData)
         .select()
         .single();
+      
+      if (error) {
+        console.error('Save Nutrition Goals Error:', error);
+        throw error;
+      }
 
-      if (error) throw error;
+      // 3. Sincronizar con Hydration Goals
+      await supabase
+        .from('hydration_goals')
+        .upsert({
+          user_id: user.id,
+          daily_goal: goals.water,
+          unit: 'ml',
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
+
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['nutrition_goals'] });
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ['nutrition_goals', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['hydration_goals', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['daily_totals'] });
     },
   });
 

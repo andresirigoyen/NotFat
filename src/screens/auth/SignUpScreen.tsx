@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -122,7 +122,11 @@ export default function SignUpScreen() {
             </TouchableOpacity>
 
             <View style={styles.brand}>
-              <Text style={styles.brandEmoji}>🦦</Text>
+              <Image 
+                source={require('../../../assets/icon.png')} 
+                style={{ width: 22, height: 22 }} 
+                resizeMode="contain" 
+              />
               <Text style={styles.brandText}>NotFat</Text>
             </View>
 

@@ -41,11 +41,11 @@ import MarkdownText from '@/components/MarkdownText';
 const DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const TODAY_INDEX = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
 
-const MEALS = [
-  { name: 'Desayuno', icon: '☕', target: 929 },
-  { name: 'Almuerzo', icon: '🍱', target: 1238 },
-  { name: 'Cena', icon: '🍽️', target: 774 },
-  { name: 'Snacks', icon: '🍎', target: 155 },
+const MEAL_TYPES = [
+  { name: 'Desayuno', icon: '☕', type: 'breakfast', ratio: 0.30 },
+  { name: 'Almuerzo', icon: '🍱', type: 'lunch', ratio: 0.35 },
+  { name: 'Cena', icon: '🍽️', type: 'dinner', ratio: 0.25 },
+  { name: 'Snacks', icon: '🍎', type: 'snack', ratio: 0.10 },
 ];
 
 const WATER_CUPS = 8;
@@ -199,10 +199,17 @@ export default function DashboardScreen() {
     );
   };
 
-  const calGoal = nutritionGoals?.calories || 3095;
+  const calGoal = nutritionGoals?.calories || 2500;
   const totalConsumed = totals?.calories || 0;
   const totalBurned = (totals as any)?.burned || 0;
+  // Use net calories for remaining (goal + burned - consumed)
   const totalRemaining = Math.max(0, (calGoal + totalBurned) - totalConsumed);
+
+  // Dynamic meal goals proportional to current calorie goal
+  const mealsWithGoals = MEAL_TYPES.map(m => ({
+    ...m,
+    target: Math.round(calGoal * m.ratio)
+  }));
 
   // Calculate calories per meal type
   const mealKcalMap = React.useMemo(() => {
@@ -391,9 +398,9 @@ export default function DashboardScreen() {
               {/* Macros Breakdown - Row Bottom */}
               <View style={s.macrosCirclesRow}>
                 {[
-                  { label: 'Prot.', current: totals?.protein || 0, goal: nutritionGoals?.protein || 151, color: '#FBBF24' },
-                  { label: 'Carbs', current: totals?.carbs || 0, goal: nutritionGoals?.carbs || 377, color: colors.primary.sky },
-                  { label: 'Grasas', current: totals?.fat || 0, goal: nutritionGoals?.fat || 100, color: '#F97316' },
+                  { label: 'Prot.', current: totals?.protein || 0, goal: nutritionGoals?.protein || 180, color: '#FBBF24' },
+                  { label: 'Carbs', current: totals?.carbs || 0, goal: nutritionGoals?.carbs || 300, color: colors.primary.sky },
+                  { label: 'Grasas', current: totals?.fat || 0, goal: nutritionGoals?.fat || 70, color: '#F97316' },
                 ].map((m) => {
                   const pct = m.goal > 0 ? Math.min((m.current / m.goal), 1) : 0;
                   return (
@@ -437,8 +444,8 @@ export default function DashboardScreen() {
           onActionPress={() => navigation.navigate('Progress')}
           colors={colors} s={s} />
         <View style={s.card}>
-          {MEALS.map((meal, idx) => {
-            const consumed = Math.round(mealKcalMap[MEAL_TYPE_MAP[meal.name]] || 0);
+          {mealsWithGoals.map((meal, idx) => {
+            const consumed = Math.round(mealKcalMap[meal.type] || 0);
             return (
               <React.Fragment key={meal.name}>
                 <View style={s.mealRow}>

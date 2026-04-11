@@ -406,7 +406,7 @@ const ProfileScreen = ({ navigation }: any) => {
             <View style={{ flex: 1 }}>
               <Text style={styles.toggleLabel}>Modo Coach Disruptivo</Text>
               <Text style={styles.toggleSub}>
-                {coachMode === 'high' ? 'Modo AGRESIVO activado 🦦' : 'Modo amigable activado'}
+                {coachMode === 'high' ? 'Modo AGRESIVO activado 🚀' : 'Modo amigable activado'}
               </Text>
             </View>
             <Switch 
