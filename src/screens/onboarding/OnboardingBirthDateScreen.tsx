@@ -18,7 +18,11 @@ export default function OnboardingBirthDateScreen() {
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
-  const [birthDate, setBirthDate] = useState(new Date());
+  const [birthDate, setBirthDate] = useState(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 18);
+    return d;
+  });
   const [showPicker, setShowPicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -33,6 +37,16 @@ export default function OnboardingBirthDateScreen() {
     }
     
     return age;
+  };
+
+  const adjustAge = (amount: number) => {
+    const newDate = new Date(birthDate);
+    newDate.setFullYear(newDate.getFullYear() - amount);
+    
+    const newAge = calculateAge(newDate);
+    if (newAge >= 13 && newAge <= 120) {
+      setBirthDate(newDate);
+    }
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
@@ -132,35 +146,45 @@ export default function OnboardingBirthDateScreen() {
             </Text>
           </View>
 
-          {/* Age Display */}
+          {/* Age Display - Now Modifiable */}
           <View style={styles.ageCard}>
             <View style={styles.ageIconContainer}>
               <Ionicons name="gift" size={32} color={colors.primary.sky} />
             </View>
             <View style={styles.ageContent}>
               <Text style={styles.ageLabel}>Tu edad estimada</Text>
-              <Text style={styles.ageValue}>{userAge} años</Text>
+              <View style={styles.ageAdjuster}>
+                <TouchableOpacity onPress={() => adjustAge(-1)} style={styles.adjustBtn}>
+                  <Ionicons name="remove-circle-outline" size={28} color={colors.primary.sky} />
+                </TouchableOpacity>
+                <Text style={styles.ageValue}>{userAge} años</Text>
+                <TouchableOpacity onPress={() => adjustAge(1)} style={styles.adjustBtn}>
+                  <Ionicons name="add-circle-outline" size={28} color={colors.primary.sky} />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
           {/* Date Picker Button */}
-          <TouchableOpacity
-            style={styles.dateCard}
-            onPress={() => setShowPicker(true)}
-            disabled={isLoading}
-            activeOpacity={0.7}
-          >
-            <View style={styles.dateContent}>
-              <View style={styles.dateIconContainer}>
-                <Ionicons name="calendar-outline" size={24} color={colors.primary.sky} />
+          <View style={styles.dateCardContainer}>
+            <TouchableOpacity
+              style={styles.dateCard}
+              onPress={() => setShowPicker(true)}
+              disabled={isLoading}
+              activeOpacity={0.7}
+            >
+              <View style={styles.dateContent}>
+                <View style={styles.dateIconContainer}>
+                  <Ionicons name="calendar-outline" size={24} color={colors.primary.sky} />
+                </View>
+                <View style={styles.dateText}>
+                  <Text style={styles.dateLabel}>Fecha seleccionada</Text>
+                  <Text style={styles.dateValue}>{formatDate(birthDate)}</Text>
+                </View>
+                <Ionicons name="create-outline" size={24} color={colors.primary.sky} />
               </View>
-              <View style={styles.dateText}>
-                <Text style={styles.dateLabel}>Fecha seleccionada</Text>
-                <Text style={styles.dateValue}>{formatDate(birthDate)}</Text>
-              </View>
-              <Ionicons name="create-outline" size={20} color={colors.primary.sky} />
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
 
           {/* Info Cards */}
           <View style={styles.infoSection}>
@@ -340,6 +364,19 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontWeight: FONTS.weights.bold,
     color: colors.text.primary,
     fontFamily: FONTS.primary,
+    minWidth: 40,
+    textAlign: 'center',
+  },
+  ageAdjuster: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  adjustBtn: {
+    padding: 4,
+  },
+  dateCardContainer: {
+    marginBottom: SPACING.xl,
   },
   dateCard: {
     backgroundColor: colors.background.card,
