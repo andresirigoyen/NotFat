@@ -139,11 +139,8 @@ export default function OnboardingPreferencesScreen() {
       // Crear preferencias de notificaciones por defecto (meal + agua + resumen)
       await createDefaultNotificationPreferences();
 
-      // Navegar a la pantalla principal
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main' as never }],
-      });
+      // Navegar a la pantalla de selección de modo
+      navigation.navigate('OnboardingModeSelection' as never);
     } catch (error) {
       console.error('Error updating preferences:', error);
     } finally {

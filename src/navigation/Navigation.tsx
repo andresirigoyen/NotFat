@@ -14,6 +14,7 @@ import OnboardingProfileScreen from '../screens/onboarding/OnboardingProfileScre
 import OnboardingActivityScreen from '../screens/onboarding/OnboardingActivityScreen';
 import OnboardingPreferencesScreen from '../screens/onboarding/OnboardingPreferencesScreen';
 import OnboardingAIGoalsScreen from '../screens/onboarding/OnboardingAIGoalsScreen';
+import OnboardingModeSelectionScreen from '../screens/onboarding/OnboardingModeSelectionScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 
@@ -106,6 +107,7 @@ export default function Navigation() {
         <Stack.Screen name="OnboardingProfile" component={OnboardingProfileScreen} />
         <Stack.Screen name="OnboardingActivity" component={OnboardingActivityScreen} />
         <Stack.Screen name="OnboardingPreferences" component={OnboardingPreferencesScreen} />
+        <Stack.Screen name="OnboardingModeSelection" component={OnboardingModeSelectionScreen} />
 
         {/* Pantallas SIN TabBar */}
         <Stack.Screen name="BarcodeScanner" component={BarcodeScannerScreen} />
