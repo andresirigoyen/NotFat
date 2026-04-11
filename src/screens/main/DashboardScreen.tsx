@@ -396,7 +396,7 @@ export default function DashboardScreen() {
               </View>
 
               <View style={s.coachBubble}>
-                <TouchableOpacity onPress={refreshCoachMessage} activeOpacity={0.7} style={s.coachRefreshBtn}>
+                <TouchableOpacity onPress={() => refreshCoachMessage()} activeOpacity={0.7} style={s.coachRefreshBtn}>
                   <Ionicons name="refresh-circle" size={28} color={colors.primary.amber} />
                 </TouchableOpacity>
                 <MarkdownText 

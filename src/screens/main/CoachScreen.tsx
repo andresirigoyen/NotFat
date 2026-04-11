@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import { useCoachMessages, useSendMessage, useCoachInsights, useDailyTips, useMarkTipAsUsed, useClearChatHistory } from '@/hooks/useCoach';
+import { useCoachMessage } from '@/hooks/useCoachMessage';
 import { useDailyTotals } from '@/hooks/useDailyTotals';
 import { useProfile } from '@/hooks/useProfile';
 import { BlurView } from 'expo-blur';
@@ -54,7 +55,6 @@ export default function CoachScreen({ route }: any) {
   }, []);
 
   const { isFriendly, triggerHaptic: coachHaptic } = useCoachMessage();
-  const ACCENT = colors.accent || '#FCD34D';
 
   const getDynamicRecommendation = () => {
     if (!profile || !totals) return "Cargando tus datos para darte la mejor recomendación...";
@@ -190,11 +190,11 @@ export default function CoachScreen({ route }: any) {
           </View>
           <View style={styles.recipeMetaBadges}>
             <View style={styles.recipeBadge}>
-              <Ionicons name="time-outline" size={14} color={ACCENT} />
+              <Ionicons name="time-outline" size={14} color={colors.accent} />
               <Text style={styles.recipeBadgeText}>{recipe.time || '15'} min</Text>
             </View>
             <View style={styles.recipeBadge}>
-              <Ionicons name="flash-outline" size={14} color={ACCENT} />
+              <Ionicons name="flash-outline" size={14} color={colors.accent} />
               <Text style={styles.recipeBadgeText}>{recipe.difficulty || 'Fácil'}</Text>
             </View>
           </View>
@@ -259,7 +259,7 @@ export default function CoachScreen({ route }: any) {
               activeOpacity={0.7}
             >
               <View style={styles.sectionTitleGroup}>
-                <Ionicons name="sparkles" size={18} color={ACCENT} />
+                <Ionicons name="sparkles" size={18} color={colors.accent} />
                 <Text style={styles.sectionTitle}>Recomendaciones IA</Text>
               </View>
               <Ionicons name={showRecommendations ? "chevron-up" : "chevron-down"} size={20} color="rgba(255,255,255,0.4)" />
@@ -310,7 +310,7 @@ export default function CoachScreen({ route }: any) {
                           .replace(/{[\s\S]*?}/g, '')
                           .trim()}
                         style={msg.role === 'user' ? styles.userText : styles.assistantText}
-                        boldStyle={msg.role === 'user' ? { fontWeight: '900', color: ACCENT } : { color: ACCENT, fontWeight: '800' }}
+                        boldStyle={msg.role === 'user' ? { fontWeight: '900', color: colors.accent } : { color: colors.accent, fontWeight: '800' }}
                       />
                     </View>
                     
@@ -340,7 +340,7 @@ export default function CoachScreen({ route }: any) {
                 value={input}
                 onChangeText={setInput}
                 onSubmitEditing={handleSend}
-                selectionColor={ACCENT}
+                selectionColor={colors.accent}
               />
 
               <TouchableOpacity style={styles.accessoryButton}>
@@ -491,7 +491,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: '#DDD',
   },
   highlight: {
-    color: ACCENT,
+    color: colors.accent,
     fontWeight: '800',
   },
   subTitle: {
@@ -570,7 +570,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontWeight: '800',
   },
   actionButton: {
-    backgroundColor: ACCENT,
+    backgroundColor: colors.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -682,7 +682,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: ACCENT,
+    backgroundColor: colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 5,

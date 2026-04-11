@@ -15,7 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { SPACING } from '@/constants/theme';
 import { CameraView, useCameraPermissions, FlashMode } from 'expo-camera';
+import { BlurView } from 'expo-blur';
+import { useAuthStore } from '@/store';
+import { useScanStore } from '@/store/scans';
 import CustomText from '@/components/CustomText';
+import { PremiumUpsellModal } from '@/components/ui/PremiumUpsellModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -118,7 +122,7 @@ const BarcodeScannerScreen = ({ navigation }: any) => {
         </TouchableOpacity>
         <CustomText variant="bold" style={styles.title}>Escáner de Códigos</CustomText>
         <TouchableOpacity 
-          style={[styles.closeButton, torch === 'on' && { backgroundColor: COLORS.primary.amber }]} 
+          style={[styles.closeButton, torch === 'on' && { backgroundColor: colors.primary.amber }]} 
           onPress={() => setTorch(prev => prev === 'off' ? 'on' : 'off')}
         >
           <Ionicons name={torch === 'on' ? "flashlight" : "flashlight-outline"} size={22} color={torch === 'on' ? "#000" : "#fff"} />
@@ -131,7 +135,7 @@ const BarcodeScannerScreen = ({ navigation }: any) => {
           <View style={styles.limitContainer}>
              <BlurView intensity={40} style={StyleSheet.absoluteFill} tint="dark" />
              <View style={styles.limitContent}>
-                <Ionicons name="lock-closed" size={64} color={COLORS.primary.amber} style={{ marginBottom: 20 }} />
+                <Ionicons name="lock-closed" size={64} color={colors.primary.amber} style={{ marginBottom: 20 }} />
                 <CustomText variant="bold" style={styles.limitTitle}>Límite Alcanzado</CustomText>
                 <CustomText variant="regular" style={styles.limitSubtitle}>
                   "Has agotado tu ración gratuita. Paga el Pro o saca la calculadora manual, novato."
@@ -205,7 +209,7 @@ const BarcodeScannerScreen = ({ navigation }: any) => {
       {isLoading && (
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingCard}>
-            <ActivityIndicator size="large" color={COLORS.primary.amber} />
+            <ActivityIndicator size="large" color={colors.primary.amber} />
             <CustomText variant="medium" style={styles.loadingText}>Buscando producto...</CustomText>
           </View>
         </View>
@@ -340,7 +344,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontStyle: 'italic',
   },
   limitUpgradeBtn: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     paddingHorizontal: SPACING.xl,
     paddingVertical: SPACING.md,
     borderRadius: 16,
