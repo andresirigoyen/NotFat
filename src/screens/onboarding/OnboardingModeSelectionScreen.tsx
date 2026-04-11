@@ -13,59 +13,53 @@ import { analytics } from '@/services/analytics';
 export default function OnboardingModeSelectionScreen() {
   const { colors } = useThemeColors();
   const navigation = useNavigation();
-  const { user } = useAuthStore();
+  const { user, refreshProfile } = useAuthStore();
   const [selectedMode, setSelectedMode] = useState<'hard' | 'soft' | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleModeSelection = async (mode: 'hard' | 'soft') => {
+  const handleConfirm = async () => {
+    if (!selectedMode) return;
     if (!user) {
-      Alert.alert('Error', 'Usuario no identificado. Por favor ingresa de nuevo.');
+      Alert.alert('Error', 'No se encontró la sesión del usuario.');
       return;
     }
-    
-    setSelectedMode(mode);
-    setIsLoading(true);
 
+    setLoading(true);
     try {
-      // Actualizamos el modo en la base de datos
+      // Intentamos actualizar el perfil
       const { error } = await supabase
         .from('profiles')
         .update({ 
-          coach_mode: mode,
-          coach_style: mode === 'hard' ? 'reto' : 'apoyo',
-          onboarding_step: 'completed' 
+          coach_mode: selectedMode,
+          coach_style: selectedMode === 'hard' ? 'reto' : 'apoyo',
+          onboarding_completed: true,
+          onboarding_step: 'completed'
         })
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database update error:', error);
+        throw new Error(error.message);
+      }
 
-      analytics.trackOnboardingStep('coach_mode_selected', { mode });
+      // Actualizar estado global del store
+      if (refreshProfile) {
+        await refreshProfile();
+      }
 
-      // Mensaje de feedback y navegación
-      const alertTitle = mode === 'hard' ? 'ADVERTENCIA: Tono Agresivo' : 'Bienvenido al equipo';
-      const alertMsg = mode === 'hard' 
-        ? 'Has elegido el Fuego Real. Prepárate para la verdad sin filtros.' 
-        : 'El Modo Aliado está listo. Estaremos contigo en cada paso.';
+      analytics.trackOnboardingStep('coach_mode_selected', { mode: selectedMode });
 
+      // Éxito: Navegar al Main Navigator
+      navigation.dispatch(StackActions.replace('Main'));
+      
+    } catch (e: any) {
+      console.error('Selection confirm error:', e);
       Alert.alert(
-        alertTitle,
-        alertMsg,
-        [
-          { 
-            text: mode === 'hard' ? 'Aceptar' : 'Comenzar', 
-            onPress: () => {
-              // Navegar al Main Navigator
-              navigation.dispatch(StackActions.replace('Main'));
-            }
-          }
-        ],
-        { cancelable: false }
+        'Error de Conexión', 
+        `No pudimos guardar tu configuración. Asegúrate de tener conexión a internet. (${e.message})`
       );
-    } catch (error: any) {
-      console.error('Error saving coach mode:', error);
-      Alert.alert('Error', `No pudimos guardar tu preferencia: ${error.message || 'Error desconocido'}`);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -78,21 +72,20 @@ export default function OnboardingModeSelectionScreen() {
         <View style={styles.content}>
           <Animated.View entering={FadeInDown.delay(100)} style={styles.header}>
             <Text style={styles.title}>Selecciona tu Modo</Text>
-            <Text style={styles.subtitle}>¿Cómo quieres que la IA interactúe contigo?</Text>
+            <Text style={styles.subtitle}>Esto define la personalidad de tu Coach IA</Text>
           </Animated.View>
 
           <View style={styles.grid}>
             {/* Tarjeta A: Fuego Real (Hard) */}
             <Animated.View entering={FadeInDown.delay(300)}>
               <Pressable
-                onPress={() => handleModeSelection('hard')}
-                style={({ pressed }) => [
+                onPress={() => setSelectedMode('hard')}
+                disabled={loading}
+                style={[
                   styles.card,
                   styles.hardCard,
                   selectedMode === 'hard' && styles.hardCardSelected,
-                  (pressed || isLoading) && { opacity: 0.7 }
                 ]}
-                disabled={isLoading}
               >
                 <View style={styles.cardHeader}>
                   <View style={[styles.iconContainer, { backgroundColor: '#FF006620' }]}>
@@ -104,25 +97,21 @@ export default function OnboardingModeSelectionScreen() {
                   </View>
                 </View>
                 <Text style={styles.cardDescription}>
-                  La IA será tu espejo: sin excusas, sin filtros, puro reto disruptivo para que alcances tus metas cueste lo que cueste.
+                  La IA será tu espejo: sin excusas ni filtros. No esperes amabilidad; prepárate para la verdad cruda y una disciplina implacable para alcanzar tus metas.
                 </Text>
-                {isLoading && selectedMode === 'hard' && (
-                  <ActivityIndicator size="small" color="#FF0066" style={styles.loader} />
-                )}
               </Pressable>
             </Animated.View>
 
             {/* Tarjeta B: Modo Aliado (Soft) */}
             <Animated.View entering={FadeInDown.delay(500)}>
               <Pressable
-                onPress={() => handleModeSelection('soft')}
-                style={({ pressed }) => [
+                onPress={() => setSelectedMode('soft')}
+                disabled={loading}
+                style={[
                   styles.card,
                   styles.softCard,
                   selectedMode === 'soft' && styles.softCardSelected,
-                  (pressed || isLoading) && { opacity: 0.7 }
                 ]}
-                disabled={isLoading}
               >
                 <View style={styles.cardHeader}>
                   <View style={[styles.iconContainer, { backgroundColor: '#10B98120' }]}>
@@ -134,18 +123,32 @@ export default function OnboardingModeSelectionScreen() {
                   </View>
                 </View>
                 <Text style={styles.cardDescription}>
-                  La IA será tu apoyo: registro silencioso, mensajes motivadores y progreso guiado paso a paso con empatía.
+                  La IA será tu apoyo: mensajes motivadores y progreso guiado con empatía.
                 </Text>
-                {isLoading && selectedMode === 'soft' && (
-                  <ActivityIndicator size="small" color="#10B981" style={styles.loader} />
-                )}
               </Pressable>
             </Animated.View>
           </View>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerNote}>Puedes cambiar esta configuración en cualquier momento desde tu perfil.</Text>
-          </View>
+          <Animated.View entering={FadeIn.delay(700)} style={styles.footer}>
+            <TouchableOpacity 
+              style={[
+                styles.continueBtn, 
+                !selectedMode && styles.continueBtnDisabled,
+                loading && { opacity: 0.8 }
+              ]}
+              onPress={handleConfirm}
+              disabled={!selectedMode || loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <Text style={styles.continueBtnText}>
+                  {selectedMode ? 'Comenzar ahora' : 'Selecciona un modo'}
+                </Text>
+              )}
+            </TouchableOpacity>
+            <Text style={styles.footerNote}>Puedes cambiar esto luego en tu perfil.</Text>
+          </Animated.View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -259,6 +262,7 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: SPACING.xl,
     alignItems: 'center',
+    paddingBottom: SPACING.xl,
   },
   footerNote: {
     color: '#6B7280',
@@ -266,5 +270,26 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     textAlign: 'center',
     lineHeight: 18,
+    marginTop: SPACING.md,
+  },
+  continueBtn: {
+    backgroundColor: '#38BDF8', // sky-400
+    width: '100%',
+    paddingVertical: 18,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.md,
+  },
+  continueBtnDisabled: {
+    backgroundColor: '#333333',
+    opacity: 0.5,
+  },
+  continueBtnText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: '800',
+    fontFamily: FONTS.primary,
+    letterSpacing: -0.5,
   },
 });

@@ -25,12 +25,12 @@ const fetchRecipes = async () => {
   return [
     { 
       id: '1', 
-      title: 'Mexican Bowl Healthy', 
+      title: 'Mexican Bowl Elite', 
       calories: 450, 
       protein: 30, 
       carbs: 45, 
       fats: 15, 
-      imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/mexican_healthy_recipe_1775939184820.png',
+      imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/mexican_bowl_premium_1775943324584.png',
       desc: 'Packed with flavor, Mexican food is a favorite for many.'
     },
     { 
@@ -40,27 +40,27 @@ const fetchRecipes = async () => {
       protein: 45, 
       carbs: 30, 
       fats: 25, 
-      imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/lunch_healthy_recipe_1775939172765.png',
+      imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/salmon_quinoa_elite_1775943337546.png',
       desc: 'High protein meal for muscle recovery.'
     },
     { 
       id: '3', 
-      title: 'Asparagus Dream Soup', 
+      title: 'Creamy Asparagus Soup', 
       calories: 200, 
       protein: 5, 
       carbs: 20, 
       fats: 8, 
-      imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/asparagus_soup_recipe_1775939210459.png',
+      imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/asparagus_soup_minimalist_1775943352603.png',
       desc: 'Light and nutritious seasonal soup.'
     },
     { 
       id: '4', 
-      title: 'Asian Fusion Bowl', 
+      title: 'Asian Fusion Tofu Bowl', 
       calories: 550, 
       protein: 35, 
       carbs: 50, 
       fats: 18, 
-      imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/asian_flavors_recipe_1775939198893.png',
+      imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/asian_fusion_bowl_vibrant_1775943365926.png',
       desc: 'Umami flavors with high nutritional value.'
     },
   ];
