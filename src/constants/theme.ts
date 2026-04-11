@@ -128,6 +128,7 @@ export const BORDER_RADIUS = {
   lg: normalize(16),
   xl: normalize(20),
   '2xl': normalize(24),
+  '3xl': normalize(32),
   full: normalize(9999),
 };
 
