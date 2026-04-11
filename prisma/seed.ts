@@ -219,7 +219,7 @@ async function seedMeals(users: any[]) {
         const meal = {
           id: faker.string.uuid(),
           user_id: user.id,
-          date: currentDate,
+          meal_at: mealTime,
           meal_type: getRandomEnum(mealTypes),
           status: getRandomEnum(statuses),
           source_type: getRandomEnum(sourceTypes),
