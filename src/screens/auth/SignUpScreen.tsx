@@ -23,6 +23,8 @@ export default function SignUpScreen() {
   const [acceptTerms, setAcceptTerms] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [focused, setFocused] = React.useState<'name' | 'email' | 'password' | 'confirm' | null>(null);
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   const handleSignUp = async () => {
     if (!name || !email || !password || !confirmPassword) {
@@ -53,41 +55,53 @@ export default function SignUpScreen() {
 
     try {
       setIsLoading(true);
-      const { error, session } = await signUp(email.trim(), password, name.trim());
+      console.log('[SignUp] Attempting to create account for:', email.trim());
+
+      const { error, session, user } = await signUp(email.trim(), password, name.trim());
+
       if (error) {
-        console.error('SignUp error:', error);
-        Alert.alert('Error', error.message || 'No pudimos crear tu cuenta. Intenta nuevamente.');
+        console.error('[SignUp] Error de Supabase:', error);
+        Alert.alert('Error de Registro', error.message || 'Error desconocido al crear la cuenta.');
         return;
       }
 
+      console.log('[SignUp] Account created successfully. Session exists:', !!session);
+
       // Si Supabase devuelve sesión (confirmación desactivada), vamos directo al onboarding
       if (session) {
-        // Marcamos la identidad del usuario para seguimiento
-        const { analytics } = await import('@/services/analytics');
-        analytics.identify(session.user.id);
-        analytics.trackOnboardingStep('signup_completed', {
-          id: session.user.id,
-          email: session.user.email,
-          created_at: session.user.created_at,
-        });
+        try {
+          // Marcamos la identidad del usuario para seguimiento
+          const { analytics } = await import('@/services/analytics');
+          analytics.identify(session.user.id);
+          analytics.trackOnboardingStep('signup_completed', {
+            id: session.user.id,
+            email: session.user.email,
+          });
+        } catch (analyticsError) {
+          console.warn('[SignUp] Analytics error (ignored):', analyticsError);
+        }
 
         navigation.reset({
           index: 0,
-          routes: [{ name: 'OnboardingGender' as never }],
+          routes: [{ name: 'OnboardingGender' } as any],
         });
       } else {
         // Si requiere confirmación (session es null), mostramos el aviso habitual
+        console.log('[SignUp] Email confirmation required (session is null)');
         Alert.alert(
-          'Cuenta creada',
-          'Te hemos enviado un correo de confirmación. Por favor revisa tu bandeja de entrada para activar tu cuenta e iniciar sesión.',
+          'Email de Confirmación',
+          'Tu cuenta se creó pero necesitas confirmarla. Revisa tu bandeja de entrada (o SPAM) antes de iniciar sesión.',
           [
             {
-              text: 'Ir a iniciar sesión',
-              onPress: () => navigation.navigate('Login' as never),
+              text: 'OK, ir a Login',
+              onPress: () => navigation.navigate('Login' as any),
             },
           ]
         );
       }
+    } catch (e: any) {
+      console.error('[SignUp] Unexpected error:', e);
+      Alert.alert('Error Inesperado', e.message || 'Algo salió mal. Intenta de nuevo.');
     } finally {
       setIsLoading(false);
     }
@@ -200,7 +214,7 @@ export default function SignUpScreen() {
                   onChangeText={setPassword}
                   placeholder="Mínimo 6 caracteres"
                   placeholderTextColor={colors.text.muted}
-                  secureTextEntry
+                  secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
                   textContentType="newPassword"
@@ -208,6 +222,16 @@ export default function SignUpScreen() {
                   onBlur={() => setFocused(null)}
                   editable={!isLoading}
                 />
+                <TouchableOpacity 
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons 
+                    name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                    size={20} 
+                    color={colors.text.muted} 
+                  />
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -221,7 +245,7 @@ export default function SignUpScreen() {
                   onChangeText={setConfirmPassword}
                   placeholder="Repite tu contraseña"
                   placeholderTextColor={colors.text.muted}
-                  secureTextEntry
+                  secureTextEntry={!showConfirmPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
                   textContentType="newPassword"
@@ -229,6 +253,16 @@ export default function SignUpScreen() {
                   onBlur={() => setFocused(null)}
                   editable={!isLoading}
                 />
+                <TouchableOpacity 
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons 
+                    name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
+                    size={20} 
+                    color={colors.text.muted} 
+                  />
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -259,7 +293,7 @@ export default function SignUpScreen() {
             activeOpacity={0.85}
           >
             <LinearGradient
-              colors={acceptTerms ? [colors.primary.sky, '#0EA5E9'] : [colors.interactive.disabled, colors.interactive.disabled]}
+              colors={acceptTerms ? [colors.primary.amber, '#F59E0B'] : [colors.interactive.disabled, colors.interactive.disabled]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.primaryBtnInner}
@@ -402,6 +436,10 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontSize: FONTS.sizes.base,
     fontFamily: FONTS.primary,
     color: colors.text.primary,
+  },
+  eyeIcon: {
+    padding: SPACING.xs,
+    marginLeft: SPACING.xs,
   },
   termsRow: {
     flexDirection: 'row',
