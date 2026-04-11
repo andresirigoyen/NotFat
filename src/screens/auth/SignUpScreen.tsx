@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '@/store';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { useOnboardingStore } from '@/store/onboarding-store';
+import { supabase } from '@/services/SupabaseContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
@@ -15,6 +17,7 @@ export default function SignUpScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { signUp } = useAuthStore();
+  const { data: onboardingData, reset: resetOnboarding } = useOnboardingStore();
 
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
@@ -67,23 +70,46 @@ export default function SignUpScreen() {
 
       console.log('[SignUp] Account created successfully. Session exists:', !!session);
 
-      // Si Supabase devuelve sesión (confirmación desactivada), vamos directo al onboarding
+      // Si Supabase devuelve sesión (confirmación desactivada), guardamos perfil y vamos a Home
       if (session) {
         try {
+          console.log('[SignUp] Saving captured onboarding data to profile...');
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: session.user.id,
+              email: email.trim(),
+              full_name: name.trim(),
+              first_name: name.trim().split(' ')[0],
+              last_name: name.trim().split(' ').slice(1).join(' '),
+              ...onboardingData,
+              onboarding_completed: true,
+              onboarding_step: 'completed',
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'id' });
+
+          if (profileError) {
+             console.error('[SignUp] Error saving profile data:', profileError);
+          } else {
+             console.log('[SignUp] Profile data synced successfully');
+             resetOnboarding();
+          }
+
           // Marcamos la identidad del usuario para seguimiento
           const { analytics } = await import('@/services/analytics');
           analytics.identify(session.user.id);
-          analytics.trackOnboardingStep('signup_completed', {
+          analytics.trackOnboardingStep('signup_completed_with_data', {
             id: session.user.id,
             email: session.user.email,
+            has_onboarding_data: !!onboardingData.gender
           });
         } catch (analyticsError) {
-          console.warn('[SignUp] Analytics error (ignored):', analyticsError);
+          console.warn('[SignUp] Post-signup logic error (ignored):', analyticsError);
         }
 
         (navigation as any).reset({
           index: 0,
-          routes: [{ name: 'OnboardingGender' }],
+          routes: [{ name: 'Main' }],
         });
       } else {
         // Si requiere confirmación (session es null), mostramos el aviso habitual

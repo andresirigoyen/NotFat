@@ -28,7 +28,8 @@ export default function SplashScreen() {
     // Explicit override (used by Welcome close button)
     if (route.params?.nextScreen) return route.params.nextScreen;
 
-    if (!user) return 'Welcome';
+    // If no user, we start with onboarding directly (anonymous data collection)
+    if (!user) return 'OnboardingGender';
     
     // Si todavía estamos cargando el perfil, no tomamos una decisión definitiva
     if (profileLoading) return 'Splash';

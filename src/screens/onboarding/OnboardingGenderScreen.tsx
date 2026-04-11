@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
+import { useOnboardingStore } from '@/store/onboarding-store';
 import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 import { analytics } from '@/services/analytics';
 
@@ -105,6 +106,7 @@ export default function OnboardingGenderScreen() {
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
+  const { setData: setOnboardingData } = useOnboardingStore();
   const [selectedGender, setSelectedGender] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   
@@ -119,19 +121,21 @@ export default function OnboardingGenderScreen() {
   const handleContinue = async () => {
     if (!selectedGender) return;
     
-    if (!user) {
-      Alert.alert('Sesión Requerida', 'Tu sesión ha expirado.');
-      return;
-    }
-
     setIsLoading(true);
     try {
-      if (updateProfile?.mutateAsync) {
-        await updateProfile.mutateAsync({
-          gender: selectedGender as any, 
-          onboarding_step: 'birth_date',
-        });
+      if (user) {
+        // Logged in: update DB
+        if (updateProfile?.mutateAsync) {
+          await updateProfile.mutateAsync({
+            gender: selectedGender as any, 
+            onboarding_step: 'birth_date',
+          });
+        }
+      } else {
+        // Anonymous: save to local store
+        setOnboardingData({ gender: selectedGender as any });
       }
+      
       analytics.trackOnboardingStep('gender', { gender: selectedGender });
       navigation.navigate('OnboardingBirthDate' as never);
     } catch (error: any) {

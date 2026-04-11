@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
+import { useOnboardingStore } from '@/store/onboarding-store';
 import { analytics } from '@/services/analytics';
 import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
@@ -93,6 +94,7 @@ export default function OnboardingGoalsScreen() {
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
+  const { setData: setOnboardingData } = useOnboardingStore();
   const [selectedNutritionGoal, setSelectedNutritionGoal] = useState<string>('');
   const [selectedDietType, setSelectedDietType] = useState<string>('balanced');
   const [isLoading, setIsLoading] = useState(false);
@@ -106,15 +108,24 @@ export default function OnboardingGoalsScreen() {
   };
 
   const persistGoals = async () => {
-    if (!selectedNutritionGoal || !user) return;
+    if (!selectedNutritionGoal) return;
 
-    // Sincronizado con Prisma: profiles.nutrition_goal, profiles.goal, profiles.diet_type
-    await updateProfile.mutateAsync({
-      nutrition_goal: selectedNutritionGoal,
-      goal: selectedNutritionGoal,
-      diet_type: selectedDietType,
-      onboarding_step: 'profile',
-    });
+    if (user) {
+      // Sincronizado con Prisma: profiles.nutrition_goal, profiles.goal, profiles.diet_type
+      await updateProfile.mutateAsync({
+        nutrition_goal: selectedNutritionGoal,
+        goal: selectedNutritionGoal,
+        diet_type: selectedDietType,
+        onboarding_step: 'profile',
+      });
+    } else {
+      // Store local
+      setOnboardingData({
+        nutrition_goal: selectedNutritionGoal,
+        diet_type: selectedDietType,
+      });
+    }
+
     analytics.trackOnboardingStep('goals', {
       nutrition_goal: selectedNutritionGoal,
       diet_type: selectedDietType,

@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useAuthStore } from '@/store';
 import { supabase } from '@/services/SupabaseContext';
+import { useOnboardingStore } from '@/store/onboarding-store';
 import { FONTS, SPACING, BORDER_RADIUS, SHADOWS, SCREEN } from '@/constants/theme';
 import { analytics } from '@/services/analytics';
 
@@ -14,56 +15,47 @@ export default function OnboardingModeSelectionScreen() {
   const { colors } = useThemeColors();
   const navigation = useNavigation();
   const { user, refreshProfile } = useAuthStore();
+  const { setData: setOnboardingData } = useOnboardingStore();
   const [selectedMode, setSelectedMode] = useState<'hard' | 'friendly' | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
     if (!selectedMode) return;
-    if (!user) {
-      Alert.alert('Error', 'No se encontró la sesión del usuario.');
-      return;
-    }
 
     setLoading(true);
     try {
       const isHard = selectedMode === 'hard';
-      console.log(`[Onboarding] Syncing Coach Mode: ${selectedMode}`);
+      const coachStyle = isHard ? 'reto' : 'apoyo';
 
-      // Intentamos actualizar el perfil con ambos campos (mode y style)
-      const { data: updateData, error } = await supabase
-        .from('profiles')
-        .update({ 
-          coach_mode: selectedMode,
-          coach_style: isHard ? 'reto' : 'apoyo',
-          onboarding_completed: true,
-          onboarding_step: 'completed'
-        })
-        .eq('id', user.id)
-        .select();
+      if (user) {
+        console.log(`[Onboarding] Syncing Coach Mode: ${selectedMode}`);
+        // Logged in: update DB
+        const { error } = await supabase
+          .from('profiles')
+          .update({ 
+            coach_mode: selectedMode,
+            coach_style: coachStyle,
+            onboarding_completed: true,
+            onboarding_step: 'completed'
+          })
+          .eq('id', user.id);
 
-      if (error) {
-        console.error('[Onboarding] Database update error:', error);
-        throw new Error(error.message);
+        if (error) throw new Error(error.message);
+        
+        if (refreshProfile) await refreshProfile();
+        analytics.trackOnboardingStep('coach_mode_selected', { mode: selectedMode });
+        navigation.dispatch(StackActions.replace('Main'));
+      } else {
+        // Anonymous: save to store and go to SignUp
+        setOnboardingData({ 
+          coach_style: coachStyle
+        });
+        analytics.trackOnboardingStep('coach_mode_selected_anonymous', { mode: selectedMode });
+        navigation.navigate('SignUp' as never);
       }
-
-      console.log('[Onboarding] Profile updated successfully:', updateData);
-
-      // Actualizar estado global del store
-      if (refreshProfile) {
-        await refreshProfile();
-      }
-
-      analytics.trackOnboardingStep('coach_mode_selected', { mode: selectedMode });
-
-      // Éxito: Navegar al Main Navigator
-      navigation.dispatch(StackActions.replace('Main'));
-      
     } catch (e: any) {
       console.error('Selection confirm error:', e);
-      Alert.alert(
-        'Error de Conexión', 
-        `No pudimos guardar tu configuración. Asegúrate de tener conexión a internet. (${e.message})`
-      );
+      Alert.alert('Error', `No pudimos guardar tu configuración: ${e.message}`);
     } finally {
       setLoading(false);
     }

@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
+import { useOnboardingStore } from '@/store/onboarding-store';
 import { analytics } from '@/services/analytics';
 import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
@@ -18,6 +19,7 @@ export default function OnboardingBirthDateScreen() {
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
+  const { setData: setOnboardingData } = useOnboardingStore();
   const [birthDate, setBirthDate] = useState(() => {
     const d = new Date();
     d.setFullYear(d.getFullYear() - 18);
@@ -83,15 +85,18 @@ export default function OnboardingBirthDateScreen() {
   };
 
   const handleContinue = async () => {
-    if (!user) return;
-
     setIsLoading(true);
     try {
-      // Sincronizado con Prisma: profiles.birth_date (DateTime)
-      await updateProfile.mutateAsync({
-        birth_date: birthDate.toISOString(), // DateTime format for Prisma
-        onboarding_step: 'goals',
-      });
+      if (user) {
+        // Sincronizado con Prisma: profiles.birth_date (DateTime)
+        await updateProfile.mutateAsync({
+          birth_date: birthDate.toISOString(), // DateTime format for Prisma
+          onboarding_step: 'goals',
+        });
+      } else {
+        // En store temporal
+        setOnboardingData({ birth_date: birthDate.toISOString() });
+      }
 
       analytics.trackOnboardingStep('birth_date', {
         age: calculateAge(birthDate),
