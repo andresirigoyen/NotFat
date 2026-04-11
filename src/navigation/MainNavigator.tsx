@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, lazy, Suspense } from 'react';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import DashboardScreen from '../screens/main/DashboardScreen';
@@ -10,33 +10,32 @@ import ProfileScreen from '../screens/main/ProfileScreen';
 import HubModal from '../components/HubModal';
 import { COLORS, FONTS, SPACING } from '@/constants/theme';
 
-// Pantallas que tendrán TabBar
-import AnalysisResultScreen from '../screens/main/AnalysisResultScreen';
-import EditFavoriteScreen from '../screens/main/EditFavoriteScreen';
-import EditProfileScreen from '../screens/main/EditProfileScreen';
-import FavoritesScreen from '../screens/main/FavoritesScreen';
-import HydrationScreen from '../screens/main/HydrationScreen';
-import MealLoggerScreen from '../screens/main/MealLoggerScreen';
-import MealTimeScreen from '../screens/main/MealTimeScreen';
-import PreferencesScreen from '../screens/main/PreferencesScreen';
-import ProfileSetupScreen from '../screens/main/ProfileSetupScreen';
-import ProgressScreen from '../screens/main/ProgressScreen';
-import ScientificGoalsScreen from '../screens/main/ScientificGoalsScreen';
-import StatsScreen from '../screens/main/StatsScreen';
-import AchievementsScreen from '../screens/main/AchievementsScreen';
-import HealthIntegrationScreen from '../screens/main/HealthIntegrationScreen';
-import ProfessionalServicesScreen from '../screens/main/ProfessionalServicesScreen';
-import CustomTimeMealScreen from '../screens/main/CustomTimeMealScreen';
-import NutritionGuidelinesScreen from '../screens/main/NutritionGuidelinesScreen';
-import NutritionistsScreen from '../screens/main/NutritionistsScreen';
-import RecipesScreen from '../screens/main/RecipesScreen';
-import WorkoutsScreen from '../screens/main/WorkoutsScreen';
-import VoiceInputScreen from '../screens/main/VoiceInputScreen';
-import NoFatScreen from '../screens/main/NoFatScreen';
-import SubscriptionCenterScreen from '../screens/main/SubscriptionCenterScreen';
-import StepsScreen from '../screens/main/StepsScreen';
-import NutritionPlanDetailScreen from '../screens/main/NutritionPlanDetailScreen';
-import NutritionPlanEditScreen from '../screens/main/NutritionPlanEditScreen';
+const AnalysisResultScreen = lazy(() => import('../screens/main/AnalysisResultScreen'));
+const EditFavoriteScreen = lazy(() => import('../screens/main/EditFavoriteScreen'));
+const EditProfileScreen = lazy(() => import('../screens/main/EditProfileScreen'));
+const FavoritesScreen = lazy(() => import('../screens/main/FavoritesScreen'));
+const HydrationScreen = lazy(() => import('../screens/main/HydrationScreen'));
+const MealLoggerScreen = lazy(() => import('../screens/main/MealLoggerScreen'));
+const MealTimeScreen = lazy(() => import('../screens/main/MealTimeScreen'));
+const PreferencesScreen = lazy(() => import('../screens/main/PreferencesScreen'));
+const ProfileSetupScreen = lazy(() => import('../screens/main/ProfileSetupScreen'));
+const ProgressScreen = lazy(() => import('../screens/main/ProgressScreen'));
+const ScientificGoalsScreen = lazy(() => import('../screens/main/ScientificGoalsScreen'));
+const StatsScreen = lazy(() => import('../screens/main/StatsScreen'));
+const AchievementsScreen = lazy(() => import('../screens/main/AchievementsScreen'));
+const HealthIntegrationScreen = lazy(() => import('../screens/main/HealthIntegrationScreen'));
+const ProfessionalServicesScreen = lazy(() => import('../screens/main/ProfessionalServicesScreen'));
+const CustomTimeMealScreen = lazy(() => import('../screens/main/CustomTimeMealScreen'));
+const NutritionGuidelinesScreen = lazy(() => import('../screens/main/NutritionGuidelinesScreen'));
+const NutritionistsScreen = lazy(() => import('../screens/main/NutritionistsScreen'));
+const RecipesScreen = lazy(() => import('../screens/main/RecipesScreen'));
+const WorkoutsScreen = lazy(() => import('../screens/main/WorkoutsScreen'));
+const VoiceInputScreen = lazy(() => import('../screens/main/VoiceInputScreen'));
+const NoFatScreen = lazy(() => import('../screens/main/NoFatScreen'));
+const SubscriptionCenterScreen = lazy(() => import('../screens/main/SubscriptionCenterScreen'));
+const StepsScreen = lazy(() => import('../screens/main/StepsScreen'));
+const NutritionPlanDetailScreen = lazy(() => import('../screens/main/NutritionPlanDetailScreen'));
+const NutritionPlanEditScreen = lazy(() => import('../screens/main/NutritionPlanEditScreen'));
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -49,7 +48,7 @@ const tabStyles = StyleSheet.create({
     height: 72,
     paddingBottom: SPACING.md,
     paddingTop: SPACING.sm,
-    overflow: 'visible', // Ensure protruding button isn't clipped
+    overflow: 'visible',
   },
   label: {
     fontFamily: FONTS.primary,
@@ -73,7 +72,7 @@ const fabStyles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 12,
     borderWidth: 4,
-    borderColor: '#0D0D0D', // Match tab bar background for a seamless "cut" look
+    borderColor: '#0D0D0D',
   },
 });
 
@@ -89,9 +88,6 @@ function TabBarAddButton({ onPress }: { onPress: () => void }) {
   );
 }
 
-import { CardStyleInterpolators } from '@react-navigation/stack';
-
-// Stack Navigator para pantallas con TabBar
 function MainStackNavigator() {
   return (
     <Stack.Navigator 
@@ -159,65 +155,72 @@ function MainStackNavigator() {
   );
 }
 
+const LoadingFallback = () => (
+  <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+    <ActivityIndicator color={COLORS.primary.amber} size="large" />
+  </View>
+);
+
 export default function MainNavigator() {
   const [hubVisible, setHubVisible] = useState(false);
 
   return (
     <>
-      <Tab.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: tabStyles.bar,
-          tabBarActiveTintColor: COLORS.primary.amber,
-          tabBarInactiveTintColor: '#555555',
-          tabBarLabelStyle: tabStyles.label,
-        }}
-      >
-        <Tab.Screen
-          name="Dashboard"
-          component={MainStackNavigator}
-          options={{
-            tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
-            tabBarLabel: 'Inicio',
+      <Suspense fallback={<LoadingFallback />}>
+        <Tab.Navigator
+          screenOptions={{
+            headerShown: false,
+            tabBarStyle: tabStyles.bar,
+            tabBarActiveTintColor: COLORS.primary.amber,
+            tabBarInactiveTintColor: '#555555',
+            tabBarLabelStyle: tabStyles.label,
           }}
-        />
-        <Tab.Screen
-          name="Coach"
-          component={CoachScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => <Ionicons name="sparkles-outline" size={size} color={color} />,
-            tabBarLabel: 'NotFat',
-          }}
-        />
-        <Tab.Screen
-          name="Add"
-          component={AddPlaceholder}
-          options={{
-            tabBarLabel: () => null,
-            tabBarIcon: () => null,
-            tabBarButton: () => <TabBarAddButton onPress={() => setHubVisible(true)} />,
-          }}
-        />
-        <Tab.Screen
-          name="Profile"
-          component={ProfileScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
-            tabBarLabel: 'Mi Perfil',
-          }}
-        />
-        <Tab.Screen
-          name="Pro"
-          component={SubscriptionCenterScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => <Ionicons name="star-outline" size={size} color={color} />,
-            tabBarLabel: 'Pro',
-          }}
-        />
-      </Tab.Navigator>
+        >
+          <Tab.Screen
+            name="Dashboard"
+            component={MainStackNavigator}
+            options={{
+              tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
+              tabBarLabel: 'Inicio',
+            }}
+          />
+          <Tab.Screen
+            name="Coach"
+            component={CoachScreen}
+            options={{
+              tabBarIcon: ({ color, size }) => <Ionicons name="sparkles-outline" size={size} color={color} />,
+              tabBarLabel: 'NotFat',
+            }}
+          />
+          <Tab.Screen
+            name="Add"
+            component={AddPlaceholder}
+            options={{
+              tabBarLabel: () => null,
+              tabBarIcon: () => null,
+              tabBarButton: () => <TabBarAddButton onPress={() => setHubVisible(true)} />,
+            }}
+          />
+          <Tab.Screen
+            name="Profile"
+            component={ProfileScreen}
+            options={{
+              tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
+              tabBarLabel: 'Mi Perfil',
+            }}
+          />
+          <Tab.Screen
+            name="Pro"
+            component={SubscriptionCenterScreen}
+            options={{
+              tabBarIcon: ({ color, size }) => <Ionicons name="star-outline" size={size} color={color} />,
+              tabBarLabel: 'Pro',
+            }}
+          />
+        </Tab.Navigator>
+      </Suspense>
 
       <HubModal visible={hubVisible} onClose={() => setHubVisible(false)} />
     </>
   );
 }
-
