@@ -92,12 +92,16 @@ export const useAIChat = () => {
 
       const profileToSend = profileData || userProfile;
 
-      console.log('📤 Invoking process-prompt function...');
+      console.log('📤 Invoking process-prompt function with explicit auth...');
+      
+      const { data: session } = await supabase.auth.getSession();
+      const accessToken = session?.session?.access_token;
       
       let result;
       try {
         result = await supabase.functions.invoke('process-prompt', {
           body: { message, userId: user.id, userProfile: profileToSend },
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
         });
       } catch (invokeErr: any) {
         console.error('❌ Invoke caught error:', invokeErr);

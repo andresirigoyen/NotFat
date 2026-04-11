@@ -14,7 +14,7 @@ export default function OnboardingModeSelectionScreen() {
   const { colors } = useThemeColors();
   const navigation = useNavigation();
   const { user, refreshProfile } = useAuthStore();
-  const [selectedMode, setSelectedMode] = useState<'hard' | 'soft' | null>(null);
+  const [selectedMode, setSelectedMode] = useState<'hard' | 'friendly' | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
@@ -26,21 +26,27 @@ export default function OnboardingModeSelectionScreen() {
 
     setLoading(true);
     try {
-      // Intentamos actualizar el perfil
-      const { error } = await supabase
+      const isHard = selectedMode === 'hard';
+      console.log(`[Onboarding] Syncing Coach Mode: ${selectedMode}`);
+
+      // Intentamos actualizar el perfil con ambos campos (mode y style)
+      const { data: updateData, error } = await supabase
         .from('profiles')
         .update({ 
           coach_mode: selectedMode,
-          coach_style: selectedMode === 'hard' ? 'reto' : 'apoyo',
+          coach_style: isHard ? 'reto' : 'apoyo',
           onboarding_completed: true,
           onboarding_step: 'completed'
         })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select();
 
       if (error) {
-        console.error('Database update error:', error);
+        console.error('[Onboarding] Database update error:', error);
         throw new Error(error.message);
       }
+
+      console.log('[Onboarding] Profile updated successfully:', updateData);
 
       // Actualizar estado global del store
       if (refreshProfile) {
@@ -102,15 +108,15 @@ export default function OnboardingModeSelectionScreen() {
               </Pressable>
             </Animated.View>
 
-            {/* Tarjeta B: Modo Aliado (Soft) */}
+            {/* Tarjeta B: Modo Aliado (Soft/Friendly) */}
             <Animated.View entering={FadeInDown.delay(500)}>
               <Pressable
-                onPress={() => setSelectedMode('soft')}
+                onPress={() => setSelectedMode('friendly')}
                 disabled={loading}
                 style={[
                   styles.card,
                   styles.softCard,
-                  selectedMode === 'soft' && styles.softCardSelected,
+                  selectedMode === 'friendly' && styles.softCardSelected,
                 ]}
               >
                 <View style={styles.cardHeader}>

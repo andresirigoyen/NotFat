@@ -62,12 +62,16 @@ CONSIDERACIONES:
 - Mínimo seguro: 1200 kcal mujeres, 1500 kcal hombres
 - Incluye explicación clara y 3 recomendaciones prácticas`;
 
-    // Llamar al endpoint de NotFat IA
+    // Llamar al endpoint de NotFat IA con autenticación explícita
+    const { data: session } = await supabase.auth.getSession();
+    const accessToken = session?.session?.access_token;
+
     const { data, error: fnError } = await supabase.functions.invoke('process-prompt', {
       body: {
         message: prompt,
         userProfile: userProfile
       },
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
     });
 
     if (fnError) {
