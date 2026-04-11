@@ -5,17 +5,52 @@ export const useCoachMessages = (userId: string) => {
   return useQuery({
     queryKey: ['coach_messages', userId],
     queryFn: async () => {
+      // Force fresh fetch with dedup by content+role+timestamp
       const { data, error } = await supabase
         .from('coach_messages')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(30);
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching messages:', error);
+        return [];
+      }
+      
+      // Enhanced deduplication: content + role + time window (5s)
+      const uniqueMessages: any[] = [];
+      const messages = data || [];
+      
+      for (let i = 0; i < messages.length; i++) {
+        const current = messages[i];
+        let isDuplicate = false;
+        
+        // Compare with next few messages (since they are ordered by created_at desc)
+        for (let j = i + 1; j < Math.min(i + 5, messages.length); j++) {
+          const next = messages[j];
+          const timeDiff = Math.abs(new Date(current.created_at).getTime() - new Date(next.created_at).getTime());
+          
+          if (current.role === next.role && 
+              current.content === next.content && 
+              timeDiff < 5000) { // 5 second window
+            isDuplicate = true;
+            break;
+          }
+        }
+        
+        if (!isDuplicate) {
+          uniqueMessages.push(current);
+        }
+      }
+      
+      // Reverse to show oldest first (ascending)
+      return uniqueMessages.reverse();
     },
     enabled: !!userId,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -57,10 +92,14 @@ export const useSendMessage = () => {
             userId: user.id,
             userProfile: {
               first_name: user.user_metadata?.first_name,
-              // Add other profile data if needed
+              diet_type: user.user_metadata?.diet_type,
+              nutrition_goal: user.user_metadata?.nutrition_goal,
             }
           },
         });
+
+        // Verificar la respuesta
+        console.log('AI Response:', aiResponse);
 
         // Save AI response
         const { data: assistantMessage, error: assistantError } = await supabase
@@ -71,8 +110,9 @@ export const useSendMessage = () => {
             content: aiResponse.response,
             metadata: {
               type: aiResponse.type,
-              model: 'gemini-2.5-flash',
+              model: 'gemini-2.0-flash',
               processing_time: Date.now(),
+              recipeData: aiResponse.recipeData || null,
             },
           })
           .select()
@@ -105,7 +145,7 @@ export const useSendMessage = () => {
         return { userMessage, assistantMessage };
       }
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['coach_messages'] });
     },
   });

@@ -37,6 +37,7 @@ model profiles {
   workout_frequency     String?
   subscription_status   String?  @default("free")
   onboarding_completed  Boolean? @default(false)
+  coach_style         String?  @default("reto") // apoyo | reto | directo
   onboarding_step       String?  @default("welcome")
   role                  String?  @default("user")
   steps_goal            Int?     @default(10000)

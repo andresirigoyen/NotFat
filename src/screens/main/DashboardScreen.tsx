@@ -36,6 +36,7 @@ import { useThemeColors } from '@/hooks/useThemeColors';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNotes } from '@/hooks/useNotes';
 import { useScannedCaloriesAnalytics } from '@/hooks/useScannedCaloriesAnalytics';
+import MarkdownText from '@/components/MarkdownText';
 
 const DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const TODAY_INDEX = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
@@ -377,7 +378,11 @@ export default function DashboardScreen() {
                 <TouchableOpacity onPress={refreshCoachMessage} activeOpacity={0.7} style={s.coachRefreshBtn}>
                   <Ionicons name="refresh-circle" size={28} color={colors.primary.amber} />
                 </TouchableOpacity>
-                <Text style={s.coachMessage}>"{coachMessage}"</Text>
+                <MarkdownText 
+                  content={`"${coachMessage}"`} 
+                  style={s.coachMessage} 
+                  boldStyle={{ color: colors.primary.amber, fontWeight: '800' }}
+                />
               </View>
 
               {/* Space Divider */}

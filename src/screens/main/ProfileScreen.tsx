@@ -1,6 +1,6 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Switch, TextInput, Modal, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Switch, TextInput, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   ChevronDown, ChevronUp, ChevronLeft, ChevronRight, LogOut, Trash2, User, Gauge, 
@@ -426,15 +426,10 @@ const ProfileScreen = ({ navigation }: any) => {
         <View style={styles.sectionContainer}>
           <TouchableOpacity 
             style={styles.logoutBtn}
-            onPress={() => {
-              Alert.alert(
-                'Cerrar Sesión',
-                '¿Estás seguro de que deseas salir?',
-                [
-                  { text: 'Cancelar', style: 'cancel' },
-                  { text: 'Salir', style: 'destructive', onPress: () => signOut() }
-                ]
-              );
+            onPress={async () => {
+              console.log('[ProfileScreen] Signing out...');
+              await signOut();
+              console.log('[ProfileScreen] Signed out, checking navigation...');
             }}
           >
             <LogOut size={22} color={colors.status.error} />

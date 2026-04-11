@@ -40,9 +40,11 @@ export default function Navigation() {
 
   // Watch for Auth state changes to handle logout or login transitions
   React.useEffect(() => {
+    console.log('[Navigation] Auth effect - loading:', loading, 'user:', user ? 'exists' : 'null');
     if (!loading && !user && navigationRef.current) {
       // Ensure we are not on Splash or Welcome already to avoid loops
       const currentRoute = navigationRef.current.getCurrentRoute()?.name;
+      console.log('[Navigation] Current route:', currentRoute);
       if (currentRoute !== 'Welcome' && currentRoute !== 'Splash' && currentRoute !== 'Login' && currentRoute !== 'SignUp') {
         console.log('[Navigation] User logged out, redirecting to Welcome');
         navigationRef.current.reset({

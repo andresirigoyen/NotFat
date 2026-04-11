@@ -40,7 +40,7 @@ serve(async (req) => {
       try {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('id, first_name, diet_type, nutrition_goal')
+          .select('id, first_name, diet_type, nutrition_goal, coach_style')
           .eq('id', userId)
           .single();
         userProfile = profileData;
@@ -50,7 +50,15 @@ serve(async (req) => {
       }
     }
 
-    // Fetch conversation history
+    // Determinar el tono según coach_style
+    const coachStyle = userProfile?.coach_style || 'reto';
+const tono = {
+      apoyo: 'Siempre positivo y motivador.',
+      reto: 'Directo y retador, pero justo.',
+      directo: 'Sin filtro. Si fallas, se dice claro.'
+    }[coachStyle] || 'Directo y retador, pero justo.';
+
+    // Fetch conversation history (limited to last 3 messages to save tokens)
     let conversationHistory = "";
     try {
       const { data: messages } = await supabase
@@ -58,7 +66,7 @@ serve(async (req) => {
         .select('role, content')
         .eq('user_id', userId)
         .order('created_at', { ascending: true })
-        .limit(20);
+        .limit(3);
       
       if (messages && messages.length > 0) {
         conversationHistory = "\n\nHistorial de conversación:\n";
@@ -79,10 +87,67 @@ serve(async (req) => {
       throw new Error('GOOGLE_GEMINI_API_KEY is not configured. Please set the secret.')
     }
 
-    const model = 'gemini-2.5-flash'
+    const model = 'gemini-2.0-flash'
     console.log('Using model:', model)
     
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+
+    // OPTIMIZACIÓN: Detectar si es una consulta simple que no necesita IA
+    const simpleResponses: Record<string, string> = {
+      'hola': '¡Hola! ¿En qué puedo ayudarte hoy con tu nutrición?',
+      'holiwis': '¡Hola! ¿En qué puedo ayudarte hoy con tu nutrición?',
+      'buenos días': '¡Buenos días! ¿Comenzamos con algo saludable hoy?',
+      'buenas': '¡Buenas! ¿En qué te ayudo?',
+      'gracias': '¡De nada! Para eso estoy. ¿Algo más?',
+      'thanks': '¡De nada! Para eso estoy. ¿Algo más?',
+      'ok': '¡Perfecto! ¿Algo más que necesites?',
+      'si': '¡Genial! ¿Qué más te gustaría saber?',
+      'sí': '¡Genial! ¿Qué más te gustaría saber?',
+      'no': '¡Entendido! Pregúntame cuando necesites algo.',
+      'adiós': '¡Hasta luego! Remember, small steps every day.',
+      'bye': '¡Hasta luego! Remember, small steps every day.',
+    };
+
+    // OPTIMIZACIÓN: Verificar cache de respuestas recientes (últimos 2 minutos)
+    try {
+      const { data: recentMessage } = await supabase
+        .from('coach_messages')
+        .select('content, created_at')
+        .eq('user_id', userId)
+        .ilike('content', `%${message.trim()}%`)
+        .gte('created_at', new Date(Date.now() - 2 * 60 * 1000).toISOString())
+        .eq('role', 'assistant')
+        .limit(1)
+        .single();
+      
+      if (recentMessage) {
+        console.log('✅ Cache hit - returning recent response');
+        return new Response(JSON.stringify({
+          type: 'chat',
+          response: recentMessage.content,
+          recipeData: null,
+          cached: true,
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      }
+    } catch (e) {
+      // No cache hit, continuar normally
+    }
+
+    const messageLower = message.toLowerCase().trim();
+    if (simpleResponses[messageLower]) {
+      console.log('✅ Simple query detected, returning cached response');
+      return new Response(JSON.stringify({
+        type: 'chat',
+        response: simpleResponses[messageLower],
+        recipeData: null
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
 
     let userContextStr = ""
     if (userProfile) {
@@ -93,9 +158,17 @@ serve(async (req) => {
       userContextStr = "\n\nContexto del usuario:\n- " + parts.join("\n- ")
     }
 
-    const prompt = `Eres NotFat AI, un experto coach nutricional.${userContextStr}${conversationHistory}
+    const prompt = `Eres NotFat AI, un experto coach nutricional con este estilo de comunicación: ${tono}.${userContextStr}${conversationHistory}
     
     Mensaje actual del usuario: "${message}"
+    
+    ESTILO DE COMUNICACIÓN:
+    - Ajusta tu tono segun preferencia del usuario: ${coachStyle}
+    
+    INSTRUCCIONES CRÍTICAS:
+    1. Varía SIEMPRE tus sugerencias. No repitas recetas que ya hayas mencionado en el historial.
+    2. Sé creativo y ofrece opciones de diferentes culturas o estilos culinarios, siempre manteniendo el enfoque saludable.
+    3. Si el usuario te pide almuerzo/cena/desayuno, intenta sorprenderlo con algo nuevo cada vez.
     
     Responde UNICAMENTE con este JSON exacto:
     {
@@ -120,7 +193,15 @@ serve(async (req) => {
       aiResponse = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        body: JSON.stringify({ 
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            topP: 0.9,
+            topK: 20,
+            maxOutputTokens: 512,
+          }
+        })
       })
 
       console.log('Gemini response status:', aiResponse.status);
@@ -166,30 +247,23 @@ serve(async (req) => {
     
     let parsed;
     try {
-      const cleanJson = responseText.replace(/```json|```/g, '').trim()
-      parsed = JSON.parse(cleanJson)
+      // Extraer solo el JSON de la respuesta
+      let cleanJson = responseText.replace(/```json|```/g, '');
+      // Buscar el primer { y el último }
+      const startIdx = cleanJson.indexOf('{');
+      const endIdx = cleanJson.lastIndexOf('}');
+      if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+        cleanJson = cleanJson.substring(startIdx, endIdx + 1);
+      }
+      parsed = JSON.parse(cleanJson.trim());
     } catch (e) {
-      console.warn('Failed to parse AI JSON, falling back to chat');
+      // Fallback: crear respuesta de chat simple
+      parsed = { type: 'chat', response: responseText.substring(0, 300), recipeData: null };
       parsed = { type: 'chat', response: responseText.trim(), recipeData: null }
     }
 
-    try {
-      await supabase.from('coach_messages').insert({
-        user_id: userId,
-        role: 'user',
-        content: message
-      });
-      
-      await supabase.from('coach_messages').insert({
-        user_id: userId,
-        role: 'assistant',
-        content: parsed.response,
-        metadata: parsed.recipeData ? { recipe: parsed.recipeData } : null
-      });
-      console.log('Messages saved to DB');
-    } catch (dbError: any) {
-      console.warn('Failed to save messages:', dbError.message);
-    }
+    // Message persistence is handled by the frontend useSendMessage hook
+    // to avoid duplication and allow for richer metadata/offline handling.
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

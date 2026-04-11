@@ -21,6 +21,7 @@ const EditProfileScreen = ({ navigation }: any) => {
   const [birthDate, setBirthDate] = React.useState(new Date());
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [dietType, setDietType] = React.useState('');
+  const [coachStyle, setCoachStyle] = React.useState('reto');
   const [workoutFrequency, setWorkoutFrequency] = React.useState('');
   const [heightValue, setHeightValue] = React.useState('');
   const [weightValue, setWeightValue] = React.useState('');
@@ -34,6 +35,7 @@ const EditProfileScreen = ({ navigation }: any) => {
         setBirthDate(new Date(profile.birth_date));
       }
       setDietType(profile.diet_type || '');
+      setCoachStyle(profile.coach_style || 'reto');
       setWorkoutFrequency(profile.workout_frequency || '');
       setHeightValue(profile.height_value ? String(profile.height_value) : '');
       setWeightValue(profile.weight_value ? String(profile.weight_value) : '');
@@ -122,6 +124,7 @@ const EditProfileScreen = ({ navigation }: any) => {
         last_name: lastName,
         birth_date: birthDate.toISOString(),
         diet_type: dietType || null,
+        coach_style: coachStyle as any,
         workout_frequency: workoutFrequency || null,
         height_value: heightValue ? Number(heightValue) : null,
         weight_value: weightValue ? Number(weightValue) : null,
@@ -235,6 +238,52 @@ const EditProfileScreen = ({ navigation }: any) => {
                     placeholder="Ej: Balanced"
                     placeholderTextColor={colors.text.secondary}
                   />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Estilo del Coach IA</Text>
+                <Text style={[styles.sublabel, { color: colors.text.secondary }]}>Cómo quieres que te trate la IA</Text>
+                <View style={styles.optionsContainer}>
+                  <TouchableOpacity 
+                    style={[
+                      styles.optionButton,
+                      coachStyle === 'apoyo' && styles.optionButtonActive,
+                      { backgroundColor: coachStyle === 'apoyo' ? '#10B981' : colors.card, borderColor: '#10B981' }
+                    ]}
+                    onPress={() => setCoachStyle('apoyo')}
+                  >
+                    <Text style={[
+                      styles.optionText,
+                      { color: coachStyle === 'apoyo' ? '#FFF' : '#10B981' }
+                    ]}>✨ Apoyo</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[
+                      styles.optionButton,
+                      coachStyle === 'reto' && styles.optionButtonActive,
+                      { backgroundColor: coachStyle === 'reto' ? '#F59E0B' : colors.card, borderColor: '#F59E0B' }
+                    ]}
+                    onPress={() => setCoachStyle('reto')}
+                  >
+                    <Text style={[
+                      styles.optionText,
+                      { color: coachStyle === 'reto' ? '#FFF' : '#F59E0B' }
+                    ]}>🔥 Reto</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[
+                      styles.optionButton,
+                      coachStyle === 'directo' && styles.optionButtonActive,
+                      { backgroundColor: coachStyle === 'directo' ? '#EF4444' : colors.card, borderColor: '#EF4444' }
+                    ]}
+                    onPress={() => setCoachStyle('directo')}
+                  >
+                    <Text style={[
+                      styles.optionText,
+                      { color: coachStyle === 'directo' ? '#FFF' : '#EF4444' }
+                    ]}>💀 Directo</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -454,6 +503,30 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   inputGroup: {
     gap: SPACING.sm,
+  },
+  sublabel: {
+    fontSize: 12,
+    marginTop: -4,
+    marginLeft: SPACING.xs,
+  },
+  optionsContainer: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  optionButton: {
+    flex: 1,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1.5,
+    alignItems: 'center',
+  },
+  optionButtonActive: {
+    borderWidth: 0,
+  },
+  optionText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   label: {
     fontSize: FONTS.sizes.sm,

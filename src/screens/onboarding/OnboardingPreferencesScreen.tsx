@@ -37,6 +37,7 @@ export default function OnboardingPreferencesScreen() {
   const [preferredBottleSize, setPreferredBottleSize] = useState<number>(1000);
   const [showCalories, setShowCalories] = useState<boolean>(true);
   const [showHydration, setShowHydration] = useState<boolean>(true);
+  const [coachStyle, setCoachStyle] = useState<'apoyo' | 'reto' | 'directo'>('reto');
   const [isLoading, setIsLoading] = useState(false);
 
   const availableBottleSizes = BOTTLE_SIZES[preferredBottleUnit];
@@ -120,6 +121,7 @@ export default function OnboardingPreferencesScreen() {
         preferred_bottle_unit: preferredBottleUnit, // water_unit_enum
         show_calories: showCalories, // Boolean @default(true)
         show_hydration: showHydration, // Boolean @default(true)
+        coach_style: coachStyle,
         onboarding_step: 'completed',
         onboarding_completed: true, // Boolean?
       });
@@ -254,6 +256,61 @@ export default function OnboardingPreferencesScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
+            </View>
+          </View>
+
+          {/* Estilo del Coach */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>¿Cómo quieres que te trate tu Coach IA?</Text>
+            <Text style={[styles.sectionSubtitle, { color: colors.text.secondary }]}>
+              Elige el estilo que más te motive
+            </Text>
+            
+            <View style={styles.coachStyleContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.coachStyleCard,
+                  coachStyle === 'apoyo' && styles.coachStyleCardActive,
+                  { borderColor: coachStyle === 'apoyo' ? '#10B981' : colors.background.border }
+                ]}
+                onPress={() => setCoachStyle('apoyo')}
+              >
+                <Text style={styles.coachStyleEmoji}>✨</Text>
+                <Text style={[styles.coachStyleTitle, { color: coachStyle === 'apoyo' ? '#10B981' : colors.text.primary }]}>Apoyo</Text>
+                <Text style={[styles.coachStyleDesc, { color: colors.text.secondary }]}>
+                  Motivador y celebrativo
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.coachStyleCard,
+                  coachStyle === 'reto' && styles.coachStyleCardActive,
+                  { borderColor: coachStyle === 'reto' ? '#F59E0B' : colors.background.border }
+                ]}
+                onPress={() => setCoachStyle('reto')}
+              >
+                <Text style={styles.coachStyleEmoji}>🔥</Text>
+                <Text style={[styles.coachStyleTitle, { color: coachStyle === 'reto' ? '#F59E0B' : colors.text.primary }]}>Reto</Text>
+                <Text style={[styles.coachStyleDesc, { color: colors.text.secondary }]}>
+                  Directo y retador
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.coachStyleCard,
+                  coachStyle === 'directo' && styles.coachStyleCardActive,
+                  { borderColor: coachStyle === 'directo' ? '#EF4444' : colors.background.border }
+                ]}
+                onPress={() => setCoachStyle('directo')}
+              >
+                <Text style={styles.coachStyleEmoji}>💀</Text>
+                <Text style={[styles.coachStyleTitle, { color: coachStyle === 'directo' ? '#EF4444' : colors.text.primary }]}>Directo</Text>
+                <Text style={[styles.coachStyleDesc, { color: colors.text.secondary }]}>
+                  Sin filtro, directo
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -430,6 +487,38 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.md,
+  },
+  sectionSubtitle: {
+    fontSize: FONTS.sizes.sm,
+    marginBottom: SPACING.md,
+    marginTop: -SPACING.xs,
+  },
+  coachStyleContainer: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  coachStyleCard: {
+    flex: 1,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 2,
+    alignItems: 'center',
+  },
+  coachStyleCardActive: {
+    borderWidth: 0,
+  },
+  coachStyleEmoji: {
+    fontSize: 28,
+    marginBottom: SPACING.xs,
+  },
+  coachStyleTitle: {
+    fontSize: FONTS.sizes.md,
+    fontWeight: FONTS.weights.bold,
+    marginBottom: 2,
+  },
+  coachStyleDesc: {
+    fontSize: 11,
+    textAlign: 'center',
   },
   preferenceCard: {
     backgroundColor: colors.background.card,

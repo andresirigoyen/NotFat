@@ -34,11 +34,19 @@ export const useAuthStore = create<AuthState>()(
 
       signOut: async () => {
         try {
-          await supabase.auth.signOut().catch(err => console.warn('[AuthStore] SignOut warning:', err));
+          console.log('[AuthStore] Signing out...');
+          const { error } = await supabase.auth.signOut();
+          if (error) {
+            console.warn('[AuthStore] SignOut error:', error);
+          }
+          console.log('[AuthStore] Signed out successfully');
+        } catch (err) {
+          console.warn('[AuthStore] SignOut warning:', err);
         } finally {
           // Resetear la flag para permitir re-inicialización tras logout
           _authInitialized = false;
           set({ user: null, session: null, loading: false });
+          console.log('[AuthStore] State reset - user is now null, loading is false');
         }
       },
 
