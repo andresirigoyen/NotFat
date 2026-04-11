@@ -1,5 +1,5 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { View, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
@@ -22,14 +22,18 @@ export default function SplashScreen() {
   const route = useRoute<RouteProp<SplashRouteParams, 'Splash'>>();
   const { user, loading: authLoading } = useAuthStore();
   const { profile, isLoading: profileLoading } = useProfile();
+  const navigationTriggered = useRef(false);
 
   const nextScreen = useMemo(() => {
     // Explicit override (used by Welcome close button)
     if (route.params?.nextScreen) return route.params.nextScreen;
 
     if (!user) return 'Welcome';
-    if (!profile) return 'OnboardingGender';
+    
+    // Si todavía estamos cargando el perfil, no tomamos una decisión definitiva
+    if (profileLoading) return 'Splash';
 
+    if (!profile) return 'OnboardingGender';
     if (profile.onboarding_completed) return 'Main';
 
     const step = profile.onboarding_step || 'gender';
@@ -51,28 +55,35 @@ export default function SplashScreen() {
       default:
         return 'OnboardingGender';
     }
-  }, [profile, route.params?.nextScreen, user]);
+  }, [profile, profileLoading, route.params?.nextScreen, user]);
 
   useEffect(() => {
     const duration = route.params?.duration || 1200;
 
-    // Fallback de seguridad: Si después de 6 segundos seguimos cargando, forzamos navegación según lo que tengamos
+    // Fallback de seguridad: Si después de 6 segundos seguimos cargando, forzamos navegación
     const safetyTimer = setTimeout(() => {
-      if (authLoading || profileLoading) {
+      if (!navigationTriggered.current && (authLoading || profileLoading)) {
         console.warn('[Splash] Safety fallback triggered');
+        navigationTriggered.current = true;
         navigation.reset({
           index: 0,
-          routes: [{ name: nextScreen as never }],
+          routes: [{ name: nextScreen === 'Splash' ? 'Welcome' : (nextScreen as never) }],
         });
       }
     }, 6000);
 
-    // Wait for auth/profile resolution unless explicit override
-    if (!route.params?.nextScreen && (authLoading || profileLoading)) return;
+    // No navegar si todavía estamos resolviendo estados críticos
+    if (!route.params?.nextScreen && (authLoading || profileLoading || nextScreen === 'Splash')) {
+      return;
+    }
 
-    // Simular tiempo de carga de la app (e.g. validando sesión, cargando fuentes)
+    // No navegar si ya se inició una transición
+    if (navigationTriggered.current) return;
+
     const timer = setTimeout(() => {
-      // Reemplazamos porque no queremos que el usuario vuelva al Splash usando el botón "Atrás"
+      if (navigationTriggered.current) return;
+      navigationTriggered.current = true;
+      
       navigation.reset({
         index: 0,
         routes: [{ name: nextScreen as never }],

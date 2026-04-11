@@ -18,6 +18,7 @@ interface AuthState {
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any; user?: User | null; session?: Session | null }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   initializeAuth: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 // ✅ FIX #5: Flag atómica fuera del store — garantiza ejecución única absoluta
@@ -136,6 +137,18 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error('[AuthStore] Error en initializeAuth:', error);
           set({ loading: false });
+        }
+      },
+      refreshProfile: async () => {
+        try {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          if (error) throw error;
+          if (user) {
+            const isPro = !!(user?.user_metadata?.is_pro || user?.user_metadata?.subscription_tier === 'pro');
+            set({ user, isPro });
+          }
+        } catch (error) {
+          console.error('[AuthStore] Error en refreshProfile:', error);
         }
       },
     }),
