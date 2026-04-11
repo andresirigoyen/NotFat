@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,9 +10,12 @@ import { useCreateMealWithItems } from '@/hooks/useMeals';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PermissionPopover } from '@/components/ui/PermissionPopover';
 import VoiceInputButton from '@/components/VoiceInputButton';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 const MealLoggerScreen = ({ navigation, route }: any) => {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigationHook = useNavigation();
   const initialType = route?.params?.mealType || 'breakfast';
   const initialDate = route?.params?.mealDate;
@@ -174,7 +178,7 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigationHook.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Registrar Comida</Text>
           <View style={styles.placeholder} />
@@ -196,7 +200,7 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
                 <Ionicons 
                   name={type.icon as any} 
                   size={20} 
-                  color={selectedType === type.value ? COLORS.text.primary : COLORS.text.muted} 
+                  color={selectedType === type.value ? colors.text.primary : colors.text.muted} 
                 />
                 <Text style={[
                   styles.mealTypeText,
@@ -216,7 +220,7 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
           <View style={styles.actionGrid}>
             <TouchableOpacity style={styles.actionButton} onPress={handleCameraPress}>
               <View style={[styles.actionIcon, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
-                <Ionicons name="camera" size={24} color={COLORS.status.error} />
+                <Ionicons name="camera" size={24} color={colors.status.error} />
               </View>
               <Text style={styles.actionTitle}>Cámara</Text>
               <Text style={styles.actionSubtitle}>Toma una foto</Text>
@@ -224,7 +228,7 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
 
             <TouchableOpacity style={styles.actionButton} onPress={handleGalleryPress}>
               <View style={[styles.actionIcon, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
-                <Ionicons name="images" size={24} color={COLORS.status.info} />
+                <Ionicons name="images" size={24} color={colors.status.info} />
               </View>
               <Text style={styles.actionTitle}>Galería</Text>
               <Text style={styles.actionSubtitle}>Elige una imagen</Text>
@@ -232,7 +236,7 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
 
             <TouchableOpacity style={styles.actionButton} onPress={handleVoicePress}>
               <View style={[styles.actionIcon, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
-                <Ionicons name="mic" size={24} color={COLORS.status.success} />
+                <Ionicons name="mic" size={24} color={colors.status.success} />
               </View>
               <Text style={styles.actionTitle}>Voz</Text>
               <Text style={styles.actionSubtitle}>Describe con voz</Text>
@@ -240,7 +244,7 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
 
             <TouchableOpacity style={styles.actionButton} onPress={handleBarcodePress}>
               <View style={[styles.actionIcon, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
-                <Ionicons name="barcode" size={24} color={COLORS.status.warning} />
+                <Ionicons name="barcode" size={24} color={colors.status.warning} />
               </View>
               <Text style={styles.actionTitle}>Código</Text>
               <Text style={styles.actionSubtitle}>Escanea barcode</Text>
@@ -258,7 +262,7 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
               value={mealName}
               onChangeText={setMealName}
               placeholder="Nombre de la comida..."
-              placeholderTextColor={COLORS.text.muted}
+              placeholderTextColor={colors.text.muted}
             />
             
             <TouchableOpacity 
@@ -267,7 +271,7 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
               disabled={!mealName.trim() || saving}
             >
               {saving ? (
-                <ActivityIndicator size="small" color={COLORS.text.primary} />
+                <ActivityIndicator size="small" color={colors.text.primary} />
               ) : (
                 <Text style={styles.saveButtonText}>Guardar</Text>
               )}
@@ -295,7 +299,7 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
             <Text style={styles.sectionTitle}>¿Cuándo comiste?</Text>
             <TouchableOpacity style={styles.timeBadge} onPress={handleNowPress}>
               <Text style={styles.timeBadgeText}>Ahora</Text>
-              <Ionicons name="time" size={16} color={COLORS.primary.amber} />
+              <Ionicons name="time" size={16} color={colors.primary.amber} />
             </TouchableOpacity>
           </View>
         </View>
@@ -313,13 +317,13 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
           // Handle permission granted
         }}
         onDeny={() => setShowPermissionPopover(false)}
-        primaryColor={COLORS.primary.amber}
+        primaryColor={colors.primary.amber}
       />
 
       {/* Loading Overlay */}
       {(analyzing || saving) && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={COLORS.primary.amber} />
+          <ActivityIndicator size="large" color={colors.primary.amber} />
           <Text style={styles.loadingText}>
             {analyzing ? 'Analizando imagen...' : 'Guardando comida...'}
           </Text>
@@ -329,10 +333,10 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   scrollView: {
     flex: 1,
@@ -348,7 +352,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   placeholder: {
@@ -361,13 +365,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginBottom: SPACING.md,
     fontFamily: FONTS.primary,
   },
   sectionSubtitle: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     marginBottom: SPACING.md,
     textAlign: 'center',
     fontFamily: FONTS.primary,
@@ -384,23 +388,23 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.xs,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
   },
   mealTypeButtonSelected: {
-    backgroundColor: COLORS.primary.amber,
-    borderColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
+    borderColor: colors.primary.amber,
   },
   mealTypeText: {
     fontSize: FONTS.sizes.xs,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     marginLeft: SPACING.xs,
     fontFamily: FONTS.primary,
   },
   mealTypeTextSelected: {
-    color: COLORS.background.primary,
+    color: colors.background.primary,
   },
   actionGrid: {
     flexDirection: 'row',
@@ -409,7 +413,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     width: '47%',
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     alignItems: 'center',
@@ -426,47 +430,47 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginBottom: SPACING.xs,
     fontFamily: FONTS.primary,
   },
   actionSubtitle: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     textAlign: 'center',
     fontFamily: FONTS.primary,
   },
   manualEntry: {
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     ...SHADOWS.sm,
   },
   textInput: {
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
-    backgroundColor: COLORS.background.tertiary,
+    color: colors.text.primary,
+    backgroundColor: colors.background.tertiary,
     marginBottom: SPACING.md,
     fontFamily: FONTS.primary,
   },
   saveButton: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.sm,
     alignItems: 'center',
   },
   saveButtonDisabled: {
-    backgroundColor: COLORS.interactive.disabled,
+    backgroundColor: colors.interactive.disabled,
   },
   saveButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontFamily: FONTS.primary,
   },
   timeRow: {
@@ -482,12 +486,12 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.primary.amber,
+    borderColor: colors.primary.amber,
   },
   timeBadgeText: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     marginRight: SPACING.xs,
     fontFamily: FONTS.primary,
   },
@@ -504,7 +508,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: SPACING.sm,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontWeight: FONTS.weights.semibold,
     fontFamily: FONTS.primary,
   },

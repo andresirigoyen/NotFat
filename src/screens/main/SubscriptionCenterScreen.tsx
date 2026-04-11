@@ -1,18 +1,12 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  TextInput,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, Crown, Sparkles, CheckCircle2 } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import { useSubscriptionEnhanced, Payment, Subscription } from '@/hooks/useSubscriptionEnhanced';
 import { analytics } from '@/services/analytics';
 import { useAuthStore } from '@/store';
@@ -54,7 +48,7 @@ const PLANS = [
   {
     id: 'premium',
     name: 'Premium',
-    price: 19990,
+    price: 29900,
     currency: 'CLP',
     period: 'mes',
     features: [
@@ -93,6 +87,9 @@ const PAYMENT_METHODS = [
 ];
 
 export default function SubscriptionCenterScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const route = useRoute<any>();
   const { user } = useAuthStore();
@@ -216,9 +213,11 @@ export default function SubscriptionCenterScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color={COLORS.primary.amber} />
-        </TouchableOpacity>
+        {navigation.canGoBack() && (
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <ChevronLeft size={24} color={colors.primary.amber} />
+          </TouchableOpacity>
+        )}
         <View style={styles.headerContent}>
           <Text style={styles.title}>Centro de Suscripciones</Text>
           <Text style={styles.subtitle}>Desbloquea todo el potencial de NotFat</Text>
@@ -240,7 +239,7 @@ export default function SubscriptionCenterScreen() {
                 </Text>
               </View>
               <View style={styles.currentPlanBadge}>
-                <Ionicons name="checkmark-circle" size={24} color={COLORS.primary.amber} />
+                <Ionicons name="checkmark-circle" size={24} color={colors.primary.amber} />
               </View>
             </View>
             
@@ -274,7 +273,8 @@ export default function SubscriptionCenterScreen() {
               style={[
                 styles.planCard,
                 selectedPlan === plan.id && styles.planCardSelected,
-                plan.popular && styles.planCardPopular,
+                plan.popular && !selectedPlan ? styles.planCardPopular : null,
+                selectedPlan === plan.id && plan.popular && styles.planCardSelectedPopular,
               ]}
               onPress={() => handleSelectPlan(plan.id)}
             >
@@ -294,7 +294,7 @@ export default function SubscriptionCenterScreen() {
                 </View>
                 <View style={styles.planSelection}>
                   {selectedPlan === plan.id ? (
-                    <Ionicons name="checkmark-circle" size={24} color={COLORS.primary.amber} />
+                    <Ionicons name="checkmark-circle" size={24} color={colors.primary.amber} />
                   ) : (
                     <View style={styles.planRadio} />
                   )}
@@ -304,11 +304,16 @@ export default function SubscriptionCenterScreen() {
               <View style={styles.planFeatures}>
                 {plan.features.map((feature, index) => (
                   <View key={index} style={styles.featureItem}>
-                    <Ionicons 
-                      name="checkmark-outline" 
-                      size={16} 
-                      color={selectedPlan === plan.id ? COLORS.primary.amber : COLORS.text.secondary} 
-                    />
+                    <View style={[
+                      styles.featureIconContainer,
+                      selectedPlan === plan.id && styles.featureIconContainerSelected
+                    ]}>
+                      <CheckCircle2 
+                        size={14} 
+                        color={selectedPlan === plan.id ? '#000' : colors.primary.amber} 
+                        strokeWidth={3}
+                      />
+                    </View>
                     <Text style={[
                       styles.featureText,
                       selectedPlan === plan.id && styles.featureTextSelected
@@ -331,7 +336,7 @@ export default function SubscriptionCenterScreen() {
               placeholder="Ingresa tu código promocional"
               value={promoCode}
               onChangeText={setPromoCode}
-              placeholderTextColor={COLORS.text.secondary}
+              placeholderTextColor={colors.text.secondary}
             />
             <TouchableOpacity 
               style={styles.applyPromoBtn}
@@ -364,7 +369,7 @@ export default function SubscriptionCenterScreen() {
               >
                 <View style={styles.paymentMethodHeader}>
                   <View style={styles.paymentMethodIcon}>
-                    <Ionicons name={method.icon as any} size={24} color={COLORS.text.primary} />
+                    <Ionicons name={method.icon as any} size={24} color={colors.text.primary} />
                   </View>
                   <View style={styles.paymentMethodInfo}>
                     <Text style={styles.paymentMethodName}>{method.name}</Text>
@@ -372,7 +377,7 @@ export default function SubscriptionCenterScreen() {
                   </View>
                   <View style={styles.paymentMethodSelection}>
                     {selectedPaymentMethod === method.id ? (
-                      <Ionicons name="checkmark-circle" size={20} color={COLORS.primary.amber} />
+                      <Ionicons name="checkmark-circle" size={20} color={colors.primary.amber} />
                     ) : (
                       <View style={styles.paymentMethodRadio} />
                     )}
@@ -385,25 +390,44 @@ export default function SubscriptionCenterScreen() {
 
         {/* Subscribe Button */}
         {selectedPlan && (
-          <TouchableOpacity 
-            style={styles.subscribeBtn}
-            onPress={handleSubscribe}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <Text style={styles.subscribeBtnText}>Procesando...</Text>
-            ) : (
-              <>
-                <Ionicons name="lock-closed-outline" size={20} color={COLORS.text.primary} />
-                <Text style={styles.subscribeBtnText}>
-                  {PLANS.find(p => p.id === selectedPlan)?.price === 0 
-                    ? 'Comenzar Gratis' 
-                    : `Suscribirse por $${PLANS.find(p => p.id === selectedPlan)?.price?.toLocaleString()}`
-                  }
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+          <View style={styles.subscribeBtnContainer}>
+            <TouchableOpacity 
+              onPress={handleSubscribe}
+              disabled={isLoading}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={isDark ? ['#F59E0B', '#D97706'] : ['#FBBF24', '#F59E0B']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.subscribeBtnGradient}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#000" size="small" />
+                ) : (
+                  <View style={styles.subscribeBtnContent}>
+                    <Crown size={22} color="#FFF" strokeWidth={2.5} />
+                    <View style={styles.subscribeBtnTextGroup}>
+                      <Text style={styles.subscribeBtnText}>
+                        {PLANS.find(p => p.id === selectedPlan)?.price === 0 
+                          ? 'Comenzar Gratis' 
+                          : `Suscribirse por $${PLANS.find(p => p.id === selectedPlan)?.price?.toLocaleString()}`
+                        }
+                      </Text>
+                      <Text style={styles.subscribeBtnSubtext}>
+                        {PLANS.find(p => p.id === selectedPlan)?.id === 'basic' ? 'Plan gratuito' : 'Acceso instantáneo a todas las funciones'}
+                      </Text>
+                    </View>
+                    <Ionicons name="arrow-forward" size={20} color="#FFF" />
+                  </View>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+            <View style={styles.securityInfo}>
+              <Ionicons name="lock-closed" size={12} color={colors.text.secondary} />
+              <Text style={styles.securityText}>Pago seguro y encriptado</Text>
+            </View>
+          </View>
         )}
 
         {/* Payment History */}
@@ -431,7 +455,7 @@ export default function SubscriptionCenterScreen() {
                   <Ionicons 
                     name={payment.status === 'approved' ? 'checkmark-circle' : 'time-outline'} 
                     size={16} 
-                    color={COLORS.text.primary} 
+                    color={colors.text.primary} 
                   />
                 </View>
               </View>
@@ -478,14 +502,15 @@ export default function SubscriptionCenterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   header: {
-    padding: SPACING.lg,
-    paddingTop: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.xs,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -500,25 +525,28 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   subtitle: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginTop: SPACING.xs,
   },
   content: {
     flex: 1,
-    padding: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.lg,
+    marginTop: -SPACING.sm,
   },
   currentPlanCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
-    marginBottom: SPACING.xl,
+    marginTop: 0,
+    marginBottom: SPACING.md,
     borderWidth: 2,
-    borderColor: COLORS.primary.amber,
+    borderColor: colors.primary.amber,
   },
   currentPlanHeader: {
     flexDirection: 'row',
@@ -532,20 +560,20 @@ const styles = StyleSheet.create({
   currentPlanTitle: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginBottom: SPACING.xs,
   },
   currentPlanName: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes['2xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   currentPlanStatus: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.primary.sky,
-    backgroundColor: COLORS.primary.sky + '20',
+    color: colors.primary.sky,
+    backgroundColor: colors.primary.sky + '20',
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderRadius: BORDER_RADIUS.sm,
@@ -555,7 +583,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.primary.amber + '20',
+    backgroundColor: colors.primary.amber + '20',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -568,12 +596,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
   },
   currentPlanPeriod: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
   },
   cancelBtn: {
     backgroundColor: '#EF4444',
@@ -587,20 +615,21 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   section: {
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING['3xl'],
   },
   sectionTitle: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
-    marginBottom: SPACING.md,
+    color: colors.text.primary,
+    marginBottom: SPACING.lg,
+    marginTop: SPACING.sm,
   },
   planCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
@@ -608,16 +637,21 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   planCardSelected: {
-    borderColor: COLORS.primary.amber,
+    borderColor: colors.primary.amber,
+    backgroundColor: colors.primary.amber + '10',
   },
   planCardPopular: {
-    borderColor: COLORS.primary.sky,
+    borderColor: colors.primary.sky + '40',
+  },
+  planCardSelectedPopular: {
+    borderColor: colors.primary.sky,
+    backgroundColor: colors.primary.sky + '10',
   },
   popularBadge: {
     position: 'absolute',
     top: -10,
     right: SPACING.lg,
-    backgroundColor: COLORS.primary.sky,
+    backgroundColor: colors.primary.sky,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderRadius: BORDER_RADIUS.sm,
@@ -626,7 +660,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.xs,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   planHeader: {
     flexDirection: 'row',
@@ -638,18 +672,18 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   planPrice: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes['2xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
   },
   planPeriod: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
   },
   planSelection: {
     alignItems: 'center',
@@ -660,7 +694,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: COLORS.text.secondary,
+    borderColor: colors.text.secondary,
   },
   planFeatures: {
     marginTop: SPACING.md,
@@ -670,14 +704,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.sm,
   },
+  featureIconContainer: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.primary.amber + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.sm,
+  },
+  featureIconContainerSelected: {
+    backgroundColor: colors.primary.amber,
+  },
   featureText: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
-    marginLeft: SPACING.sm,
+    color: colors.text.secondary,
+    flex: 1,
   },
   featureTextSelected: {
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   promoCodeContainer: {
     flexDirection: 'row',
@@ -685,19 +731,19 @@ const styles = StyleSheet.create({
   },
   promoCodeInput: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     marginRight: SPACING.md,
   },
   applyPromoBtn: {
-    backgroundColor: COLORS.primary.sky,
+    backgroundColor: colors.primary.sky,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.md,
@@ -706,10 +752,10 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   paymentMethodCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
@@ -717,7 +763,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   paymentMethodSelected: {
-    borderColor: COLORS.primary.amber,
+    borderColor: colors.primary.amber,
   },
   paymentMethodHeader: {
     flexDirection: 'row',
@@ -728,7 +774,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -740,12 +786,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   paymentMethodDescription: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginTop: SPACING.xs,
   },
   paymentMethodSelection: {
@@ -757,30 +803,69 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: COLORS.text.secondary,
+    borderColor: colors.text.secondary,
   },
-  subscribeBtn: {
-    backgroundColor: COLORS.primary.amber,
+  subscribeBtnContainer: {
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.xl,
+  },
+  subscribeBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: SPACING.lg,
-    borderRadius: BORDER_RADIUS.lg,
-    marginTop: SPACING.xl,
+    borderRadius: BORDER_RADIUS.xl,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  subscribeBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: SPACING.lg,
+  },
+  subscribeBtnTextGroup: {
+    flex: 1,
+    marginHorizontal: SPACING.md,
   },
   subscribeBtnText: {
     fontFamily: FONTS.primary,
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
-    marginLeft: SPACING.sm,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFF',
+    letterSpacing: -0.2,
+  },
+  subscribeBtnSubtext: {
+    fontFamily: FONTS.primary,
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#FFF',
+    opacity: 0.9,
+    marginTop: 2,
+  },
+  securityInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SPACING.md,
+    opacity: 0.6,
+  },
+  securityText: {
+    fontFamily: FONTS.primary,
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginLeft: 4,
   },
   paymentItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: SPACING.md,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.background.border,
+    borderBottomColor: colors.background.border,
   },
   paymentInfo: {
     flex: 1,
@@ -788,24 +873,24 @@ const styles = StyleSheet.create({
   paymentDate: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
   },
   paymentAmount: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   paymentStatus: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
   },
   paymentStatusBadge: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -819,28 +904,28 @@ const styles = StyleSheet.create({
   viewAllPaymentsBtnText: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.primary.sky,
+    color: colors.primary.sky,
   },
   comparisonTable: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.lg,
     overflow: 'hidden',
   },
   comparisonHeader: {
     flexDirection: 'row',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     paddingVertical: SPACING.sm,
   },
   comparisonRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.background.border,
+    borderBottomColor: colors.background.border,
   },
   comparisonCell: {
     flex: 1,
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     textAlign: 'center',
     paddingVertical: SPACING.sm,
   },

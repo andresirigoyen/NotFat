@@ -1,4 +1,3 @@
-import React from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,11 +12,15 @@ interface AuthState {
   setSession: (session: Session | null) => void;
   setLoading: (loading: boolean) => void;
   signOut: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any; user?: User | null; session?: Session | null }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any; user?: User | null; session?: Session | null }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   initializeAuth: () => Promise<void>;
 }
+
+// ✅ FIX #5: Flag atómica fuera del store — garantiza ejecución única absoluta
+// independientemente del estado loading/session en el store.
+let _authInitialized = false;
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -28,72 +31,68 @@ export const useAuthStore = create<AuthState>()(
       setUser: (user) => set({ user }),
       setSession: (session) => set({ session }),
       setLoading: (loading) => set({ loading }),
-      
+
       signOut: async () => {
         try {
-          const { error } = await supabase.auth.signOut();
-          if (error) throw error;
-          
-          set({ user: null, session: null });
-        } catch (error) {
-          console.error('Error signing out:', error);
-          throw error;
+          await supabase.auth.signOut().catch(err => console.warn('[AuthStore] SignOut warning:', err));
+        } finally {
+          // Resetear la flag para permitir re-inicialización tras logout
+          _authInitialized = false;
+          set({ user: null, session: null, loading: false });
         }
       },
-      
+
       signIn: async (email, password) => {
         try {
           set({ loading: true });
-          
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-          
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
           if (error) throw error;
-          
-          set({ 
-            user: data.user, 
-            session: data.session,
-            loading: false 
-          });
-          
-          return { error: null };
+          set({ user: data.user, session: data.session, loading: false });
+          return { error: null, user: data.user, session: data.session };
         } catch (error) {
           set({ loading: false });
           return { error };
         }
       },
-      
+
       signUp: async (email, password, fullName) => {
         try {
           set({ loading: true });
-          
+
+          const nameParts = fullName.trim().split(' ');
+          const firstName = nameParts[0];
+          const lastName = nameParts.slice(1).join(' ') || '';
+
           const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
               data: {
                 full_name: fullName,
-              },
+                first_name: firstName,
+                last_name: lastName,
+                gender: 'other',
+                role: 'user',
+                onboarding_completed: false,
+                onboarding_step: 'welcome',
+                steps_goal: 10000,
+                show_calories: true,
+                show_hydration: true,
+                preferred_bottle_size: 500,
+                preferred_bottle_unit: 'ml'
+              }
             },
           });
-          
+
           if (error) throw error;
-          
-          set({ 
-            user: data.user, 
-            session: data.session,
-            loading: false 
-          });
-          
-          return { error: null };
+          set({ user: data.user, session: data.session, loading: false });
+          return { error: null, user: data.user, session: data.session };
         } catch (error) {
           set({ loading: false });
           return { error };
         }
       },
-      
+
       resetPassword: async (email) => {
         try {
           const { error } = await supabase.auth.resetPasswordForEmail(email);
@@ -102,45 +101,26 @@ export const useAuthStore = create<AuthState>()(
           return { error };
         }
       },
-      
+
       initializeAuth: async () => {
+        // ✅ FIX #5: Guard con flag atómica — nunca ejecuta dos veces
+        if (_authInitialized) return;
+        _authInitialized = true;
+
         try {
-          set({ loading: true });
-          
-          // Get initial session
           const { data: { session }, error } = await supabase.auth.getSession();
-          
           if (error) throw error;
-          
-          set({ 
-            user: session?.user || null, 
-            session: session || null,
-            loading: false 
-          });
-          
-          // We don't return the unsubscribe function because this is an async function
-          // and the interface expects Promise<void>.
-          // Listen for auth changes
-          supabase.auth.onAuthStateChange(
-            (_event, session) => {
-              set({ 
-                user: session?.user || null, 
-                session: session || null,
-                loading: false 
-              });
-            }
-          );
+          set({ user: session?.user || null, session: session || null, loading: false });
         } catch (error) {
-          console.error('Error initializing auth:', error);
+          console.error('[AuthStore] Error en initializeAuth:', error);
           set({ loading: false });
-          return;
         }
       },
     }),
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({ 
+      partialize: (state) => ({
         user: state.user ? {
           id: state.user.id,
           email: state.user.email,
@@ -156,11 +136,18 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// Provider component
-interface StoreProviderProps {
-  children: React.ReactNode;
-}
+// ✅ FIX #6: Guardamos la suscripción para poder cancelarla.
+// App.tsx debe llamar a authListenerUnsubscribe() en su cleanup de useEffect.
+const { data: _authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+  useAuthStore.setState({
+    user: session?.user || null,
+    session: session || null,
+    loading: false
+  });
+});
 
-export const StoreProvider: React.FC<StoreProviderProps> = ({ children }) => {
-  return <>{children}</>;
+export const authListenerUnsubscribe = () => {
+  _authListener.subscription.unsubscribe();
 };
+
+export default useAuthStore;

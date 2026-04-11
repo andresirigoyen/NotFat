@@ -380,13 +380,19 @@ export const useCompleteWorkoutSession = () => {
   });
 };
 
-export const useWorkoutSessionLogs = (userProgramId?: string) => {
+// ✅ FIX #11: userId es ahora obligatorio para evitar exponer datos de otros usuarios
+export const useWorkoutSessionLogs = (userId: string, userProgramId?: string) => {
   return useQuery({
-    queryKey: ['workout_session_logs', userProgramId],
+    queryKey: ['workout_session_logs', userId, userProgramId],
     queryFn: async () => {
+      // Siempre filtramos por user_id a través de la relaón con user_programs
       let query = supabase
         .from('workout_session_logs')
-        .select('*')
+        .select(`
+          *,
+          user_programs!inner(user_id)
+        `)
+        .eq('user_programs.user_id', userId)
         .order('completed_at', { ascending: false });
 
       if (userProgramId) {
@@ -398,7 +404,7 @@ export const useWorkoutSessionLogs = (userProgramId?: string) => {
       if (error) throw error;
       return data as WorkoutSessionLog[];
     },
-    enabled: true,
+    enabled: !!userId,
   });
 };
 
@@ -531,25 +537,12 @@ export const useWorkoutRecommendations = (userId: string) => {
         .eq('user_id', userId)
         .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
 
-      // Call AI service for recommendations
-      const response = await fetch('https://jcfezqakxulmtdvioxbc.supabase.co/functions/v1/recommend-workout-programs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          profile,
-          recentActivity,
-          healthData,
-        }),
+      // ✅ FIX #3: supabase.functions.invoke() con auth automática
+      const { data: recommendations, error: fnError } = await supabase.functions.invoke('recommend-workout-programs', {
+        body: { userId, profile, recentActivity, healthData },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to get workout recommendations');
-      }
-
-      const recommendations = await response.json();
+      if (fnError) throw fnError;
       return recommendations;
     },
     enabled: !!userId,

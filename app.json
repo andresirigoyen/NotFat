@@ -27,9 +27,6 @@
         "LSApplicationQueriesSchemes": [
           "instagram",
           "facebook",
-          "twitter",
-          "instagram",
-          "facebook",
           "twitter"
         ],
         "ITSAppUsesNonExemptEncryption": false
@@ -93,23 +90,30 @@
           ]
         }
       ],
-      [
-        "sentry-expo",
-        {
-          "url": "https://your-sentry-dsn@sentry.io/project-id",
-          "organization": "notfat",
-          "project": "notfat-mobile"
-        }
-      ],
-      [
-        "@sentry/react-native",
-        {
-          "url": "https://your-sentry-dsn@sentry.io/project-id"
-        }
-      ],
       "@react-native-community/datetimepicker",
-      "expo-barcode-scanner",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "NotFat necesita acceso al micrófono para comandos de voz y grabación de notas.",
+          "recordAudioAndroid": true
+        }
+      ],
+      "expo-asset",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "newArchEnabled": true,
+            "extraBuildSettings": {
+              "SWIFT_STRICT_CONCURRENCY": "minimal"
+            }
+          },
+          "android": {
+            "newArchEnabled": true
+          }
+        }
+      ]
     ],
     "scheme": "notfat",
     "runtimeVersion": {

@@ -48,24 +48,14 @@ export const useCoachChat = (userId: string) => {
           metadata: context,
         });
 
-      // Get AI response
-      const response = await fetch('https://jcfezqakxulmtdvioxbc.supabase.co/functions/v1/coach-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          message,
-          context,
-        }),
+      // ✅ FIX #3: Reemplazado fetch() sin auth por supabase.functions.invoke()
+      // que inyecta automáticamente el JWT de sesión del usuario.
+      const { data: aiResponse, error: fnError } = await supabase.functions.invoke('coach-chat', {
+        body: { userId, message, context },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to get coach response');
-      }
-
-      const aiResponse = await response.json();
+      if (fnError) throw fnError;
+      if (!aiResponse) throw new Error('Failed to get coach response');
 
       // Save AI response
       await supabase
@@ -155,25 +145,13 @@ export const useGenerateCoachInsights = () => {
         .gte('date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
         .order('date', { ascending: false });
 
-      // Call AI to generate insights
-      const response = await fetch('https://jcfezqakxulmtdvioxbc.supabase.co/functions/v1/generate-coach-insights', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          profile,
-          recentMeals,
-          healthData,
-        }),
+      // ✅ FIX #3: supabase.functions.invoke() para autenticación automática
+      const { data: insights, error: fnError } = await supabase.functions.invoke('generate-coach-insights', {
+        body: { userId, profile, recentMeals, healthData },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate insights');
-      }
-
-      const insights = await response.json();
+      if (fnError) throw fnError;
+      if (!insights) throw new Error('Failed to generate insights');
 
       // Save insights to database
       const insightPromises = insights.map((insight: any) => 
@@ -248,26 +226,13 @@ export const useGenerateCoachRecommendations = () => {
         .gte('date', new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
         .order('date', { ascending: false });
 
-      // Call AI to generate recommendations
-      const response = await fetch('https://jcfezqakxulmtdvioxbc.supabase.co/functions/v1/generate-coach-recommendations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          category,
-          profile,
-          nutritionGoals,
-          recentActivity,
-        }),
+      // ✅ FIX #3: supabase.functions.invoke() con auth automática
+      const { data: recommendations, error: fnError } = await supabase.functions.invoke('generate-coach-recommendations', {
+        body: { userId, category, profile, nutritionGoals, recentActivity },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate recommendations');
-      }
-
-      const recommendations = await response.json();
+      if (fnError) throw fnError;
+      if (!recommendations) throw new Error('Failed to generate recommendations');
 
       // Save recommendations
       const recommendationPromises = recommendations.map((rec: any) => 
@@ -307,23 +272,13 @@ export const useCoachVoiceAssistant = () => {
         reader.readAsDataURL(audioBlob);
       });
 
-      // Send to speech-to-text and AI processing
-      const response = await fetch('https://jcfezqakxulmtdvioxbc.supabase.co/functions/v1/coach-voice-assistant', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          audioData: audioBase64,
-        }),
+      // ✅ FIX #3: supabase.functions.invoke() con auth automática
+      const { data: result, error: fnError } = await supabase.functions.invoke('coach-voice-assistant', {
+        body: { userId, audioData: audioBase64 },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to process voice command');
-      }
-
-      const result = await response.json();
+      if (fnError) throw fnError;
+      if (!result) throw new Error('Failed to process voice command');
 
       // Save the conversation
       await supabase
@@ -492,18 +447,9 @@ export const useCoachFeedback = () => {
 
       if (error) throw error;
 
-      // Use feedback to improve future responses
-      await fetch('https://jcfezqakxulmtdvioxbc.supabase.co/functions/v1/update-coach-model', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          messageId,
-          feedback,
-          rating,
-        }),
+      // ✅ FIX #3: supabase.functions.invoke() con auth automática
+      await supabase.functions.invoke('update-coach-model', {
+        body: { userId, messageId, feedback, rating },
       });
 
       return data;

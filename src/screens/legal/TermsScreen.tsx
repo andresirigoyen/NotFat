@@ -1,9 +1,13 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function TermsScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const insets = useSafeAreaInsets();
 
   return (
@@ -38,7 +42,7 @@ export default function TermsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: { padding: 20, borderBottomWidth: 1, borderBottomColor: '#eee' },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 8 },

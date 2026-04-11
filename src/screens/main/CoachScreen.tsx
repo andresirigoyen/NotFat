@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -14,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import { useCoachMessages, useSendMessage, useCoachInsights, useDailyTips, useMarkTipAsUsed } from '@/hooks/useCoach';
 import { useProfile } from '@/hooks/useProfile';
 
@@ -42,6 +43,9 @@ const INITIAL_MESSAGES: Message[] = [
 ];
 
 export default function CoachScreen({ route }: any) {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const { profile } = useProfile();
   const [input, setInput] = useState('');
@@ -147,7 +151,7 @@ export default function CoachScreen({ route }: any) {
                 {msg.content}
               </Text>
               
-              {msg.metadata?.type === 'recipe' && msg.metadata?.recipeData && (
+              {msg.metadata?.type === 'recipe' && !!msg.metadata?.recipeData && (
                 <View style={styles.recipePreview}>
                   <Text style={styles.recipeTitle}>{msg.metadata.recipeData.name}</Text>
                   <Text style={styles.recipeDescription}>{msg.metadata.recipeData.description}</Text>
@@ -168,13 +172,13 @@ export default function CoachScreen({ route }: any) {
           <View style={[styles.bubble, styles.coachBubble]}>
             <Text style={styles.coachEmoji}>🦦</Text>
             <View style={Object.assign({}, styles.bubbleTextContainer, styles.coachText, { paddingVertical: SPACING.md })}>
-              <ActivityIndicator color={COLORS.primary.amber} size="small" />
+              <ActivityIndicator color={colors.primary.amber} size="small" />
             </View>
           </View>
         )}
 
         {/* Quick Suggestions */}
-        {(!messages || messages?.length <= 1) && (
+        {!!(!messages || messages?.length <= 1) && (
           <View style={styles.suggestionsContainer}>
             <Text style={styles.suggestionsTitle}>Sugerencias rápidas</Text>
             <View style={styles.suggestionsRow}>
@@ -198,7 +202,7 @@ export default function CoachScreen({ route }: any) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={80}>
         <View style={styles.inputBar}>
           <TouchableOpacity style={styles.attachButton}>
-            <Ionicons name="attach" size={22} color={COLORS.text.secondary} />
+            <Ionicons name="attach" size={22} color={colors.text.secondary} />
           </TouchableOpacity>
           <TextInput
             style={styles.textInput}
@@ -219,7 +223,7 @@ export default function CoachScreen({ route }: any) {
             {sending ? (
               <ActivityIndicator color="#000" size="small" />
             ) : (
-              <Ionicons name="send" size={18} color={input.trim() ? COLORS.background.primary : '#333'} />
+              <Ionicons name="send" size={18} color={input.trim() ? colors.background.primary : '#333'} />
             )}
           </TouchableOpacity>
         </View>
@@ -228,10 +232,10 @@ export default function CoachScreen({ route }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   header: {
     flexDirection: 'row',
@@ -239,7 +243,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
     gap: SPACING.sm,
   },
   avatarContainer: {
@@ -250,7 +254,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: COLORS.primary.amber,
+    borderColor: colors.primary.amber,
   },
   avatarEmoji: {
     fontSize: 26,
@@ -258,7 +262,7 @@ const styles = StyleSheet.create({
   coachName: {
     fontSize: FONTS.sizes.base,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   coachStatus: {
@@ -309,14 +313,14 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
   },
   coachTextContent: {
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   userText: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     borderBottomRightRadius: 4,
   },
   userTextContent: {
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontWeight: '600',
   },
   recipePreview: {
@@ -326,14 +330,14 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255,255,255,0.1)',
   },
   recipeTitle: {
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontSize: FONTS.sizes.base,
     fontWeight: '700',
     fontFamily: FONTS.primary,
     marginBottom: 4,
   },
   recipeDescription: {
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontSize: FONTS.sizes.xs,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.md,
@@ -344,7 +348,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   recipeMetaText: {
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontSize: FONTS.sizes.xs,
     fontFamily: FONTS.primary,
     fontWeight: '600',
@@ -358,7 +362,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(252,211,77,0.2)',
   },
   viewRecipeText: {
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontSize: FONTS.sizes.xs,
     fontWeight: '700',
     fontFamily: FONTS.primary,
@@ -367,7 +371,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   suggestionsTitle: {
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
     marginBottom: SPACING.md,
@@ -386,7 +390,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(252,211,77,0.25)',
   },
   suggestionText: {
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
     fontWeight: '600',
@@ -398,36 +402,36 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     paddingBottom: Platform.OS === 'ios' ? SPACING.lg : SPACING.sm,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
-    backgroundColor: COLORS.background.primary,
+    borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
+    backgroundColor: colors.background.primary,
     gap: SPACING.xs,
   },
   attachButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   textInput: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING.md,
     paddingVertical: 10,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
     maxHeight: 80,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   sendButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -456,7 +460,7 @@ const styles = StyleSheet.create({
   },
   messageTime: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
   },
 });

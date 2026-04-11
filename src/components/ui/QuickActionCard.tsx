@@ -71,7 +71,7 @@ export const QuickActionCard: React.FC<QuickActionCardProps> = ({
           color={disabled ? '#9CA3AF' : color} 
         />
         
-        {badge && badge > 0 && (
+        {!!badge && badge > 0 && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>
               {badge > 99 ? '99+' : badge}

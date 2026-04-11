@@ -25,6 +25,9 @@ module.exports = {
           card: '#1e1e1e',
         }
       },
+      fontFamily: {
+        montserrat: ['Montserrat'],
+      },
     },
   },
   plugins: [],

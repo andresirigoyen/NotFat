@@ -1,8 +1,9 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useEffect, useMemo } from 'react';
 import { View, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import { COLORS, SPACING } from '@/constants/theme';
+import { SPACING } from '@/constants/theme';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
 
@@ -14,6 +15,9 @@ type SplashRouteParams = {
 };
 
 export default function SplashScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const route = useRoute<RouteProp<SplashRouteParams, 'Splash'>>();
   const { user, loading: authLoading } = useAuthStore();
@@ -52,6 +56,17 @@ export default function SplashScreen() {
   useEffect(() => {
     const duration = route.params?.duration || 1200;
 
+    // Fallback de seguridad: Si después de 6 segundos seguimos cargando, forzamos navegación según lo que tengamos
+    const safetyTimer = setTimeout(() => {
+      if (authLoading || profileLoading) {
+        console.warn('[Splash] Safety fallback triggered');
+        navigation.reset({
+          index: 0,
+          routes: [{ name: nextScreen as never }],
+        });
+      }
+    }, 6000);
+
     // Wait for auth/profile resolution unless explicit override
     if (!route.params?.nextScreen && (authLoading || profileLoading)) return;
 
@@ -64,7 +79,10 @@ export default function SplashScreen() {
       });
     }, duration);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(safetyTimer);
+    };
   }, [authLoading, navigation, nextScreen, profileLoading, route.params?.duration, route.params?.nextScreen]);
 
   return (
@@ -82,7 +100,7 @@ export default function SplashScreen() {
         
         <ActivityIndicator 
           size="large" 
-          color={COLORS.primary.amber} 
+          color={colors.primary.amber} 
           style={styles.spinner} 
         />
       </View>
@@ -90,7 +108,7 @@ export default function SplashScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000', // Fondo completamente negro

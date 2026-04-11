@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { useThemeColors } from '@/hooks/useThemeColors';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, TextInput, ActivityIndicator, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ghost, Sparkles, Send, Utensils, Zap, ChefHat, Salad, Coffee } from 'lucide-react-native';
@@ -8,6 +9,9 @@ import { useAIChat } from '@/hooks/useAIChat';
 const { width } = Dimensions.get('window');
 
 const NoFatScreen = () => {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const [chatInput, setChatInput] = React.useState('');
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [chatHistory, setChatHistory] = React.useState<Array<{role: 'user' | 'ai', message: string}>>([]);
@@ -21,17 +25,66 @@ const NoFatScreen = () => {
     }
   }, [error]);
 
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
   const categories = [
-    { label: 'Desayunos', icon: <Coffee size={20} color="#7c2d12" />, color: '#fef3c7' },
-    { label: 'Almuerzos', icon: <ChefHat size={20} color="#7c2d12" />, color: '#dcfce7' },
-    { label: 'Cenas', icon: <Utensils size={20} color="#7c2d12" />, color: '#fee2e2' },
-    { label: 'Snacks', icon: <Salad size={20} color="#7c2d12" />, color: '#e0f2fe' },
+    { label: 'Desayunos', icon: <Coffee size={20} color="#7c2d12" />, color: '#fef3c7', prompt: 'Recetas saludables para desayunos equilibrados y nutritivos' },
+    { label: 'Almuerzos', icon: <ChefHat size={20} color="#7c2d12" />, color: '#dcfce7', prompt: 'Recetas saludables para almuerzos completos y satisfactorios' },
+    { label: 'Cenas', icon: <Utensils size={20} color="#7c2d12" />, color: '#fee2e2', prompt: 'Recetas saludables para cenas ligeras y digestivas' },
+    { label: 'Snacks', icon: <Salad size={20} color="#7c2d12" />, color: '#e0f2fe', prompt: 'Snacks saludables y nutritivos para romper el ayuno' },
   ];
 
   const suggestedRecipes = [
-    { name: 'Bowl de Avena y Chía', kcal: 320, time: '10 min', tag: 'Desayuno' },
-    { name: 'Salmón con Espárragos', kcal: 450, time: '20 min', tag: 'Almuerzo' },
+    { name: 'Bowl de Avena y Chía', kcal: 320, time: '10 min', tag: 'Desayuno', prompt: 'Bowl de avena y chía' },
+    { name: 'Salmón con Espárragos', kcal: 450, time: '20 min', tag: 'Almuerzo', prompt: 'Salmón con espárragos' },
   ];
+
+  const handleCategoryPress = async (category: typeof categories[0]) => {
+    setIsGenerating(true);
+    setSelectedCategory(category.label);
+    setChatHistory(prev => [...prev, { role: 'user', message: `Quiero recetas de ${category.label.toLowerCase()}` }]);
+    
+    try {
+      console.log('📤 Sending category prompt:', category.prompt);
+      const result = await processPrompt(category.prompt);
+      console.log('📥 Category result:', result);
+      
+      if (result && result.recipeData) {
+        setGeneratedRecipe(result.recipeData);
+        const friendlyMessage = result.response || `¡Aquí tienes recetas de ${category.label}! 🍽️`;
+        setChatHistory(prev => [...prev, { role: 'ai', message: friendlyMessage }]);
+      } else {
+        console.log('⚠️ No recipe data in result');
+        setGeneratedRecipe(null);
+      }
+    } catch (err: any) {
+      console.error("❌ Error fetching category recipes:", err);
+      Alert.alert("Error", err?.message || "No pudimos obtener recetas. Intenta de nuevo.");
+    } finally {
+      setIsGenerating(false);
+      setSelectedCategory(null);
+    }
+  };
+
+  const handleRecipePress = async (recipe: typeof suggestedRecipes[0]) => {
+    setIsGenerating(true);
+    setChatHistory(prev => [...prev, { role: 'user', message: `Quiero la receta de ${recipe.name}` }]);
+    
+    try {
+      const result = await processPrompt(recipe.prompt);
+      if (result && result.recipeData) {
+        setGeneratedRecipe(result.recipeData);
+        const friendlyMessage = result.response || `¡Aquí está la receta de ${recipe.name}! 🍽️`;
+        setChatHistory(prev => [...prev, { role: 'ai', message: friendlyMessage }]);
+      } else {
+        setGeneratedRecipe(null);
+      }
+    } catch (err) {
+      console.error("Error fetching recipe:", err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -39,7 +92,11 @@ const NoFatScreen = () => {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.brandRow}>
-            <Text style={styles.brandEmoji}>🦦</Text>
+            <Image 
+              source={require('../../../assets/images/logo.png')} 
+              style={styles.logoImageSmall}
+              resizeMode="contain" 
+            />
             <Text style={styles.brandText}>NotFat Chef</Text>
           </View>
           <View style={styles.aiBadge}>
@@ -53,7 +110,11 @@ const NoFatScreen = () => {
           colors={['#7c2d12', '#451a03']}
           style={styles.chatIntroCard}
         >
-          <Ghost color="#ffffff" size={40} style={styles.ghostIcon} />
+          <Image 
+            source={require('../../../assets/images/logo.png')} 
+            style={styles.logoImageLarge}
+            resizeMode="contain" 
+          />
           <Text style={styles.chatTitle}>¿Qué cocinamos hoy?</Text>
           <Text style={styles.chatSubtitle}>Dime qué ingredientes tienes y te crearé una receta saludable personalizada.</Text>
           
@@ -77,11 +138,14 @@ const NoFatScreen = () => {
                 setIsGenerating(true);
                 
                 try {
+                  console.log('👨‍🍳 Sending to Chef IA:', userMessage);
                   // Usar el endpoint unificado processPrompt
                   const result = await processPrompt(userMessage);
+                  console.log('👨‍🍳 Chef IA Response:', result);
                   
                   if (result) {
                     if (result.type === 'recipe' && result.recipeData) {
+                      console.log('🥗 Recipe detected!');
                       setGeneratedRecipe(result.recipeData);
                       // Mostrar mensaje amigable
                       const friendlyMessage = result.response || '¡He creado una receta deliciosa para ti! 🍽️';
@@ -90,6 +154,7 @@ const NoFatScreen = () => {
                         message: friendlyMessage
                       }]);
                     } else {
+                      console.log('💬 Chat detected');
                       // Es solo chat, limpiamos la receta anterior
                       setGeneratedRecipe(null);
                       // Mostrar respuesta limpia del hook
@@ -99,9 +164,11 @@ const NoFatScreen = () => {
                         message: cleanMessage
                       }]);
                     }
+                  } else {
+                    console.log('⚠️ No result from IA');
                   }
                 } catch (err) {
-                  console.error("Fallo al enviar mensaje:", err);
+                  console.error("❌ Fallo al enviar mensaje:", err);
                 } finally {
                   setIsGenerating(false);
                 }
@@ -113,7 +180,7 @@ const NoFatScreen = () => {
         </LinearGradient>
 
         {/* Chat History */}
-        {chatHistory.length > 0 && (
+        {chatHistory.length > 0 ? (
           <View style={styles.chatHistory}>
                 {chatHistory.map((msg, idx) => (
                   <View key={idx} style={[
@@ -129,7 +196,7 @@ const NoFatScreen = () => {
                   </View>
                 ))}
           </View>
-        )}
+        ) : null}
 
         {/* Generated Recipe */}
         {generatedRecipe && (
@@ -229,7 +296,12 @@ const NoFatScreen = () => {
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll}>
           {categories.map((cat, idx) => (
-            <TouchableOpacity key={idx} style={[styles.catCard, { backgroundColor: cat.color }]}>
+            <TouchableOpacity 
+              key={idx} 
+              style={[styles.catCard, { backgroundColor: cat.color }]}
+              onPress={() => handleCategoryPress(cat)}
+              disabled={isGenerating}
+            >
               {cat.icon}
               <Text style={styles.catLabel}>{cat.label}</Text>
             </TouchableOpacity>
@@ -243,7 +315,12 @@ const NoFatScreen = () => {
         </View>
 
         {suggestedRecipes.map((recipe, idx) => (
-          <TouchableOpacity key={idx} style={styles.recipeCard}>
+          <TouchableOpacity 
+            key={idx} 
+            style={styles.recipeCard}
+            onPress={() => handleRecipePress(recipe)}
+            disabled={isGenerating}
+          >
             <View style={styles.recipeImagePlaceholder}>
               <ChefHat color="#cbd5e1" size={40} />
             </View>
@@ -267,7 +344,7 @@ const NoFatScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FAF3ED',
@@ -284,10 +361,17 @@ const styles = StyleSheet.create({
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
-  brandEmoji: {
-    fontSize: 32,
+  logoImageSmall: {
+    width: 32,
+    height: 32,
+  },
+  logoImageLarge: {
+    width: 60,
+    height: 60,
+    marginBottom: 16,
+    tintColor: '#FFFFFF',
   },
   brandText: {
     fontSize: 26,
@@ -340,7 +424,7 @@ const styles = StyleSheet.create({
   },
   chatInputContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
     borderRadius: 24,
     padding: 8,
     alignItems: 'center',

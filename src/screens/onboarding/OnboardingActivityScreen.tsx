@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,51 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
 import { analytics } from '@/services/analytics';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
-
-// Sincronizado con Prisma: profiles.workout_frequency (String?)
-const WORKOUT_FREQUENCIES = [
-  {
-    id: 'sedentary',
-    label: 'Sedentario',
-    description: 'Poco o ningún ejercicio',
-    icon: 'couch' as keyof typeof Ionicons.glyphMap,
-    color: COLORS.text.muted,
-    image: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400&h=300&fit=crop',
-  },
-  {
-    id: 'light',
-    label: 'Ligero',
-    description: '1-2 días por semana',
-    icon: 'walk' as keyof typeof Ionicons.glyphMap,
-    color: COLORS.primary.sky,
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-  },
-  {
-    id: 'moderate',
-    label: 'Moderado',
-    description: '3-4 días por semana',
-    icon: 'bicycle' as keyof typeof Ionicons.glyphMap,
-    color: COLORS.primary.amber,
-    image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=400&h=300&fit=crop',
-  },
-  {
-    id: 'active',
-    label: 'Activo',
-    description: '5-6 días por semana',
-    icon: 'fitness' as keyof typeof Ionicons.glyphMap,
-    color: COLORS.status.success,
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-  },
-  {
-    id: 'very_active',
-    label: 'Muy Activo',
-    description: 'Todos los días o ejercicio intenso',
-    icon: 'flame' as keyof typeof Ionicons.glyphMap,
-    color: COLORS.status.error,
-    image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&h=300&fit=crop',
-  },
-];
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 // Sincronizado con Prisma: profiles.steps_goal (Int @default(10000))
 const STEPS_GOALS = [
@@ -63,6 +20,52 @@ const STEPS_GOALS = [
 ];
 
 export default function OnboardingActivityScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
+  const WORKOUT_FREQUENCIES = React.useMemo(() => [
+    {
+      id: 'sedentary',
+      label: 'Sedentario',
+      description: 'Poco o ningún ejercicio',
+      icon: 'couch' as keyof typeof Ionicons.glyphMap,
+      color: colors.text.muted,
+      image: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400&h=300&fit=crop',
+    },
+    {
+      id: 'light',
+      label: 'Ligero',
+      description: '1-2 días por semana',
+      icon: 'walk' as keyof typeof Ionicons.glyphMap,
+      color: colors.primary.sky,
+      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
+    },
+    {
+      id: 'moderate',
+      label: 'Moderado',
+      description: '3-4 días por semana',
+      icon: 'bicycle' as keyof typeof Ionicons.glyphMap,
+      color: colors.primary.amber,
+      image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=400&h=300&fit=crop',
+    },
+    {
+      id: 'active',
+      label: 'Activo',
+      description: '5-6 días por semana',
+      icon: 'fitness' as keyof typeof Ionicons.glyphMap,
+      color: colors.status.success,
+      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
+    },
+    {
+      id: 'very_active',
+      label: 'Muy Activo',
+      description: 'Todos los días o ejercicio intenso',
+      icon: 'flame' as keyof typeof Ionicons.glyphMap,
+      color: colors.status.error,
+      image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&h=300&fit=crop',
+    },
+  ], [colors]);
+
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile, upsertActivityProfile } = useProfile();
@@ -138,7 +141,7 @@ export default function OnboardingActivityScreen() {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.secondary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.secondary} />
           </TouchableOpacity>
           
           <View style={styles.progressContainer}>
@@ -190,7 +193,7 @@ export default function OnboardingActivityScreen() {
                           <Ionicons 
                             name={workout.icon} 
                             size={24} 
-                            color={COLORS.text.primary} 
+                            color={colors.text.primary} 
                           />
                         </View>
                         <Text style={styles.workoutLabel}>{workout.label}</Text>
@@ -213,7 +216,7 @@ export default function OnboardingActivityScreen() {
             <Text style={styles.sectionTitle}>Meta Diaria de Pasos</Text>
             <View style={styles.stepsContainer}>
               <View style={styles.stepsHeader}>
-                <Ionicons name="footsteps" size={24} color={COLORS.primary.sky} />
+                <Ionicons name="footsteps" size={24} color={colors.primary.sky} />
                 <Text style={styles.stepsTitle}>¿Cuántos pasos diarios?</Text>
               </View>
               
@@ -224,7 +227,7 @@ export default function OnboardingActivityScreen() {
                     style={[
                       styles.stepsCard,
                       selectedStepsGoal === goal.id && styles.stepsCardSelected,
-                      { borderColor: selectedStepsGoal === goal.id ? COLORS.primary.sky : COLORS.background.border }
+                      { borderColor: selectedStepsGoal === goal.id ? colors.primary.sky : colors.background.border }
                     ]}
                     onPress={() => handleStepsGoalSelect(goal.id)}
                     disabled={isLoading}
@@ -238,7 +241,7 @@ export default function OnboardingActivityScreen() {
                     <Text style={styles.stepsDescription}>{goal.description}</Text>
                     {selectedStepsGoal === goal.id && (
                       <View style={styles.stepsCheck}>
-                        <Ionicons name="checkmark-circle" size={20} color={COLORS.primary.sky} />
+                        <Ionicons name="checkmark-circle" size={20} color={colors.primary.sky} />
                       </View>
                     )}
                   </TouchableOpacity>
@@ -250,14 +253,14 @@ export default function OnboardingActivityScreen() {
           {/* Info Cards */}
           <View style={styles.infoSection}>
             <View style={styles.infoCard}>
-              <Ionicons name="calculator" size={20} color={COLORS.primary.amber} />
+              <Ionicons name="calculator" size={20} color={colors.primary.amber} />
               <Text style={styles.infoText}>
                 Calculamos tus calorías basadas en tu nivel de actividad
               </Text>
             </View>
             
             <View style={styles.infoCard}>
-              <Ionicons name="trophy" size={20} color={COLORS.status.success} />
+              <Ionicons name="trophy" size={20} color={colors.status.success} />
               <Text style={styles.infoText}>
                 Puedes ajustar tus metas en cualquier momento
               </Text>
@@ -266,7 +269,7 @@ export default function OnboardingActivityScreen() {
 
           {/* Privacy Note */}
           <View style={styles.privacyNote}>
-            <Ionicons name="lock-closed" size={16} color={COLORS.text.muted} />
+            <Ionicons name="lock-closed" size={16} color={colors.text.muted} />
             <Text style={styles.privacyText}>
               Tu información de actividad es privada y segura
             </Text>
@@ -285,7 +288,7 @@ export default function OnboardingActivityScreen() {
             disabled={!selectedWorkout || isLoading}
           >
             <LinearGradient
-              colors={selectedWorkout ? [COLORS.primary.sky, '#0EA5E9'] : [COLORS.background.border, COLORS.background.border]}
+              colors={selectedWorkout ? [colors.primary.sky, '#0EA5E9'] : [colors.background.border, colors.background.border]}
               style={styles.continueButtonGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -295,7 +298,7 @@ export default function OnboardingActivityScreen() {
               ) : (
                 <>
                   <Text style={styles.continueButtonText}>Continuar</Text>
-                  <Ionicons name="arrow-forward" size={20} color={COLORS.text.primary} />
+                  <Ionicons name="arrow-forward" size={20} color={colors.text.primary} />
                 </>
               )}
             </LinearGradient>
@@ -306,10 +309,10 @@ export default function OnboardingActivityScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   scrollView: {
     flex: 1,
@@ -326,22 +329,22 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   progressContainer: {
     flex: 1,
     height: 4,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: 2,
     marginLeft: SPACING.md,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: COLORS.primary.sky,
+    backgroundColor: colors.primary.sky,
     borderRadius: 2,
   },
   content: {
@@ -354,13 +357,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONTS.sizes['3xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
   subtitle: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     lineHeight: 24,
   },
@@ -370,7 +373,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.md,
   },
@@ -386,7 +389,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: SPACING.md,
     borderWidth: 2,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     ...SHADOWS.sm,
   },
   workoutCardSelected: {
@@ -419,7 +422,7 @@ const styles = StyleSheet.create({
   workoutLabel: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.xs,
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
@@ -428,7 +431,7 @@ const styles = StyleSheet.create({
   },
   workoutDescription: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 0, height: 1 },
@@ -440,11 +443,11 @@ const styles = StyleSheet.create({
     right: 0,
   },
   stepsContainer: {
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     ...SHADOWS.sm,
   },
   stepsHeader: {
@@ -456,7 +459,7 @@ const styles = StyleSheet.create({
   stepsTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   stepsGrid: {
@@ -466,7 +469,7 @@ const styles = StyleSheet.create({
   },
   stepsCard: {
     width: '31%',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     marginBottom: SPACING.sm,
@@ -475,22 +478,22 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   stepsCardSelected: {
-    backgroundColor: `${COLORS.primary.sky}20`,
+    backgroundColor: `${colors.primary.sky}20`,
     borderWidth: 2,
   },
   stepsValue: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.xs,
   },
   stepsValueSelected: {
-    color: COLORS.primary.sky,
+    color: colors.primary.sky,
   },
   stepsDescription: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },
@@ -505,14 +508,14 @@ const styles = StyleSheet.create({
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     marginBottom: SPACING.sm,
   },
   infoText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     marginLeft: SPACING.sm,
     flex: 1,
@@ -521,14 +524,14 @@ const styles = StyleSheet.create({
   privacyNote: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     marginTop: SPACING.md,
   },
   privacyText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     marginLeft: SPACING.sm,
     flex: 1,
@@ -561,7 +564,7 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
 });

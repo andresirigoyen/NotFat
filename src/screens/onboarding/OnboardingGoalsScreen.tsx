@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,44 +8,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
 import { analytics } from '@/services/analytics';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
-// Sincronizado con Prisma: profiles.nutrition_goal y profiles.achievement_goal
-const NUTRITION_GOALS = [
-  {
-    id: 'lose_weight',
-    label: 'Perder Peso',
-    icon: 'trending-down' as keyof typeof Ionicons.glyphMap,
-    description: 'Reducir grasa corporal de forma saludable',
-    color: COLORS.primary.sky,
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-  },
-  {
-    id: 'maintain_weight',
-    label: 'Mantener Peso',
-    icon: 'remove' as keyof typeof Ionicons.glyphMap,
-    description: 'Mantener peso actual saludable',
-    color: COLORS.primary.amber,
-    image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=300&fit=crop',
-  },
-  {
-    id: 'gain_muscle',
-    label: 'Ganar Músculo',
-    icon: 'trending-up' as keyof typeof Ionicons.glyphMap,
-    description: 'Aumentar masa muscular y fuerza',
-    color: COLORS.status.success,
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-  },
-  {
-    id: 'improve_health',
-    label: 'Mejorar Salud',
-    icon: 'heart' as keyof typeof Ionicons.glyphMap,
-    description: 'Mejorar hábitos y bienestar general',
-    color: COLORS.status.error,
-    image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop',
-  },
-];
-
+// DIET_TYPES will remain outside since it uses no colors
 // Sincronizado con Prisma: profiles.diet_type
 const DIET_TYPES = [
   {
@@ -86,6 +52,44 @@ const DIET_TYPES = [
 ];
 
 export default function OnboardingGoalsScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
+  const NUTRITION_GOALS = React.useMemo(() => [
+    {
+      id: 'lose_weight',
+      label: 'Perder Peso',
+      icon: 'trending-down' as keyof typeof Ionicons.glyphMap,
+      description: 'Reducir grasa corporal de forma saludable',
+      color: colors.primary.sky,
+      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
+    },
+    {
+      id: 'maintain_weight',
+      label: 'Mantener Peso',
+      icon: 'remove' as keyof typeof Ionicons.glyphMap,
+      description: 'Mantener peso actual saludable',
+      color: colors.primary.amber,
+      image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=300&fit=crop',
+    },
+    {
+      id: 'gain_muscle',
+      label: 'Ganar Músculo',
+      icon: 'trending-up' as keyof typeof Ionicons.glyphMap,
+      description: 'Aumentar masa muscular y fuerza',
+      color: colors.status.success,
+      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
+    },
+    {
+      id: 'improve_health',
+      label: 'Mejorar Salud',
+      icon: 'heart' as keyof typeof Ionicons.glyphMap,
+      description: 'Mejorar hábitos y bienestar general',
+      color: colors.status.error,
+      image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop',
+    },
+  ], [colors]);
+
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
@@ -104,10 +108,10 @@ export default function OnboardingGoalsScreen() {
   const persistGoals = async () => {
     if (!selectedNutritionGoal || !user) return;
 
-    // Sincronizado con Prisma: profiles.nutrition_goal, profiles.achievement_goal, profiles.diet_type
+    // Sincronizado con Prisma: profiles.nutrition_goal, profiles.goal, profiles.diet_type
     await updateProfile.mutateAsync({
       nutrition_goal: selectedNutritionGoal,
-      achievement_goal: selectedNutritionGoal,
+      goal: selectedNutritionGoal,
       diet_type: selectedDietType,
       onboarding_step: 'profile',
     });
@@ -126,7 +130,7 @@ export default function OnboardingGoalsScreen() {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.secondary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.secondary} />
           </TouchableOpacity>
           
           <View style={styles.progressContainer}>
@@ -153,7 +157,7 @@ export default function OnboardingGoalsScreen() {
                   style={[
                     styles.goalCard,
                     selectedNutritionGoal === goal.id && styles.goalCardSelected,
-                    { borderColor: selectedNutritionGoal === goal.id ? goal.color : COLORS.background.border }
+                    { borderColor: selectedNutritionGoal === goal.id ? goal.color : colors.background.border }
                   ]}
                   onPress={() => handleNutritionGoalSelect(goal.id)}
                   disabled={isLoading}
@@ -179,7 +183,7 @@ export default function OnboardingGoalsScreen() {
                           <Ionicons 
                             name={goal.icon} 
                             size={24} 
-                            color={COLORS.text.primary} 
+                            color={colors.text.primary} 
                           />
                         </View>
                         <Text style={styles.goalLabel}>{goal.label}</Text>
@@ -207,19 +211,19 @@ export default function OnboardingGoalsScreen() {
                   style={[
                     styles.dietCard,
                     selectedDietType === diet.id && styles.dietCardSelected,
-                    { borderColor: selectedDietType === diet.id ? COLORS.primary.sky : COLORS.background.border }
+                    { borderColor: selectedDietType === diet.id ? colors.primary.sky : colors.background.border }
                   ]}
                   onPress={() => handleDietTypeSelect(diet.id)}
                   disabled={isLoading}
                 >
                   <View style={[
                     styles.dietIconContainer,
-                    { backgroundColor: selectedDietType === diet.id ? `${COLORS.primary.sky}20` : COLORS.background.tertiary }
+                    { backgroundColor: selectedDietType === diet.id ? `${colors.primary.sky}20` : colors.background.tertiary }
                   ]}>
                     <Ionicons 
                       name={diet.icon} 
                       size={24} 
-                      color={selectedDietType === diet.id ? COLORS.primary.sky : COLORS.text.secondary} 
+                      color={selectedDietType === diet.id ? colors.primary.sky : colors.text.secondary} 
                     />
                   </View>
                   <Text style={[
@@ -231,7 +235,7 @@ export default function OnboardingGoalsScreen() {
                   <Text style={styles.dietDescription}>{diet.description}</Text>
                   {selectedDietType === diet.id && (
                     <View style={styles.dietCheck}>
-                      <Ionicons name="checkmark-circle" size={20} color={COLORS.primary.sky} />
+                      <Ionicons name="checkmark-circle" size={20} color={colors.primary.sky} />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -241,7 +245,7 @@ export default function OnboardingGoalsScreen() {
 
           {/* Privacy Note */}
           <View style={styles.privacyNote}>
-            <Ionicons name="lock-closed" size={16} color={COLORS.text.muted} />
+            <Ionicons name="lock-closed" size={16} color={colors.text.muted} />
             <Text style={styles.privacyText}>
               Tus preferencias nos ayudan a crear un plan personalizado para ti
             </Text>
@@ -267,12 +271,12 @@ export default function OnboardingGoalsScreen() {
             disabled={!selectedNutritionGoal || isLoading}
           >
             <LinearGradient
-              colors={[COLORS.primary.sky, '#0EA5E9']}
+              colors={[colors.primary.sky, '#0EA5E9']}
               style={styles.aiButtonGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
-              <Ionicons name="sparkles" size={20} color={COLORS.text.primary} />
+              <Ionicons name="sparkles" size={20} color={colors.text.primary} />
               <Text style={styles.aiButtonText}>Generar con IA</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -293,7 +297,7 @@ export default function OnboardingGoalsScreen() {
             }}
             disabled={!selectedNutritionGoal || isLoading}
           >
-            <Ionicons name="create" size={20} color={COLORS.text.secondary} />
+            <Ionicons name="create" size={20} color={colors.text.secondary} />
             <Text style={styles.manualButtonText}>Configurar manualmente</Text>
           </TouchableOpacity>
         </View>
@@ -302,10 +306,10 @@ export default function OnboardingGoalsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   scrollView: {
     flex: 1,
@@ -322,22 +326,22 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   progressContainer: {
     flex: 1,
     height: 4,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: 2,
     marginLeft: SPACING.md,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: COLORS.primary.sky,
+    backgroundColor: colors.primary.sky,
     borderRadius: 2,
   },
   content: {
@@ -350,13 +354,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONTS.sizes['3xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
   subtitle: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     lineHeight: 24,
   },
@@ -366,7 +370,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.md,
   },
@@ -411,7 +415,7 @@ const styles = StyleSheet.create({
   goalLabel: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.xs,
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
@@ -420,7 +424,7 @@ const styles = StyleSheet.create({
   },
   goalDescription: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 0, height: 1 },
@@ -438,7 +442,7 @@ const styles = StyleSheet.create({
   },
   dietCard: {
     width: '48%',
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     marginBottom: SPACING.md,
@@ -448,7 +452,7 @@ const styles = StyleSheet.create({
   },
   dietCardSelected: {
     borderWidth: 2,
-    backgroundColor: `${COLORS.primary.sky}10`,
+    backgroundColor: `${colors.primary.sky}10`,
   },
   dietIconContainer: {
     width: 40,
@@ -461,17 +465,17 @@ const styles = StyleSheet.create({
   dietLabel: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.xs,
     textAlign: 'center',
   },
   dietLabelSelected: {
-    color: COLORS.primary.sky,
+    color: colors.primary.sky,
   },
   dietDescription: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     textAlign: 'center',
     lineHeight: 14,
@@ -484,14 +488,14 @@ const styles = StyleSheet.create({
   privacyNote: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     marginTop: SPACING.md,
   },
   privacyText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     marginLeft: SPACING.sm,
     flex: 1,
@@ -524,7 +528,7 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   actionSection: {
@@ -547,7 +551,7 @@ const styles = StyleSheet.create({
   aiButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   manualButton: {
@@ -557,13 +561,13 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
-    backgroundColor: COLORS.background.card,
+    borderColor: colors.background.border,
+    backgroundColor: colors.background.card,
     gap: SPACING.sm,
   },
   manualButtonText: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
 });

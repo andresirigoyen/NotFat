@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
 import {
   View,
@@ -15,7 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAddHealthSnapshot } from '@/hooks/useHealthDailySnapshots';
 import { useHealthStats } from '@/hooks/useHealthDailySnapshots';
 import { useAuthStore } from '@/store';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 const QUICK_GOALS = [
   { steps: 5000, label: '5,000', description: 'Básico' },
@@ -58,6 +59,9 @@ const ACTIVITY_LEVELS = [
 ];
 
 export default function StepsScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { data: stats } = useHealthStats(user?.id || '');
@@ -113,7 +117,7 @@ export default function StepsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Registrar Pasos</Text>
           <View style={styles.placeholder} />
@@ -123,7 +127,7 @@ export default function StepsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Fecha</Text>
           <View style={styles.dateContainer}>
-            <Ionicons name="calendar" size={20} color={COLORS.primary.amber} />
+            <Ionicons name="calendar" size={20} color={colors.primary.amber} />
             <Text style={styles.dateText}>{date}</Text>
           </View>
         </View>
@@ -132,13 +136,13 @@ export default function StepsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pasos del día</Text>
           <View style={styles.inputContainer}>
-            <Ionicons name="walk" size={24} color={COLORS.primary.amber} />
+            <Ionicons name="walk" size={24} color={colors.primary.amber} />
             <TextInput
               style={styles.stepsInput}
               value={steps}
               onChangeText={(text) => setSteps(formatSteps(text))}
               placeholder="0"
-              placeholderTextColor={COLORS.text.muted}
+              placeholderTextColor={colors.text.muted}
               keyboardType="numeric"
               maxLength={6}
             />
@@ -236,21 +240,21 @@ export default function StepsScreen() {
           <Text style={styles.sectionTitle}>Resumen del registro</Text>
           <View style={styles.summaryContainer}>
             <View style={styles.summaryRow}>
-              <Ionicons name="walk" size={20} color={COLORS.primary.amber} />
+              <Ionicons name="walk" size={20} color={colors.primary.amber} />
               <Text style={styles.summaryLabel}>Pasos:</Text>
               <Text style={styles.summaryValue}>
                 {steps ? parseInt(steps).toLocaleString() : '0'} pasos
               </Text>
             </View>
             <View style={styles.summaryRow}>
-              <Ionicons name="flame" size={20} color={COLORS.status.warning} />
+              <Ionicons name="flame" size={20} color={colors.status.warning} />
               <Text style={styles.summaryLabel}>Calorías:</Text>
               <Text style={styles.summaryValue}>
                 ~{selectedActivity.calories} kcal
               </Text>
             </View>
             <View style={styles.summaryRow}>
-              <Ionicons name="time" size={20} color={COLORS.status.info} />
+              <Ionicons name="time" size={20} color={colors.status.info} />
               <Text style={styles.summaryLabel}>Ejercicio:</Text>
               <Text style={styles.summaryValue}>
                 {selectedActivity.minutes} minutos
@@ -267,7 +271,7 @@ export default function StepsScreen() {
             disabled={!steps || isPending}
           >
             {isPending ? (
-              <ActivityIndicator size="small" color={COLORS.text.primary} />
+              <ActivityIndicator size="small" color={colors.text.primary} />
             ) : (
               <Text style={styles.saveButtonText}>Guardar Registro</Text>
             )}
@@ -278,10 +282,10 @@ export default function StepsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   scrollView: {
     flex: 1,
@@ -297,7 +301,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   placeholder: {
@@ -310,27 +314,27 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginBottom: SPACING.md,
     fontFamily: FONTS.primary,
   },
   dateContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
     gap: SPACING.sm,
   },
   dateText: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.xl,
     gap: SPACING.md,
@@ -340,13 +344,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FONTS.sizes['2xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },
   stepsLabel: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   averageContainer: {
@@ -355,7 +359,7 @@ const styles = StyleSheet.create({
   },
   averageText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   goalsGrid: {
@@ -365,50 +369,50 @@ const styles = StyleSheet.create({
   },
   goalCard: {
     width: '48%',
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     ...SHADOWS.sm,
   },
   goalCardSelected: {
     backgroundColor: 'rgba(252,211,77,0.1)',
-    borderColor: COLORS.primary.amber,
+    borderColor: colors.primary.amber,
   },
   goalSteps: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   goalStepsSelected: {
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
   },
   goalDescription: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },
   goalDescriptionSelected: {
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   activityContainer: {
     gap: SPACING.sm,
   },
   activityCard: {
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     ...SHADOWS.sm,
   },
   activityCardSelected: {
     backgroundColor: 'rgba(252,211,77,0.1)',
-    borderColor: COLORS.primary.amber,
+    borderColor: colors.primary.amber,
   },
   activityHeader: {
     flexDirection: 'row',
@@ -419,39 +423,39 @@ const styles = StyleSheet.create({
   activityTitle: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   activityTitleSelected: {
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
   },
   activityMinutes: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   activityMinutesSelected: {
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
   },
   activityDescription: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
   },
   activityDescriptionSelected: {
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   activityCalories: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     marginTop: SPACING.xs,
   },
   activityCaloriesSelected: {
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
   },
   summaryContainer: {
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.lg,
     gap: SPACING.sm,
@@ -464,18 +468,18 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     flex: 1,
   },
   summaryValue: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   saveButton: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     paddingVertical: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
     alignItems: 'center',
@@ -483,12 +487,12 @@ const styles = StyleSheet.create({
   },
   saveButtonDisabled: {
     opacity: 0.5,
-    backgroundColor: COLORS.interactive.disabled,
+    backgroundColor: colors.interactive.disabled,
   },
   saveButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontFamily: FONTS.primary,
   },
 });

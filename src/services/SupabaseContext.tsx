@@ -10,9 +10,12 @@ const getSupabaseClient = () => {
     const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://your-project.supabase.co';
     const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key';
     
-    console.log('🔑 Creating Supabase client...');
-    console.log('🔑 URL:', supabaseUrl);
-    console.log('🔑 Key exists:', !!supabaseAnonKey);
+    // ✅ FIX #14: Logs de credenciales solo en desarrollo, nunca en producción
+    if (__DEV__) {
+      console.log('🔑 Creating Supabase client...');
+      console.log('🔑 URL:', supabaseUrl);
+      console.log('🔑 Key exists:', !!supabaseAnonKey);
+    }
     
     supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
   }

@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
 import {
   View,
@@ -14,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '@/types/navigation';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import { 
   useNutritionists, 
   useInstitutions, 
@@ -60,6 +61,9 @@ const INSTITUTIONS = [
 ];
 
 export default function ProfessionalServicesScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { user } = useAuthStore();
   const { profile } = useProfile();
@@ -173,13 +177,13 @@ export default function ProfessionalServicesScreen() {
         {/* Search and Filters */}
         <View style={styles.searchSection}>
           <View style={styles.searchBar}>
-            <Ionicons name="search-outline" size={20} color={COLORS.text.secondary} />
+            <Ionicons name="search-outline" size={20} color={colors.text.secondary} />
             <TextInput
               style={styles.searchInput}
               placeholder="Buscar nutricionistas..."
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholderTextColor={COLORS.text.secondary}
+              placeholderTextColor={colors.text.secondary}
             />
           </View>
           
@@ -221,7 +225,7 @@ export default function ProfessionalServicesScreen() {
               style={styles.createGuidelineBtn}
               onPress={() => setShowGuidelineForm(true)}
             >
-              <Ionicons name="add-outline" size={16} color={COLORS.text.primary} />
+              <Ionicons name="add-outline" size={16} color={colors.text.primary} />
               <Text style={styles.createGuidelineText}>Crear Plan</Text>
             </TouchableOpacity>
           </View>
@@ -242,7 +246,7 @@ export default function ProfessionalServicesScreen() {
                       />
                     ) : (
                       <View style={styles.avatarPlaceholder}>
-                        <Ionicons name="person-outline" size={24} color={COLORS.text.secondary} />
+                        <Ionicons name="person-outline" size={24} color={colors.text.secondary} />
                       </View>
                     )}
                     
@@ -277,19 +281,19 @@ export default function ProfessionalServicesScreen() {
                 
                 <View style={styles.nutritionistStats}>
                   <View style={styles.statItem}>
-                    <Ionicons name="star-outline" size={16} color={COLORS.primary.amber} />
+                    <Ionicons name="star-outline" size={16} color={colors.primary.amber} />
                     <Text style={styles.statText}>
                       {Math.floor(Math.random() * 50) + 150} consultas
                     </Text>
                   </View>
                   <View style={styles.statItem}>
-                    <Ionicons name="people-outline" size={16} color={COLORS.primary.sky} />
+                    <Ionicons name="people-outline" size={16} color={colors.primary.sky} />
                     <Text style={styles.statText}>
                       {Math.floor(Math.random() * 30) + 20} pacientes
                     </Text>
                   </View>
                   <View style={styles.statItem}>
-                    <Ionicons name="time-outline" size={16} color={COLORS.text.secondary} />
+                    <Ionicons name="time-outline" size={16} color={colors.text.secondary} />
                     <Text style={styles.statText}>
                       {Math.floor(Math.random() * 5) + 1} años exp.
                     </Text>
@@ -299,7 +303,7 @@ export default function ProfessionalServicesScreen() {
             ))
           ) : (
             <View style={styles.emptyState}>
-              <Ionicons name="people-outline" size={48} color={COLORS.text.muted} />
+              <Ionicons name="people-outline" size={48} color={colors.text.muted} />
               <Text style={styles.emptyText}>No se encontraron nutricionistas</Text>
               <Text style={styles.emptySub}>Intenta ajustar los filtros de búsqueda</Text>
             </View>
@@ -352,7 +356,7 @@ export default function ProfessionalServicesScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Crear Plan Nutricional</Text>
               <TouchableOpacity onPress={() => setShowGuidelineForm(false)}>
-                <Ionicons name="close-outline" size={24} color={COLORS.text.secondary} />
+                <Ionicons name="close-outline" size={24} color={colors.text.secondary} />
               </TouchableOpacity>
             </View>
             
@@ -441,10 +445,10 @@ export default function ProfessionalServicesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   header: {
     padding: SPACING.lg,
@@ -454,12 +458,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   subtitle: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginTop: SPACING.xs,
   },
   content: {
@@ -472,7 +476,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING.md,
     marginBottom: SPACING.md,
@@ -481,7 +485,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginLeft: SPACING.sm,
   },
   specialtiesContainer: {
@@ -490,17 +494,17 @@ const styles = StyleSheet.create({
   specialtyChip: {
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.full,
     marginRight: SPACING.sm,
   },
   specialtyChipActive: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
   },
   specialtyText: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
   },
   section: {
     marginBottom: SPACING.xl,
@@ -515,12 +519,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   createGuidelineBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.md,
@@ -529,7 +533,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     marginLeft: SPACING.xs,
   },
   loadingContainer: {
@@ -539,10 +543,10 @@ const styles = StyleSheet.create({
   loadingText: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
   },
   nutritionistCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
@@ -567,7 +571,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: SPACING.md,
@@ -579,22 +583,22 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   nutritionistTitle: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginTop: SPACING.xs,
   },
   nutritionistInstitution: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.primary.sky,
+    color: colors.primary.sky,
     marginTop: SPACING.xs,
   },
   connectBtn: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.md,
@@ -603,12 +607,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.background.primary,
+    color: colors.background.primary,
   },
   nutritionistDescription: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     lineHeight: 22,
     marginBottom: SPACING.md,
   },
@@ -623,11 +627,11 @@ const styles = StyleSheet.create({
   statText: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginLeft: SPACING.xs,
   },
   institutionCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
@@ -648,21 +652,21 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   institutionType: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginTop: SPACING.xs,
   },
   institutionDescription: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
   },
   guidelineCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
@@ -677,13 +681,13 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   guidelineStatus: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.primary.sky,
-    backgroundColor: COLORS.primary.sky + '20',
+    color: colors.primary.sky,
+    backgroundColor: colors.primary.sky + '20',
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderRadius: BORDER_RADIUS.sm,
@@ -695,13 +699,13 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginBottom: SPACING.xs,
   },
   guidelineSectionContent: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
   },
   modalOverlay: {
     position: 'absolute',
@@ -714,7 +718,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.xl,
     margin: SPACING.lg,
     maxHeight: '80%',
@@ -725,13 +729,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.lg,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.background.border,
+    borderBottomColor: colors.background.border,
   },
   modalTitle: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   modalBody: {
     padding: SPACING.lg,
@@ -743,19 +747,19 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginBottom: SPACING.sm,
   },
   formInput: {
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   formTextArea: {
     height: 100,
@@ -765,7 +769,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: SPACING.lg,
     borderTopWidth: 1,
-    borderTopColor: COLORS.background.border,
+    borderTopColor: colors.background.border,
   },
   modalBtn: {
     flex: 1,
@@ -774,24 +778,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalBtnCancel: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     marginRight: SPACING.sm,
   },
   modalBtnConfirm: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     marginLeft: SPACING.sm,
   },
   modalBtnCancelText: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
   },
   modalBtnConfirmText: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.background.primary,
+    color: colors.background.primary,
   },
   emptyState: {
     alignItems: 'center',
@@ -799,14 +803,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONTS.sizes.lg,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     marginTop: SPACING.md,
     marginBottom: SPACING.sm,
   },
   emptySub: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },

@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -13,9 +14,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useCreateMealWithItems } from '@/hooks/useMeals';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 const VoiceInputScreen = () => {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const route = useRoute();
   const { mealType, mealDate } = route.params as { mealType: string; mealDate?: string };
@@ -117,7 +121,7 @@ const VoiceInputScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.primary.amber} />
+          <Ionicons name="arrow-back" size={24} color={colors.primary.amber} />
         </TouchableOpacity>
         <Text style={styles.title}>Entrada por Voz</Text>
         <View style={{ width: 40 }} />
@@ -127,7 +131,7 @@ const VoiceInputScreen = () => {
         {/* Instructions */}
         <View style={styles.instructionCard}>
           <View style={styles.iconContainer}>
-            <Ionicons name="mic" size={48} color={COLORS.primary.amber} />
+            <Ionicons name="mic" size={48} color={colors.primary.amber} />
           </View>
           <Text style={styles.instructionTitle}>Describe tu comida</Text>
           <Text style={styles.instructionText}>
@@ -148,12 +152,12 @@ const VoiceInputScreen = () => {
             activeOpacity={0.8}
           >
             {(isProcessing || voiceProcessing) ? (
-              <ActivityIndicator size="large" color={COLORS.background.primary} />
+              <ActivityIndicator size="large" color={colors.background.primary} />
             ) : (
               <Ionicons 
                 name="mic" 
                 size={48} 
-                color={isRecording ? COLORS.background.primary : COLORS.primary.amber} 
+                color={isRecording ? colors.background.primary : colors.primary.amber} 
               />
             )}
           </TouchableOpacity>
@@ -185,10 +189,10 @@ const VoiceInputScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   header: {
     flexDirection: 'row',
@@ -205,7 +209,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   content: {
@@ -213,13 +217,13 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   instructionCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.xl,
     alignItems: 'center',
     marginBottom: SPACING.xl,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   iconContainer: {
     width: 80,
@@ -233,14 +237,14 @@ const styles = StyleSheet.create({
   instructionTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
     textAlign: 'center',
   },
   instructionText: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
     lineHeight: 22,
@@ -253,50 +257,50 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: COLORS.primary.amber,
+    borderColor: colors.primary.amber,
     marginBottom: SPACING.md,
   },
   voiceButtonRecording: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     transform: [{ scale: 1.05 }],
   },
   voiceButtonDisabled: {
     opacity: 0.6,
-    borderColor: COLORS.text.secondary,
+    borderColor: colors.text.secondary,
   },
   voiceButtonText: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },
   transcriptCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   transcriptTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
   transcriptText: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     lineHeight: 22,
     marginBottom: SPACING.lg,
   },
   saveButton: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     borderRadius: BORDER_RADIUS.lg,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.lg,
@@ -305,7 +309,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontFamily: FONTS.primary,
   },
 });

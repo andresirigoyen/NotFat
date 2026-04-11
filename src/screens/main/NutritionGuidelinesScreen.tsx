@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
 import {
   View,
@@ -22,7 +23,7 @@ import {
   useConnectWithNutritionist
 } from '@/hooks/useNutritionists';
 import { useProfile } from '@/hooks/useProfile';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 const ALLERGIES_OPTIONS = [
   'Lácteos',
@@ -55,6 +56,9 @@ const COOKING_TIME_OPTIONS = [
 ];
 
 export default function NutritionGuidelinesScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const { profile } = useProfile();
   const { data: guidelines, isLoading } = useUserNutritionGuidelines(profile?.id || '');
@@ -315,7 +319,7 @@ export default function NutritionGuidelinesScreen() {
         <View style={styles.guidelineInfo}>
           {guideline.allergies && guideline.allergies.length > 0 && (
             <View style={styles.infoRow}>
-              <Ionicons name="alert-circle" size={16} color={COLORS.status.error} />
+              <Ionicons name="alert-circle" size={16} color={colors.status.error} />
               <Text style={styles.infoText}>
                 Alergias: {guideline.allergies.join(', ')}
               </Text>
@@ -324,7 +328,7 @@ export default function NutritionGuidelinesScreen() {
           
           {guideline.pathologies && guideline.pathologies.length > 0 && (
             <View style={styles.infoRow}>
-              <Ionicons name="medical" size={16} color={COLORS.status.warning} />
+              <Ionicons name="medical" size={16} color={colors.status.warning} />
               <Text style={styles.infoText}>
                 Condiciones: {guideline.pathologies.join(', ')}
               </Text>
@@ -333,7 +337,7 @@ export default function NutritionGuidelinesScreen() {
           
           {guideline.cooking_time && (
             <View style={styles.infoRow}>
-              <Ionicons name="time" size={16} color={COLORS.primary.amber} />
+              <Ionicons name="time" size={16} color={colors.primary.amber} />
               <Text style={styles.infoText}>
                 Tiempo: {guideline.cooking_time}
               </Text>
@@ -341,7 +345,7 @@ export default function NutritionGuidelinesScreen() {
           )}
 
           <View style={styles.infoRow}>
-            <Ionicons name="flame" size={16} color={COLORS.status.info} />
+            <Ionicons name="flame" size={16} color={colors.status.info} />
             <Text style={styles.infoText}>
               {Math.round(totalCalories / Math.max(totalDays, 1))} kcal/día promedio
             </Text>
@@ -353,14 +357,14 @@ export default function NutritionGuidelinesScreen() {
             style={styles.actionButton}
             onPress={() => handleViewPlan(guideline)}
           >
-            <Ionicons name="eye" size={20} color={COLORS.primary.amber} />
+            <Ionicons name="eye" size={20} color={colors.primary.amber} />
             <Text style={styles.actionButtonText}>Ver Plan</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.actionButton}
             onPress={() => handleEditPlan(guideline)}
           >
-            <Ionicons name="create" size={20} color={COLORS.primary.amber} />
+            <Ionicons name="create" size={20} color={colors.primary.amber} />
             <Text style={styles.actionButtonText}>Editar</Text>
           </TouchableOpacity>
         </View>
@@ -371,7 +375,7 @@ export default function NutritionGuidelinesScreen() {
               style={styles.connectButton}
               onPress={() => handleConnectNutritionist(guideline)}
             >
-              <Ionicons name="person-add" size={16} color={COLORS.primary.amber} />
+              <Ionicons name="person-add" size={16} color={colors.primary.amber} />
               <Text style={styles.connectButtonText}>Conectar con Nutricionista</Text>
             </TouchableOpacity>
           </View>
@@ -381,7 +385,7 @@ export default function NutritionGuidelinesScreen() {
           style={styles.deleteButton}
           onPress={() => handleDeletePlan(guideline)}
         >
-          <Ionicons name="trash" size={16} color={COLORS.status.error} />
+          <Ionicons name="trash" size={16} color={colors.status.error} />
           <Text style={styles.deleteButtonText}>Eliminar Plan</Text>
         </TouchableOpacity>
       </View>
@@ -393,11 +397,11 @@ export default function NutritionGuidelinesScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.primary.amber} />
+          <Ionicons name="arrow-back" size={24} color={colors.primary.amber} />
         </TouchableOpacity>
         <Text style={styles.title}>Planes Nutricionales</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => setShowCreateForm(true)}>
-          <Ionicons name="add-circle" size={24} color={COLORS.primary.amber} />
+          <Ionicons name="add-circle" size={24} color={colors.primary.amber} />
         </TouchableOpacity>
       </View>
 
@@ -411,7 +415,7 @@ export default function NutritionGuidelinesScreen() {
           guidelines.map(renderGuidelineCard)
         ) : (
           <View style={styles.emptyState}>
-            <Ionicons name="restaurant" size={48} color={COLORS.text.muted} />
+            <Ionicons name="restaurant" size={48} color={colors.text.muted} />
             <Text style={styles.emptyText}>No tienes planes nutricionales</Text>
             <Text style={styles.emptySub}>Crea tu primer plan personalizado</Text>
           </View>
@@ -425,7 +429,7 @@ export default function NutritionGuidelinesScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Crear Plan Nutricional</Text>
               <TouchableOpacity onPress={() => setShowCreateForm(false)}>
-                <Ionicons name="close" size={24} color={COLORS.text.secondary} />
+                <Ionicons name="close" size={24} color={colors.text.secondary} />
               </TouchableOpacity>
             </View>
 
@@ -437,7 +441,7 @@ export default function NutritionGuidelinesScreen() {
                 value={formData.name}
                 onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
                 placeholder="Ej: Plan para perder peso"
-                placeholderTextColor={COLORS.text.secondary}
+                placeholderTextColor={colors.text.secondary}
               />
             </View>
 
@@ -520,7 +524,7 @@ export default function NutritionGuidelinesScreen() {
                 <Switch
                   value={formData.supplementation}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, supplementation: value }))}
-                  trackColor={{ false: COLORS.background.primary, true: COLORS.primary.amber }}
+                  trackColor={{ false: colors.background.primary, true: colors.primary.amber }}
                 />
               </View>
             </View>
@@ -533,7 +537,7 @@ export default function NutritionGuidelinesScreen() {
                 value={formData.notes}
                 onChangeText={(text) => setFormData(prev => ({ ...prev, notes: text }))}
                 placeholder="Notas adicionales sobre el plan..."
-                placeholderTextColor={COLORS.text.secondary}
+                placeholderTextColor={colors.text.secondary}
                 multiline
                 numberOfLines={3}
               />
@@ -558,10 +562,10 @@ export default function NutritionGuidelinesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   header: {
     flexDirection: 'row',
@@ -578,7 +582,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   addButton: {
@@ -589,12 +593,12 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   guidelineCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -605,13 +609,13 @@ const styles = StyleSheet.create({
   guidelineName: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.xs,
   },
   guidelineStatus: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   cardMeta: {
@@ -619,19 +623,19 @@ const styles = StyleSheet.create({
   },
   daysCount: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.xs,
   },
   mealsCount: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.xs,
   },
   nutritionistName: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   guidelineInfo: {
@@ -645,7 +649,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     flex: 1,
   },
@@ -665,7 +669,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.semibold,
   },
@@ -686,7 +690,7 @@ const styles = StyleSheet.create({
   },
   connectButtonText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.semibold,
   },
@@ -702,7 +706,7 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.status.error,
+    color: colors.status.error,
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.semibold,
   },
@@ -712,7 +716,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   emptyState: {
@@ -721,14 +725,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONTS.sizes.lg,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     marginTop: SPACING.md,
     marginBottom: SPACING.sm,
   },
   emptySub: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },
@@ -743,7 +747,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
   },
   modalContent: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.xl,
     maxHeight: '80%',
@@ -757,7 +761,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   formSection: {
@@ -766,17 +770,17 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
   textInput: {
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
@@ -791,7 +795,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   optionChip: {
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
     borderRadius: BORDER_RADIUS.full,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
@@ -799,16 +803,16 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
   },
   optionChipSelected: {
-    backgroundColor: COLORS.primary.amber,
-    borderColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
+    borderColor: colors.primary.amber,
   },
   optionText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   optionTextSelected: {
-    color: COLORS.background.primary,
+    color: colors.background.primary,
   },
   switchRow: {
     flexDirection: 'row',
@@ -817,11 +821,11 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   submitButton: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     borderRadius: BORDER_RADIUS.lg,
     paddingVertical: SPACING.md,
     alignItems: 'center',
@@ -833,7 +837,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontFamily: FONTS.primary,
   },
 });

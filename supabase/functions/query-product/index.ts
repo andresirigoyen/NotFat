@@ -32,41 +32,72 @@ serve(async (req: Request) => {
       )
     }
 
-    // 1. Primero buscar en nuestra base de datos
+    // 1. Primero buscar en nuestra tabla global de productos (caché)
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { data: localProduct, error: localError } = await supabase
-      .from('food_items')
+    const { data: globalProduct } = await supabase
+      .from('products')
       .select('*')
-      .eq('barcode_number', barcode)
-      .single()
+      .eq('barcode', barcode)
+      .maybeSingle()
 
-    if (localProduct && !localError) {
+    if (globalProduct) {
       return new Response(
         JSON.stringify({
           found: true,
-          source: 'local_db',
+          source: 'cache',
           product: {
-            name: localProduct.name,
-            calories: localProduct.calories,
-            protein: localProduct.protein,
-            carbs: localProduct.carbs,
-            fat: localProduct.fat,
-            fiber: localProduct.fiber,
-            sugar: localProduct.sugar,
-            sodium: localProduct.sodium,
-            nutriscore_grade: localProduct.nutriscore_grade,
-            nova_group: localProduct.nova_group,
+            name: globalProduct.name,
+            calories: globalProduct.calories,
+            protein: globalProduct.protein,
+            carbs: globalProduct.carbs,
+            fat: globalProduct.fat,
+            fiber: globalProduct.fiber,
+            sugar: globalProduct.sugar,
+            sodium: globalProduct.sodium,
+            nutriscore_grade: globalProduct.nutriscore_grade,
+            nova_group: globalProduct.nova_group,
+            image_url: globalProduct.image_url,
           }
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // 2. Si no encuentra, buscar en Open Food Facts
+    // 2. Si no está en el caché, buscar en escaneos previos de food_items
+    const { data: localScan } = await supabase
+      .from('food_items')
+      .select('*')
+      .eq('barcode_number', barcode)
+      .limit(1)
+      .maybeSingle()
+
+    if (localScan) {
+      return new Response(
+        JSON.stringify({
+          found: true,
+          source: 'previous_scan',
+          product: {
+            name: localScan.name,
+            calories: localScan.calories,
+            protein: localScan.protein,
+            carbs: localScan.carbs,
+            fat: localScan.fat,
+            fiber: localScan.fiber,
+            sugar: localScan.sugar,
+            sodium: localScan.sodium,
+            nutriscore_grade: localScan.nutriscore_grade,
+            nova_group: localScan.nova_group,
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // 3. Si no encuentra, buscar en Open Food Facts
     try {
       const openFoodFactsResponse = await fetch(
         `https://world.openfoodfacts.org/api/v2/product/${barcode}.json`
@@ -78,44 +109,35 @@ serve(async (req: Request) => {
         if (productData.status === 1) {
           const product = productData.product
           
-          // Guardar en nuestra base de datos para futuras consultas
+          // Guardar en nuestra tabla global de productos para futuras consultas
+          const newProduct = {
+            barcode: barcode,
+            name: product.product_name || 'Producto Desconocido',
+            calories: Math.round(product.nutriments?.['energy-kcal_100g'] || 0),
+            protein: product.nutriments?.proteins_100g || 0,
+            carbs: product.nutriments?.carbohydrates_100g || 0,
+            fat: product.nutriments?.fat_100g || 0,
+            fiber: product.nutriments?.fiber_100g || 0,
+            sugar: product.nutriments?.sugars_100g || 0,
+            sodium: product.nutriments?.sodium_100g || 0,
+            nutriscore_grade: product.nutriscore_grade,
+            nova_group: product.nova_group,
+            image_url: product.image_url,
+            labels_tags: product.labels_tags,
+            additives_tags: product.additives_tags,
+          }
+
           await supabase
-            .from('food_items')
-            .upsert({
-              name: product.product_name || 'Producto Desconocido',
-              barcode_number: barcode,
-              calories: product.nutriments?.['energy-kcal_100g'] || 0,
-              protein: product.nutriments?.proteins_100g || 0,
-              carbs: product.nutriments?.carbohydrates_100g || 0,
-              fat: product.nutriments?.fat_100g || 0,
-              fiber: product.nutriments?.fiber_100g || 0,
-              sugar: product.nutriments?.sugars_100g || 0,
-              sodium: product.nutriments?.sodium_100g || 0,
-              nutriscore_grade: product.nutriscore_grade,
-              nova_group: product.nova_group,
-              labels_tags: product.labels_tags,
-              additives_tags: product.additives_tags,
-              scanned: true,
-              contributed: false,
-            })
+            .from('products')
+            .upsert(newProduct, { onConflict: 'barcode' })
 
           return new Response(
             JSON.stringify({
               found: true,
               source: 'open_food_facts',
               product: {
-                name: product.product_name || 'Producto Desconocido',
-                calories: Math.round(product.nutriments?.['energy-kcal_100g'] || 0),
-                protein: product.nutriments?.proteins_100g || 0,
-                carbs: product.nutriments?.carbohydrates_100g || 0,
-                fat: product.nutriments?.fat_100g || 0,
-                fiber: product.nutriments?.fiber_100g || 0,
-                sugar: product.nutriments?.sugars_100g || 0,
-                sodium: product.nutriments?.sodium_100g || 0,
-                nutriscore_grade: product.nutriscore_grade,
-                nova_group: product.nova_group,
+                ...newProduct,
                 ingredients: product.ingredients_text ? [product.ingredients_text] : [],
-                image_url: product.image_url,
               }
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -78,7 +78,44 @@ export const useHealthSettings = () => {
         .eq('user_id', user!.id)
         .single();
 
-      if (error) throw error;
+      if (error?.code === 'PGRST116') {
+        const { data: newData, error: createErr } = await supabase
+          .from('health_settings')
+          .insert({
+            user_id: user!.id,
+            eat_back_exercise_calories: false,
+            eat_back_neat_calories: false,
+            sync_weight: false,
+          })
+          .select()
+          .single();
+        if (createErr) throw createErr;
+        setHealthSettings(newData);
+        return;
+      }
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No settings found, create default ones
+          const { data: newData, error: createError } = await supabase
+            .from('health_settings')
+            .insert({
+              user_id: user!.id,
+              health_platform: null,
+              eat_back_exercise_calories: false,
+              eat_back_neat_calories: false,
+              sync_weight: false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+          if (createError) throw createError;
+          setHealthSettings(newData);
+          return;
+        }
+        throw error;
+      }
       setHealthSettings(data);
     } catch (error) {
       console.error('Error fetching health settings:', error);

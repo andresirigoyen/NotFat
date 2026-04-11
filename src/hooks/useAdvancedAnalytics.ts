@@ -549,32 +549,48 @@ export const usePredictiveAnalytics = (userId: string) => {
   return useQuery({
     queryKey: ['predictive_analytics', userId],
     queryFn: async () => {
-      // Get user's historical data
-      const [nutritionData, fitnessData, healthData] = await Promise.all([
-        useNutritionAnalytics(userId),
-        useFitnessAnalytics(userId),
-        useHealthAnalytics(userId),
+      // ✅ FIX #7: Eliminadas las llamadas a hooks dentro de queryFn (violación de Regla de Hooks).
+      // Ahora se obtienen los datos directamente de Supabase sin llamar a otros hooks.
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+      const [mealsResult, healthResult, waterResult, goalsResult] = await Promise.all([
+        supabase
+          .from('meals')
+          .select('meal_at, meal_type, food_items(calories, protein, carbs, fat)')
+          .eq('user_id', userId)
+          .gte('meal_at', thirtyDaysAgo.toISOString())
+          .eq('status', 'complete'),
+        supabase
+          .from('health_daily_snapshots')
+          .select('date, steps, workout_minutes, sleep_hours, sleep_quality')
+          .eq('user_id', userId)
+          .gte('date', thirtyDaysAgo.toISOString().split('T')[0]),
+        supabase
+          .from('water_logs')
+          .select('logged_at, volume')
+          .eq('user_id', userId)
+          .gte('logged_at', thirtyDaysAgo.toISOString()),
+        supabase
+          .from('nutrition_goals')
+          .select('calories, protein, carbs, fat')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single(),
       ]);
 
-      // Call AI service for predictions
-      const response = await fetch('https://jcfezqakxulmtdvioxbc.supabase.co/functions/v1/predictive-analytics', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // ✅ FIX #3: supabase.functions.invoke() con auth automática
+      const { data: predictions, error: fnError } = await supabase.functions.invoke('predictive-analytics', {
+        body: {
           userId,
-          nutritionData,
-          fitnessData,
-          healthData,
-        }),
+          meals: mealsResult.data || [],
+          healthSnapshots: healthResult.data || [],
+          waterLogs: waterResult.data || [],
+          goals: goalsResult.data || null,
+        },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to get predictive analytics');
-      }
-
-      const predictions = await response.json();
+      if (fnError) throw fnError;
       return predictions as PredictiveAnalytics;
     },
     enabled: !!userId,
@@ -616,24 +632,18 @@ export const useGenerateAnalyticsReport = () => {
       startDate: Date;
       endDate: Date;
     }) => {
-      const response = await fetch('https://jcfezqakxulmtdvioxbc.supabase.co/functions/v1/generate-analytics-report', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // ✅ FIX #3: supabase.functions.invoke() con auth automática
+      const { data: report, error: fnError } = await supabase.functions.invoke('generate-analytics-report', {
+        body: {
           userId,
           reportType,
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
-        }),
+        },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate analytics report');
-      }
-
-      const report = await response.json();
+      if (fnError) throw fnError;
+      if (!report) throw new Error('Failed to generate analytics report');
 
       // Save report to database
       const { data, error } = await supabase

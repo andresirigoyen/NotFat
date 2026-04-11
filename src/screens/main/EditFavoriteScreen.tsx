@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Image, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -5,7 +6,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 // Tipos para la navegación
 type EditFavoriteRouteProp = RouteProp<{
@@ -30,6 +31,9 @@ interface FavoriteMeal {
 }
 
 export default function EditFavoriteScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const route = useRoute<EditFavoriteRouteProp>();
   const { favoriteId, favoriteData } = route.params;
@@ -164,7 +168,7 @@ export default function EditFavoriteScreen() {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.secondary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.secondary} />
           </TouchableOpacity>
           
           <View style={styles.headerContent}>
@@ -181,7 +185,7 @@ export default function EditFavoriteScreen() {
               style={styles.deleteButton}
               onPress={handleDelete}
             >
-              <Ionicons name="trash" size={20} color={COLORS.status.error} />
+              <Ionicons name="trash" size={20} color={colors.status.error} />
             </TouchableOpacity>
           )}
         </View>
@@ -192,10 +196,10 @@ export default function EditFavoriteScreen() {
             <Image source={{ uri: favorite.image_url }} style={styles.image} />
           ) : (
             <View style={styles.imagePlaceholder}>
-              <Ionicons name="camera" size={48} color={COLORS.text.muted} />
+              <Ionicons name="camera" size={48} color={colors.text.muted} />
               <Text style={styles.imagePlaceholderText}>Sin imagen</Text>
               <TouchableOpacity style={styles.addImageButton}>
-                <Ionicons name="add" size={20} color={COLORS.text.primary} />
+                <Ionicons name="add" size={20} color={colors.text.primary} />
                 <Text style={styles.addImageText}>Agregar foto</Text>
               </TouchableOpacity>
             </View>
@@ -212,7 +216,7 @@ export default function EditFavoriteScreen() {
               value={favorite.name || ''}
               onChangeText={(text) => setFavorite({ ...favorite, name: text })}
               placeholder="Ej: Ensalada César"
-              placeholderTextColor={COLORS.text.muted}
+              placeholderTextColor={colors.text.muted}
               editable={!isLoading}
             />
             {errors.name && (
@@ -228,7 +232,7 @@ export default function EditFavoriteScreen() {
               value={favorite.description || ''}
               onChangeText={(text) => setFavorite({ ...favorite, description: text })}
               placeholder="Describe tu plato favorito..."
-              placeholderTextColor={COLORS.text.muted}
+              placeholderTextColor={colors.text.muted}
               multiline
               numberOfLines={3}
               editable={!isLoading}
@@ -252,7 +256,7 @@ export default function EditFavoriteScreen() {
                   <Ionicons 
                     name={type.icon as any} 
                     size={20} 
-                    color={favorite.meal_type === type.id ? COLORS.text.primary : COLORS.text.secondary} 
+                    color={favorite.meal_type === type.id ? colors.text.primary : colors.text.secondary} 
                   />
                   <Text style={[
                     styles.mealTypeText,
@@ -272,7 +276,7 @@ export default function EditFavoriteScreen() {
             <View style={styles.nutritionGrid}>
               <View style={styles.nutritionItem}>
                 <View style={styles.nutritionIcon}>
-                  <Ionicons name="flame" size={20} color={COLORS.status.error} />
+                  <Ionicons name="flame" size={20} color={colors.status.error} />
                 </View>
                 <Text style={styles.nutritionLabel}>Calorías</Text>
                 <TextInput
@@ -280,7 +284,7 @@ export default function EditFavoriteScreen() {
                   value={favorite.calories?.toString() || ''}
                   onChangeText={(text) => setFavorite({ ...favorite, calories: parseInt(text) || 0 })}
                   placeholder="0"
-                  placeholderTextColor={COLORS.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   keyboardType="numeric"
                   editable={!isLoading}
                 />
@@ -288,7 +292,7 @@ export default function EditFavoriteScreen() {
 
               <View style={styles.nutritionItem}>
                 <View style={styles.nutritionIcon}>
-                  <Ionicons name="fitness" size={20} color={COLORS.primary.sky} />
+                  <Ionicons name="fitness" size={20} color={colors.primary.sky} />
                 </View>
                 <Text style={styles.nutritionLabel}>Proteína (g)</Text>
                 <TextInput
@@ -296,7 +300,7 @@ export default function EditFavoriteScreen() {
                   value={favorite.protein?.toString() || ''}
                   onChangeText={(text) => setFavorite({ ...favorite, protein: parseInt(text) || 0 })}
                   placeholder="0"
-                  placeholderTextColor={COLORS.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   keyboardType="numeric"
                   editable={!isLoading}
                 />
@@ -304,7 +308,7 @@ export default function EditFavoriteScreen() {
 
               <View style={styles.nutritionItem}>
                 <View style={styles.nutritionIcon}>
-                  <Ionicons name="nutrition" size={20} color={COLORS.primary.amber} />
+                  <Ionicons name="nutrition" size={20} color={colors.primary.amber} />
                 </View>
                 <Text style={styles.nutritionLabel}>Carbohidratos (g)</Text>
                 <TextInput
@@ -312,7 +316,7 @@ export default function EditFavoriteScreen() {
                   value={favorite.carbs?.toString() || ''}
                   onChangeText={(text) => setFavorite({ ...favorite, carbs: parseInt(text) || 0 })}
                   placeholder="0"
-                  placeholderTextColor={COLORS.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   keyboardType="numeric"
                   editable={!isLoading}
                 />
@@ -320,7 +324,7 @@ export default function EditFavoriteScreen() {
 
               <View style={styles.nutritionItem}>
                 <View style={styles.nutritionIcon}>
-                  <Ionicons name="water" size={20} color={COLORS.status.success} />
+                  <Ionicons name="water" size={20} color={colors.status.success} />
                 </View>
                 <Text style={styles.nutritionLabel}>Grasas (g)</Text>
                 <TextInput
@@ -328,7 +332,7 @@ export default function EditFavoriteScreen() {
                   value={favorite.fat?.toString() || ''}
                   onChangeText={(text) => setFavorite({ ...favorite, fat: parseInt(text) || 0 })}
                   placeholder="0"
-                  placeholderTextColor={COLORS.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   keyboardType="numeric"
                   editable={!isLoading}
                 />
@@ -349,16 +353,16 @@ export default function EditFavoriteScreen() {
             disabled={isLoading}
           >
             <LinearGradient
-              colors={[COLORS.primary.sky, '#0EA5E9']}
+              colors={[colors.primary.sky, '#0EA5E9']}
               style={styles.saveButtonGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
               {isLoading ? (
-                <ActivityIndicator size="small" color={COLORS.text.primary} />
+                <ActivityIndicator size="small" color={colors.text.primary} />
               ) : (
                 <>
-                  <Ionicons name="save" size={20} color={COLORS.text.primary} />
+                  <Ionicons name="save" size={20} color={colors.text.primary} />
                   <Text style={styles.saveButtonText}>
                     {favoriteId ? 'Guardar Cambios' : 'Crear Favorito'}
                   </Text>
@@ -372,10 +376,10 @@ export default function EditFavoriteScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   scrollView: {
     flex: 1,
@@ -391,11 +395,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   headerContent: {
     flex: 1,
@@ -404,12 +408,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   headerSubtitle: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     marginTop: SPACING.xs,
   },
@@ -421,7 +425,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.status.error,
+    borderColor: colors.status.error,
   },
   imageSection: {
     alignItems: 'center',
@@ -437,16 +441,16 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: BORDER_RADIUS.lg,
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     borderStyle: 'dashed',
   },
   imagePlaceholderText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     marginTop: SPACING.sm,
     marginBottom: SPACING.md,
@@ -454,7 +458,7 @@ const styles = StyleSheet.create({
   addImageButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primary.sky,
+    backgroundColor: colors.primary.sky,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.md,
@@ -463,7 +467,7 @@ const styles = StyleSheet.create({
   addImageText: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   formSection: {
@@ -476,24 +480,24 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
   input: {
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     ...SHADOWS.sm,
   },
   inputError: {
-    borderColor: COLORS.status.error,
+    borderColor: colors.status.error,
   },
   textArea: {
     height: 80,
@@ -501,7 +505,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.status.error,
+    color: colors.status.error,
     fontFamily: FONTS.primary,
     marginTop: SPACING.xs,
   },
@@ -513,26 +517,26 @@ const styles = StyleSheet.create({
   mealTypeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     gap: SPACING.xs,
   },
   mealTypeButtonSelected: {
-    backgroundColor: COLORS.primary.sky,
-    borderColor: COLORS.primary.sky,
+    backgroundColor: colors.primary.sky,
+    borderColor: colors.primary.sky,
   },
   mealTypeText: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   mealTypeTextSelected: {
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   nutritionSection: {
     marginBottom: SPACING.lg,
@@ -540,7 +544,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.md,
   },
@@ -551,18 +555,18 @@ const styles = StyleSheet.create({
   },
   nutritionItem: {
     width: '48%',
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     ...SHADOWS.sm,
   },
   nutritionIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.sm,
@@ -570,18 +574,18 @@ const styles = StyleSheet.create({
   nutritionLabel: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
   nutritionInput: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS.sm,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.sm,
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },
@@ -609,7 +613,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
 });

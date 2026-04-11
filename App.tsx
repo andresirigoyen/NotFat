@@ -1,89 +1,43 @@
 import 'react-native-gesture-handler';
-import React from 'react';
+import React, { useEffect } from 'react'; // Añadido useEffect explícito
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Platform, View, Text } from 'react-native';
-import { 
+import {
   useFonts,
   Montserrat_300Light,
   Montserrat_400Regular,
   Montserrat_500Medium,
   Montserrat_600SemiBold,
   Montserrat_700Bold,
-  Montserrat_800ExtraBold 
+  Montserrat_800ExtraBold
 } from '@expo-google-fonts/montserrat';
 
-// Importaciones con manejo de errores
-let Navigation: React.ComponentType<any> | null;
-let SupabaseProvider: React.ComponentType<{ children: React.ReactNode }>;
-let StoreProvider: React.ComponentType<{ children: React.ReactNode }>;
-let useNotifications: any;
+import Navigation from '@/navigation/Navigation';
+import { SupabaseProvider } from '@/services/supabase';
+import { useAuthStore, authListenerUnsubscribe } from '@/store';
+import { useNotifications } from '@/hooks/useNotifications';
 
-try {
-  Navigation = require('@/navigation/Navigation').default;
-} catch (error) {
-  console.log('Navigation not available:', error);
-  Navigation = () => null;
-}
-
-try {
-  SupabaseProvider = require('@/services/supabase').SupabaseProvider;
-} catch (error) {
-  console.log('SupabaseProvider not available:', error);
-  SupabaseProvider = ({ children }: any) => <>{children}</>;
-}
-
-try {
-  StoreProvider = require('@/store').StoreProvider;
-} catch (error) {
-  console.log('StoreProvider not available:', error);
-  StoreProvider = ({ children }: any) => <>{children}</>;
-}
-
-try {
-  useNotifications = require('@/hooks/useNotifications').useNotifications;
-} catch (error) {
-  console.log('Notifications not available on web:', error);
-  useNotifications = () => ({
-    registerForPushNotificationsAsync: async () => {},
-    scheduleHydrationReminder: async () => {},
-  });
-}
-
-interface ErrorBoundaryProps {
-  children: React.ReactNode;
-}
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error: Error | null;
-  errorInfo: React.ErrorInfo | null;
-}
+// --- ErrorBoundary (Sin cambios, es correcto para tu tesis) ---
+interface ErrorBoundaryProps { children: React.ReactNode; }
+interface ErrorBoundaryState { hasError: boolean; error: Error | null; errorInfo: React.ErrorInfo | null; }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
   }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
+  static getDerivedStateFromError(error: Error) { return { hasError: true, error }; }
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     this.setState({ error, errorInfo });
-    console.error("APP CRASH:", error, errorInfo);
+    if (__DEV__) console.error("APP CRASH:", error, errorInfo);
   }
-
   render() {
     if (this.state.hasError) {
       return (
-        <View style={{ flex: 1, backgroundColor: '#fee2e2', padding: 20, justifyContent: 'center' }}>
-          <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#991b1b', marginBottom: 10 }}>App Crashed!</Text>
-          <Text style={{ fontSize: 16, color: '#b91c1c', marginBottom: 20 }}>{this.state.error?.toString()}</Text>
-          <Text style={{ fontSize: 12, color: '#7f1d1d', fontFamily: 'monospace' }}>
-            {this.state.errorInfo?.componentStack}
-          </Text>
+        <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <Text style={{ fontSize: 24, color: '#fff', fontWeight: 'bold' }}>Algo salió mal 🦦</Text>
+          {__DEV__ && <Text style={{ color: 'red', marginTop: 10 }}>{this.state.error?.message}</Text>}
         </View>
       );
     }
@@ -92,83 +46,59 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 }
 
 export default function App() {
-  // Cargar fuentes
   const [fontsLoaded] = useFonts({
-    Montserrat_300Light,
-    Montserrat_400Regular,
-    Montserrat_500Medium,
-    Montserrat_600SemiBold,
-    Montserrat_700Bold,
-    Montserrat_800ExtraBold,
-    Montserrat: Montserrat_400Regular, // Alias para el nombre usado en el tema
+    Montserrat_300Light, Montserrat_400Regular, Montserrat_500Medium,
+    Montserrat_600SemiBold, Montserrat_700Bold, Montserrat_800ExtraBold,
+    Montserrat: Montserrat_400Regular,
   });
 
-  // Solo usar notificaciones en plataformas nativas
-  const isNative = Platform.OS !== 'web';
-  const { registerForPushNotificationsAsync, scheduleHydrationReminder } = isNative ? useNotifications() : { registerForPushNotificationsAsync: async () => {}, scheduleHydrationReminder: async () => {} };
+  // Mantenemos el hook, pero el registro lo movemos al useEffect único
+  const notifications = useNotifications();
 
-  // Initialize authentication
-  const initializeAuth = () => {
-    try {
-      const { useAuthStore } = require('@/store');
-      useAuthStore.getState().initializeAuth();
-    } catch (error) {
-      console.log('Auth initialization failed:', error);
-    }
-  };
+  useEffect(() => {
+    const initApp = async () => {
+      const isNative = Platform.OS !== 'web';
+      const isEmulator = __DEV__;
 
-  React.useEffect(() => {
-    if (isNative) {
-      registerForPushNotificationsAsync();
-      // Schedule a reminder every 2 hours as default
-      scheduleHydrationReminder('2hours');
-    }
-    
-    // Initialize auth on app start
-    initializeAuth();
-  }, []);
+      // 🛡️ REGISTRO CONTROLADO: Evita el spam en el simulador
+      if (isNative && !isEmulator) {
+        try {
+          await notifications.registerForPushNotificationsAsync();
+          await notifications.scheduleHydrationReminder('2hours');
+        } catch (e) {
+          console.log("Push Notifications no disponibles (esperado en simulador)");
+        }
+      } else if (isEmulator) {
+        if (__DEV__) console.log("🛡️ [Dev Mode] Registro de notificaciones omitido en simulador.");
+      }
+
+      // 🔑 INICIALIZACIÓN ÚNICA: Llamamos al store de Zustand corregido
+      try {
+        await useAuthStore.getState().initializeAuth();
+      } catch (error) {
+        console.error("Fallo crítico al inicializar auth:", error);
+      }
+    };
+
+    initApp();
+
+    // ✅ FIX #6: Cancelar el listener global de auth al desmontar App
+    // Evita acumulación de suscripciones en Hot Module Replacement
+    return () => {
+      authListenerUnsubscribe();
+    };
+  }, []); // Array vacío = Ejecución única absoluta al montar la app
 
   if (!fontsLoaded) {
     return null;
   }
 
-  // Aplicar Montserrat globalmente a todos los componentes Text de la app
-  (Text as any).defaultProps = (Text as any).defaultProps ?? {};
-  (Text as any).defaultProps.style = { fontFamily: 'Montserrat' };
-
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
         <SupabaseProvider>
-          <StoreProvider>
-            {Navigation ? <Navigation /> : (
-              <div style={{ 
-                flex: 1, 
-                backgroundColor: '#FAF3ED', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                padding: 20,
-                display: 'flex',
-                flexDirection: 'column',
-                minHeight: '100vh'
-              }}>
-                <h1 style={{ 
-                  fontSize: 32, 
-                  fontWeight: 'bold', 
-                  color: '#7c2d12', 
-                  marginBottom: 10,
-                  fontFamily: 'Montserrat'
-                }}>NotFat 🦦</h1>
-                <p style={{ 
-                  fontSize: 18, 
-                  color: '#a16207', 
-                  textAlign: 'center',
-                  fontFamily: 'Montserrat'
-                }}>Cargando navegación...</p>
-              </div>
-            )}
-            <StatusBar style="auto" />
-          </StoreProvider>
+          <Navigation />
+          <StatusBar style="auto" />
         </SupabaseProvider>
       </SafeAreaProvider>
     </ErrorBoundary>

@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { getPrismaClient } from "../_shared/db.ts"
+import { getSupabaseAdmin } from "../_shared/db.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,7 +13,7 @@ serve(async (req) => {
 
   try {
     const { userId, profileData } = await req.json()
-    const prisma = getPrismaClient();
+    const supabase = getSupabaseAdmin()
 
     if (!userId || !profileData) {
       return new Response(JSON.stringify({ error: 'userId and profileData are required' }), { 
@@ -57,27 +57,33 @@ serve(async (req) => {
     const text = data.candidates[0].content.parts[0].text
     const goals = JSON.parse(text.replace(/```json|```/g, '').trim())
 
-    // 3. Persist Goals using Prisma
-    await prisma.$transaction([
-      prisma.nutrition_goals.create({
-        data: {
-          user_id: userId,
-          calories: goals.calories,
-          protein: goals.protein,
-          carbs: goals.carbs,
-          fat: goals.fat,
-          source: 'ia'
-        }
-      }),
-      prisma.profiles.update({
-        where: { id: userId },
-        data: {
-          steps_goal: goals.steps_daily,
-          workout_frequency: goals.workout_frequency,
-          preferred_bottle_size: Math.round(goals.water_ml / 8)
-        }
+    // 3. Persist Goals
+    const { error: goalsError } = await supabase
+      .from('nutrition_goals')
+      .insert({
+        user_id: userId,
+        calories: goals.calories,
+        protein: goals.protein,
+        carbs: goals.carbs,
+        fat: goals.fat,
+        source: 'ia',
+        is_active: true,
+        start_date: new Date().toISOString().split('T')[0]
+      });
+    
+    if (goalsError) throw goalsError;
+
+    // Update profile
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        steps_goal: goals.steps_daily,
+        workout_frequency: goals.workout_frequency,
+        preferred_bottle_size: Math.round(goals.water_ml / 8)
       })
-    ]);
+      .eq('id', userId);
+
+    if (profileError) throw profileError;
 
     return new Response(JSON.stringify({ success: true, goals }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

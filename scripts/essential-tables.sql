@@ -97,3 +97,17 @@ CREATE INDEX IF NOT EXISTS "meals_date_idx" ON "meals"("date");
 CREATE INDEX IF NOT EXISTS "food_items_meal_id_idx" ON "food_items"("meal_id");
 CREATE INDEX IF NOT EXISTS "food_items_user_id_idx" ON "food_items"("user_id");
 CREATE INDEX IF NOT EXISTS "water_logs_user_id_idx" ON "water_logs"("user_id");
+
+-- Coach messages table
+CREATE TABLE IF NOT EXISTS "coach_messages" (
+    "id" UUID DEFAULT gen_random_uuid(),
+    "created_at" TIMESTAMPTZ DEFAULT NOW(),
+    "user_id" UUID NOT NULL,
+    "role" TEXT CHECK (role IN ('user', 'assistant')),
+    "content" TEXT NOT NULL,
+    "metadata" JSONB,
+    
+    CONSTRAINT "coach_messages_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "coach_messages_user_id_idx" ON "coach_messages"("user_id");

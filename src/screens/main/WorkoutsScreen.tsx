@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
 import {
   View,
@@ -13,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useWorkouts, useAddWorkout, useWorkoutStats, useUserSports, useUpdateUserSports } from '@/hooks/useWorkouts';
 import { useProfile } from '@/hooks/useProfile';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 const SPORT_TYPES = [
   'Correr',
@@ -40,6 +41,9 @@ const WORKOUT_DURATIONS = [
 ];
 
 export default function WorkoutsScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const { profile } = useProfile();
   const { data: workouts, isLoading } = useWorkouts(profile?.id || '');
@@ -85,11 +89,11 @@ export default function WorkoutsScreen() {
       </View>
       <View style={styles.workoutStats}>
         <View style={styles.statItem}>
-          <Ionicons name="time" size={16} color={COLORS.primary.amber} />
+          <Ionicons name="time" size={16} color={colors.primary.amber} />
           <Text style={styles.statText}>{workout.duration_minutes} min</Text>
         </View>
         <View style={styles.statItem}>
-          <Ionicons name="flame" size={16} color={COLORS.status.error} />
+          <Ionicons name="flame" size={16} color={colors.status.error} />
           <Text style={styles.statText}>{workout.estimated_calories} kcal</Text>
         </View>
       </View>
@@ -117,11 +121,11 @@ export default function WorkoutsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.primary.amber} />
+          <Ionicons name="arrow-back" size={24} color={colors.primary.amber} />
         </TouchableOpacity>
         <Text style={styles.title}>Ejercicios</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => setShowAddForm(true)}>
-          <Ionicons name="add-circle" size={24} color={COLORS.primary.amber} />
+          <Ionicons name="add-circle" size={24} color={colors.primary.amber} />
         </TouchableOpacity>
       </View>
 
@@ -170,7 +174,7 @@ export default function WorkoutsScreen() {
             workouts.map(renderWorkoutCard)
           ) : (
             <View style={styles.emptyState}>
-              <Ionicons name="fitness" size={48} color={COLORS.text.muted} />
+              <Ionicons name="fitness" size={48} color={colors.text.muted} />
               <Text style={styles.emptyText}>No tienes entrenamientos registrados</Text>
               <Text style={styles.emptySub}>Agrega tu primer entrenamiento</Text>
             </View>
@@ -185,7 +189,7 @@ export default function WorkoutsScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Agregar Entrenamiento</Text>
               <TouchableOpacity onPress={() => setShowAddForm(false)}>
-                <Ionicons name="close" size={24} color={COLORS.text.secondary} />
+                <Ionicons name="close" size={24} color={colors.text.secondary} />
               </TouchableOpacity>
             </View>
 
@@ -291,10 +295,10 @@ export default function WorkoutsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   header: {
     flexDirection: 'row',
@@ -311,7 +315,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   addButton: {
@@ -327,7 +331,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.lg,
   },
@@ -340,39 +344,39 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   statCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     flex: 1,
     minWidth: '45%',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   statNumber: {
     fontSize: FONTS.sizes['2xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontFamily: FONTS.primary,
   },
   statLabel: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },
   sportStatCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   sportName: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
@@ -386,21 +390,21 @@ const styles = StyleSheet.create({
   sportStatValue: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontFamily: FONTS.primary,
   },
   sportStatLabel: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   workoutCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   workoutHeader: {
     flexDirection: 'row',
@@ -411,12 +415,12 @@ const styles = StyleSheet.create({
   workoutSport: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   workoutDate: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   workoutStats: {
@@ -430,7 +434,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   loadingContainer: {
@@ -439,7 +443,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   emptyState: {
@@ -448,14 +452,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONTS.sizes.lg,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     marginTop: SPACING.md,
     marginBottom: SPACING.sm,
   },
   emptySub: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },
@@ -471,7 +475,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
   },
   modalContent: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.xl,
     width: '100%',
@@ -486,7 +490,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   formSection: {
@@ -495,7 +499,7 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
@@ -504,7 +508,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   sportOption: {
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
     borderRadius: BORDER_RADIUS.full,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
@@ -512,16 +516,16 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
   },
   sportOptionSelected: {
-    backgroundColor: COLORS.primary.amber,
-    borderColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
+    borderColor: colors.primary.amber,
   },
   sportOptionText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   sportOptionTextSelected: {
-    color: COLORS.background.primary,
+    color: colors.background.primary,
   },
   durationOptions: {
     flexDirection: 'row',
@@ -529,7 +533,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   durationOption: {
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
@@ -537,30 +541,30 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
   },
   durationOptionSelected: {
-    backgroundColor: COLORS.primary.amber,
-    borderColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
+    borderColor: colors.primary.amber,
   },
   durationOptionText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   durationOptionTextSelected: {
-    color: COLORS.background.primary,
+    color: colors.background.primary,
   },
   caloriesInput: {
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
   submitButton: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     borderRadius: BORDER_RADIUS.lg,
     paddingVertical: SPACING.md,
     alignItems: 'center',
@@ -571,7 +575,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontFamily: FONTS.primary,
   },
   dateSelector: {
@@ -583,23 +587,23 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     alignItems: 'center',
   },
   dateOptionSelected: {
     backgroundColor: 'rgba(252,211,77,0.1)',
-    borderColor: COLORS.primary.amber,
+    borderColor: colors.primary.amber,
   },
   dateOptionText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.medium,
   },
   dateOptionTextSelected: {
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontWeight: FONTS.weights.bold,
   },
 });

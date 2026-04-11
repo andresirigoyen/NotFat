@@ -84,52 +84,45 @@ export const useAIChat = () => {
     console.log('📡 Calling unified endpoint...');
 
     try {
-      // Obtener usuario autenticado para enviar su ID al backend
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('👤 User:', user?.id);
       if (!user?.id) {
         throw new Error('Usuario no autenticado');
       }
 
-      // Usar perfil pasado o el del estado
       const profileToSend = profileData || userProfile;
+
+      console.log('📤 Invoking process-prompt function...');
       
-      // Timeout de 25 segundos
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout: La IA está tardando demasiado en responder')), 25000);
-      });
-
-      const apiCall = fetch('https://jcfezqakxulmtdvioxbc.supabase.co/functions/v1/process-prompt', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          message,
-          userId: user.id,
-          userProfile: profileToSend 
-        }),
-      });
-
-      const response = await Promise.race([apiCall, timeoutPromise]) as Response;
-
-      console.log('📡 API call status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log('❌ Error response:', errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      let result;
+      try {
+        result = await supabase.functions.invoke('process-prompt', {
+          body: { message, userId: user.id, userProfile: profileToSend },
+        });
+      } catch (invokeErr: any) {
+        console.error('❌ Invoke caught error:', invokeErr);
+        throw new Error(`Invoke failed: ${invokeErr.message || invokeErr.toString()}`);
       }
 
-      const data: ProcessPromptResponse = await response.json();
-      console.log('📊 API response:', data);
-
-      return data;
-    } catch (err: any) {
-      const errorMessage = err.message || 'Error al conectar con la IA';
-      setError(errorMessage);
-      console.error('❌ AI Chat Error:', err);
+      const { data, error: fnError } = result;
+      console.log('📥 Response:', data, 'Error:', fnError);
       
-      // Devolver respuesta de error
+      if (fnError) {
+        console.error('❌ Function error:', fnError);
+        throw new Error(fnError.message || fnError.toString() || 'Error en la función');
+      }
+      if (!data) {
+        console.error('❌ No data returned');
+        throw new Error('Respuesta vacía de la IA');
+      }
+
+      return data as ProcessPromptResponse;
+    } catch (err: any) {
+      console.error('❌ AI Chat Error:', err);
+      const errorMessage = err.message || err.toString() || 'Error al conectar con la IA';
+      setError(errorMessage);
+      console.log('📝 Error message:', errorMessage);
+      
       return {
         type: 'chat',
         response: `Lo siento, tuve un problema: ${errorMessage}. Por favor intenta de nuevo.`,

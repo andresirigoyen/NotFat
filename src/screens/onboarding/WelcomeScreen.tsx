@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ImageBackground } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -5,19 +6,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 export default function WelcomeScreen() {
-  const navigation = useNavigation();
-  const [isReady, setIsReady] = useState(false);
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
+  const navigation = useNavigation();
   useEffect(() => {
     // Breve delay inicial para suavizar el montaje
-    const timer = setTimeout(() => setIsReady(true), 100);
+    const timer = setTimeout(() => {}, 100);
     return () => clearTimeout(timer);
   }, []);
-
-  if (!isReady) return <View style={styles.container} />;
 
   return (
     <View style={styles.container}>
@@ -43,7 +43,7 @@ export default function WelcomeScreen() {
                   activeOpacity={0.7}
                   onPress={() => (navigation.navigate as any)('Splash', { nextScreen: 'Login', duration: 4500 })}
                 >
-                  <Ionicons name="close" size={24} color={COLORS.text.primary} />
+                  <Ionicons name="close" size={24} color={colors.text.primary} />
                 </TouchableOpacity>
               </View>
 
@@ -59,15 +59,15 @@ export default function WelcomeScreen() {
                   <TouchableOpacity 
                     style={styles.button}
                     activeOpacity={0.8}
-                    onPress={() => navigation.navigate('OnboardingGender' as never)}
+                    onPress={() => navigation.navigate('SignUp' as never)}
                   >
                     <Text style={styles.buttonText}>Continuar</Text>
                     
                     {/* Flechas indicativas estilo Uber reference */}
                     <View style={styles.iconContainer}>
-                      <Ionicons name="chevron-forward" size={16} color={COLORS.background.primary} />
-                      <Ionicons name="chevron-forward" size={16} color={COLORS.background.primary} style={{ marginLeft: -8, opacity: 0.6 }} />
-                      <Ionicons name="chevron-forward" size={16} color={COLORS.background.primary} style={{ marginLeft: -8, opacity: 0.3 }} />
+                      <Ionicons name="chevron-forward" size={16} color={colors.background.primary} />
+                      <Ionicons name="chevron-forward" size={16} color={colors.background.primary} style={{ marginLeft: -8, opacity: 0.6 }} />
+                      <Ionicons name="chevron-forward" size={16} color={colors.background.primary} style={{ marginLeft: -8, opacity: 0.3 }} />
                     </View>
                   </TouchableOpacity>
 
@@ -89,10 +89,10 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   backgroundImage: {
     flex: 1,
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   button: {
     width: '100%',
-    backgroundColor: COLORS.primary.amber, 
+    backgroundColor: colors.primary.amber, 
     borderRadius: BORDER_RADIUS.full,
     flexDirection: 'row',
     alignItems: 'center',
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: FONTS.sizes.lg,
     fontWeight: '600',
-    color: COLORS.background.primary, 
+    color: colors.background.primary, 
     fontFamily: FONTS.primary,
   },
   iconContainer: {
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: FONTS.sizes.lg,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
 });

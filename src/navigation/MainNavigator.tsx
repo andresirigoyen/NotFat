@@ -33,13 +33,49 @@ import RecipesScreen from '../screens/main/RecipesScreen';
 import WorkoutsScreen from '../screens/main/WorkoutsScreen';
 import VoiceInputScreen from '../screens/main/VoiceInputScreen';
 import NoFatScreen from '../screens/main/NoFatScreen';
-import ProScreen from '../screens/main/ProScreen';
+import SubscriptionCenterScreen from '../screens/main/SubscriptionCenterScreen';
 import StepsScreen from '../screens/main/StepsScreen';
 import NutritionPlanDetailScreen from '../screens/main/NutritionPlanDetailScreen';
 import NutritionPlanEditScreen from '../screens/main/NutritionPlanEditScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
+
+const tabStyles = StyleSheet.create({
+  bar: {
+    backgroundColor: '#0D0D0D',
+    borderTopColor: 'rgba(255,255,255,0.05)',
+    borderTopWidth: 1,
+    height: 72,
+    paddingBottom: SPACING.md,
+    paddingTop: SPACING.sm,
+    overflow: 'visible', // Ensure protruding button isn't clipped
+  },
+  label: {
+    fontFamily: FONTS.primary,
+    fontSize: 11,
+    marginTop: 2,
+  },
+});
+
+const fabStyles = StyleSheet.create({
+  button: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: COLORS.primary.amber,
+    justifyContent: 'center',
+    alignItems: 'center',
+    top: -14,
+    shadowColor: COLORS.primary.amber,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 4,
+    borderColor: '#0D0D0D', // Match tab bar background for a seamless "cut" look
+  },
+});
 
 function AddPlaceholder() {
   return null;
@@ -82,7 +118,7 @@ function MainStackNavigator() {
       <Stack.Screen name="Workouts" component={WorkoutsScreen} />
       <Stack.Screen name="VoiceInput" component={VoiceInputScreen} />
       <Stack.Screen name="NoFat" component={NoFatScreen} />
-      <Stack.Screen name="Pro" component={ProScreen} />
+      <Stack.Screen name="Pro" component={SubscriptionCenterScreen} />
       <Stack.Screen name="Steps" component={StepsScreen} />
       <Stack.Screen name="NutritionPlanDetail" component={NutritionPlanDetailScreen} />
       <Stack.Screen name="NutritionPlanEdit" component={NutritionPlanEditScreen} />
@@ -139,7 +175,7 @@ export default function MainNavigator() {
         />
         <Tab.Screen
           name="Pro"
-          component={ProScreen}
+          component={SubscriptionCenterScreen}
           options={{
             tabBarIcon: ({ color, size }) => <Ionicons name="star-outline" size={size} color={color} />,
             tabBarLabel: 'Pro',
@@ -152,38 +188,3 @@ export default function MainNavigator() {
   );
 }
 
-const tabStyles = StyleSheet.create({
-  bar: {
-    backgroundColor: '#0D0D0D',
-    borderTopColor: 'rgba(255,255,255,0.05)',
-    borderTopWidth: 1,
-    height: 72,
-    paddingBottom: SPACING.md,
-    paddingTop: SPACING.sm,
-    overflow: 'visible', // Ensure protruding button isn't clipped
-  },
-  label: {
-    fontFamily: FONTS.primary,
-    fontSize: 11,
-    marginTop: 2,
-  },
-});
-
-const fabStyles = StyleSheet.create({
-  button: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: COLORS.primary.amber,
-    justifyContent: 'center',
-    alignItems: 'center',
-    top: -14,
-    shadowColor: COLORS.primary.amber,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-    elevation: 12,
-    borderWidth: 4,
-    borderColor: '#0D0D0D', // Match tab bar background for a seamless "cut" look
-  },
-});

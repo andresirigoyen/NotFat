@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
 import {
   View,
@@ -10,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -134,6 +135,9 @@ const LEVELS = [
 ];
 
 export default function AchievementsScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'unlocked' | 'locked'>('all');
   const [userPoints, setUserPoints] = useState(285); // Simulado - vendría del backend
 
@@ -327,10 +331,10 @@ export default function AchievementsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   header: {
     padding: SPACING.lg,
@@ -340,16 +344,16 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   subtitle: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginTop: 4,
   },
   levelCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: 16,
     padding: SPACING.lg,
     marginHorizontal: SPACING.lg,
@@ -365,12 +369,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   levelTitle: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginTop: 2,
   },
   pointsContainer: {
@@ -379,13 +383,13 @@ const styles = StyleSheet.create({
   pointsLabel: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
   },
   pointsValue: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes['2xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     marginTop: 2,
   },
   progressContainer: {
@@ -393,7 +397,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 8,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -404,7 +408,7 @@ const styles = StyleSheet.create({
   progressText: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginTop: SPACING.xs,
     textAlign: 'center',
   },
@@ -418,19 +422,19 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 8,
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
   },
   categoryButtonActive: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
   },
   categoryButtonText: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.medium,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
   },
   categoryButtonTextActive: {
-    color: COLORS.background.primary,
+    color: colors.background.primary,
   },
   content: {
     flex: 1,
@@ -443,7 +447,7 @@ const styles = StyleSheet.create({
   },
   achievementCard: {
     width: (width - SPACING.lg * 2 - SPACING.sm) / 2,
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: 16,
     padding: SPACING.md,
     marginBottom: SPACING.md,
@@ -471,21 +475,21 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   points: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontWeight: FONTS.weights.medium,
   },
   lockedText: {
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
   },
   achievementDescription: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     lineHeight: 20,
     marginBottom: SPACING.sm,
   },
@@ -494,20 +498,20 @@ const styles = StyleSheet.create({
   },
   lockedProgressBar: {
     height: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: 3,
     overflow: 'hidden',
     marginBottom: SPACING.xs,
   },
   lockedProgressFill: {
     height: '100%',
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     borderRadius: 3,
   },
   lockedProgressText: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     textAlign: 'center',
   },
   unlockedDate: {
@@ -517,7 +521,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   summaryCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: 16,
     padding: SPACING.lg,
     marginHorizontal: SPACING.lg,
@@ -527,7 +531,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginBottom: SPACING.md,
   },
   summaryGrid: {
@@ -541,12 +545,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes['2xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
   },
   summaryLabel: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginTop: 2,
   },
 });

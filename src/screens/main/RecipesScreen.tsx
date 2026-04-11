@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
 import {
   View,
@@ -14,9 +15,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useRecipes, useCreateRecipe, useRecommendationSession } from '@/hooks/useRecipes';
 import { useProfile } from '@/hooks/useProfile';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 const RecipesScreen = () => {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const { profile } = useProfile();
   const { data: recipes, isLoading } = useRecipes(profile?.id || '');
@@ -67,7 +71,7 @@ const RecipesScreen = () => {
         <Ionicons 
           name={recipe.is_favorite ? 'heart' : 'heart-outline'} 
           size={20} 
-          color={recipe.is_favorite ? COLORS.primary.amber : COLORS.text.secondary} 
+          color={recipe.is_favorite ? colors.primary.amber : colors.text.secondary} 
         />
       </TouchableOpacity>
     </TouchableOpacity>
@@ -78,11 +82,11 @@ const RecipesScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.primary.amber} />
+          <Ionicons name="arrow-back" size={24} color={colors.primary.amber} />
         </TouchableOpacity>
         <Text style={styles.title}>Recetas</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => setShowRecommendation(true)}>
-          <Ionicons name="add-circle" size={24} color={COLORS.primary.amber} />
+          <Ionicons name="add-circle" size={24} color={colors.primary.amber} />
         </TouchableOpacity>
       </View>
 
@@ -90,7 +94,7 @@ const RecipesScreen = () => {
         {/* AI Recommendations Section */}
         <View style={styles.recommendationSection}>
           <View style={styles.recommendationHeader}>
-            <Ionicons name="sparkles" size={24} color={COLORS.primary.amber} />
+            <Ionicons name="sparkles" size={24} color={colors.primary.amber} />
             <Text style={styles.recommendationTitle}>Recomendaciones IA</Text>
           </View>
           <Text style={styles.recommendationSub}>
@@ -100,7 +104,7 @@ const RecipesScreen = () => {
             style={styles.recommendationButton}
             onPress={handleGetRecommendations}
           >
-            <Ionicons name="sparkles" size={20} color={COLORS.background.primary} />
+            <Ionicons name="sparkles" size={20} color={colors.background.primary} />
             <Text style={styles.recommendationButtonText}>Generar Recomendaciones</Text>
           </TouchableOpacity>
         </View>
@@ -110,13 +114,13 @@ const RecipesScreen = () => {
           <Text style={styles.sectionTitle}>Mis Recetas</Text>
           {isLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={COLORS.primary.amber} />
+              <ActivityIndicator size="large" color={colors.primary.amber} />
             </View>
           ) : recipes && recipes.length > 0 ? (
             recipes.map(renderRecipeCard)
           ) : (
             <View style={styles.emptyState}>
-              <Ionicons name="restaurant" size={48} color={COLORS.text.muted} />
+              <Ionicons name="restaurant" size={48} color={colors.text.muted} />
               <Text style={styles.emptyText}>No tienes recetas guardadas</Text>
               <Text style={styles.emptySub}>Usa el generador de IA para crear recetas</Text>
             </View>
@@ -127,10 +131,10 @@ const RecipesScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   header: {
     flexDirection: 'row',
@@ -147,7 +151,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   addButton: {
@@ -158,7 +162,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   recommendationSection: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.lg,
     marginBottom: SPACING.xl,
@@ -174,18 +178,18 @@ const styles = StyleSheet.create({
   recommendationTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   recommendationSub: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.lg,
     lineHeight: 22,
   },
   recommendationButton: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     borderRadius: BORDER_RADIUS.lg,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.lg,
@@ -197,7 +201,7 @@ const styles = StyleSheet.create({
   recommendationButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontFamily: FONTS.primary,
   },
   section: {
@@ -206,22 +210,22 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.lg,
   },
   recipeCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.xl,
     marginBottom: SPACING.md,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   recipeImage: {
     width: '100%',
     height: 150,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
   },
   recipeContent: {
     padding: SPACING.lg,
@@ -229,13 +233,13 @@ const styles = StyleSheet.create({
   recipeTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.xs,
   },
   recipeType: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
@@ -246,22 +250,22 @@ const styles = StyleSheet.create({
   },
   recipeTime: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   recipeDifficulty: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   ingredientsPreview: {
     paddingTop: SPACING.sm,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.05)',
+    borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   ingredientsTitle: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   favoriteButton: {
@@ -284,14 +288,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONTS.sizes.lg,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     marginTop: SPACING.md,
     marginBottom: SPACING.sm,
   },
   emptySub: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },

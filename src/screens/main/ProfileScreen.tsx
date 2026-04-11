@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Switch, TextInput, Modal, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,11 +9,15 @@ import {
 } from 'lucide-react-native';
 import { useProfile } from '@/hooks/useProfile';
 import { useHealthSettings } from '@/hooks/useHealthSettings';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { usePreferencesStore } from '@/store/usePreferencesStore';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 const { width, height } = Dimensions.get('window');
 
 const ProfileScreen = ({ navigation }: any) => {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const { 
     profile, 
     isLoading,
@@ -22,10 +27,12 @@ const ProfileScreen = ({ navigation }: any) => {
     updateNutritionGoals,
     updateHydrationGoals,
     generateAutomaticGoals,
-    generateAutomaticHydrationGoal
+    generateAutomaticHydrationGoal,
+    signOut
   } = useProfile();
   
   const { healthSettings } = useHealthSettings();
+  const { coachMode, setCoachMode } = usePreferencesStore();
 
   const [expandedSection, setExpandedSection] = React.useState<string | null>(null);
   const [showNutritionalModal, setShowNutritionalModal] = React.useState(false);
@@ -68,7 +75,10 @@ const ProfileScreen = ({ navigation }: any) => {
         carbs: parseInt(modalCarbs),
         fat: parseInt(modalFat),
         source: isManualNutrition ? 'manual' : 'algorithm',
-      });
+        fiber: nutritionGoals?.fiber || 0,
+        water: nutritionGoals?.water || 2000,
+        is_active: true
+      } as any);
       setShowNutritionalModal(false);
       Alert.alert('Éxito', 'Objetivos nutricionales actualizados.');
     } catch (error) {
@@ -100,7 +110,7 @@ const ProfileScreen = ({ navigation }: any) => {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color={COLORS.primary.amber} />
+        <ActivityIndicator size="large" color={colors.primary.amber} />
       </View>
     );
   }
@@ -113,7 +123,7 @@ const ProfileScreen = ({ navigation }: any) => {
         <View style={styles.modalCard}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowNutritionalModal(false)}>
-              <ChevronLeft size={28} color={COLORS.primary.amber} />
+              <ChevronLeft size={28} color={colors.primary.amber} />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Objetivos nutricionales</Text>
           </View>
@@ -126,7 +136,7 @@ const ProfileScreen = ({ navigation }: any) => {
             <Switch 
               value={isManualNutrition} 
               onValueChange={setIsManualNutrition} 
-              trackColor={{ false: 'rgba(255,255,255,0.2)', true: COLORS.primary.amber }}
+              trackColor={{ false: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)', true: colors.primary.amber }}
             />
           </View>
 
@@ -180,7 +190,7 @@ const ProfileScreen = ({ navigation }: any) => {
             >
               {updateNutritionGoals.isPending ? (
                 <View style={styles.loadingContent}>
-                  <ActivityIndicator size="small" color={COLORS.primary.amber} />
+                  <ActivityIndicator size="small" color={colors.primary.amber} />
                   <Text style={styles.outlineBtnText}>Generando...</Text>
                 </View>
               ) : (
@@ -214,7 +224,7 @@ const ProfileScreen = ({ navigation }: any) => {
         <View style={styles.modalCard}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowHydrationModal(false)}>
-              <ChevronLeft size={28} color={COLORS.primary.amber} />
+              <ChevronLeft size={28} color={colors.primary.amber} />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Objetivo de hidratación</Text>
           </View>
@@ -281,7 +291,7 @@ const ProfileScreen = ({ navigation }: any) => {
               style={styles.editBtn}
               onPress={() => navigation.navigate('EditProfile')}
             >
-              <User size={18} color={COLORS.primary.amber} />
+              <User size={18} color={colors.primary.amber} />
               <Text style={styles.editBtnText}>Editar Perfil</Text>
             </TouchableOpacity>
           </View>
@@ -294,7 +304,7 @@ const ProfileScreen = ({ navigation }: any) => {
             {/* Métricas Corporales */}
             <View style={styles.gridItem}>
               <TouchableOpacity style={styles.gridItemContent} onPress={() => navigation.navigate('Progress')}>
-                <View style={styles.gridIcon}><Gauge size={24} color={COLORS.primary.amber} /></View>
+                <View style={styles.gridIcon}><Gauge size={24} color={colors.primary.amber} /></View>
                 <Text style={styles.gridTitle}>Métricas</Text>
                 <Text style={styles.gridValue}>
                   {profile?.weight_value} {profile?.weight_unit}
@@ -305,7 +315,7 @@ const ProfileScreen = ({ navigation }: any) => {
             {/* Salud */}
             <View style={styles.gridItem}>
               <TouchableOpacity style={styles.gridItemContent} onPress={() => navigation.navigate('HealthIntegration')}>
-                <View style={styles.gridIcon}><Watch size={24} color={COLORS.primary.amber} /></View>
+                <View style={styles.gridIcon}><Watch size={24} color={colors.primary.amber} /></View>
                 <Text style={styles.gridTitle}>Salud</Text>
                 <Text style={styles.gridValue}>
                   {healthSettings?.health_platform ? 'Conectado' : 'Conectar'}
@@ -319,7 +329,7 @@ const ProfileScreen = ({ navigation }: any) => {
             {/* Objetivos Nutricionales */}
             <View style={styles.gridItem}>
               <TouchableOpacity style={styles.gridItemContent} onPress={() => setShowNutritionalModal(true)}>
-                <View style={styles.gridIcon}><Utensils size={24} color={COLORS.primary.amber} /></View>
+                <View style={styles.gridIcon}><Utensils size={24} color={colors.primary.amber} /></View>
                 <Text style={styles.gridTitle}>Nutrición</Text>
                 <Text style={styles.gridValue}>
                   {nutritionGoals?.calories || 0} kcal
@@ -330,7 +340,7 @@ const ProfileScreen = ({ navigation }: any) => {
             {/* Objetivos Científicos */}
             <View style={styles.gridItem}>
               <TouchableOpacity style={styles.gridItemContent} onPress={() => navigation.navigate('ScientificGoals')}>
-                <View style={styles.gridIcon}><Activity size={24} color={COLORS.primary.amber} /></View>
+                <View style={styles.gridIcon}><Activity size={24} color={colors.primary.amber} /></View>
                 <Text style={styles.gridTitle}>Ciencia</Text>
                 <Text style={styles.gridValue}>
                   {nutritionGoals?.source === 'algorithm' ? 'Auto' : 'Manual'}
@@ -344,7 +354,7 @@ const ProfileScreen = ({ navigation }: any) => {
             {/* Hidratación */}
             <View style={styles.gridItem}>
               <TouchableOpacity style={styles.gridItemContent} onPress={() => setShowHydrationModal(true)}>
-                <View style={styles.gridIcon}><Droplets size={24} color={COLORS.primary.amber} /></View>
+                <View style={styles.gridIcon}><Droplets size={24} color={colors.primary.amber} /></View>
                 <Text style={styles.gridTitle}>Hidratación</Text>
                 <Text style={styles.gridValue}>
                   {hydrationGoals?.target || 0} ml
@@ -355,7 +365,7 @@ const ProfileScreen = ({ navigation }: any) => {
             {/* Mi Suscripción */}
             <View style={styles.gridItem}>
               <TouchableOpacity style={styles.gridItemContent} onPress={() => navigation.navigate('SubscriptionCenter')}>
-                <View style={styles.gridIcon}><Star size={24} color={COLORS.primary.amber} /></View>
+                <View style={styles.gridIcon}><Star size={24} color={colors.primary.amber} /></View>
                 <Text style={styles.gridTitle}>Suscripción</Text>
                 <Text style={styles.gridValue}>
                   {profile?.subscription_status === 'premium' ? 'Premium' : 'Gratis'}
@@ -369,7 +379,7 @@ const ProfileScreen = ({ navigation }: any) => {
             {/* Preferencias */}
             <View style={styles.gridItem}>
               <TouchableOpacity style={styles.gridItemContent} onPress={() => navigation.navigate('Preferences')}>
-                <View style={styles.gridIcon}><Settings size={24} color={COLORS.primary.amber} /></View>
+                <View style={styles.gridIcon}><Settings size={24} color={colors.primary.amber} /></View>
                 <Text style={styles.gridTitle}>Preferencias</Text>
                 <Text style={styles.gridValue}>
                   Ajustes
@@ -380,7 +390,7 @@ const ProfileScreen = ({ navigation }: any) => {
             {/* Estadísticas */}
             <View style={styles.gridItem}>
               <TouchableOpacity style={styles.gridItemContent} onPress={() => navigation.navigate('Stats')}>
-                <View style={styles.gridIcon}><Activity size={24} color={COLORS.primary.amber} /></View>
+                <View style={styles.gridIcon}><Activity size={24} color={colors.primary.amber} /></View>
                 <Text style={styles.gridTitle}>Estadísticas</Text>
                 <Text style={styles.gridValue}>
                   Ver datos
@@ -390,10 +400,44 @@ const ProfileScreen = ({ navigation }: any) => {
           </View>
         </View>
 
+        {/* Coach Settings Section */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.toggleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.toggleLabel}>Modo Coach Disruptivo</Text>
+              <Text style={styles.toggleSub}>
+                {coachMode === 'high' ? 'Modo AGRESIVO activado 🦦' : 'Modo amigable activado'}
+              </Text>
+            </View>
+            <Switch 
+              value={coachMode === 'high'} 
+              onValueChange={(val) => setCoachMode(val ? 'high' : 'low')} 
+              trackColor={{ false: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)', true: colors.primary.amber }}
+            />
+          </View>
+          {coachMode === 'high' && (
+            <Text style={[styles.toggleSub, { color: colors.status.warning, marginTop: -SPACING.md, fontWeight: '800' }]}>
+              Atención: El coach te dirá las cosas como son, sin filtros.
+            </Text>
+          )}
+        </View>
+
         {/* Cerrar Sesión Section */}
         <View style={styles.sectionContainer}>
-          <TouchableOpacity style={styles.logoutBtn}>
-            <LogOut size={22} color={COLORS.status.error} />
+          <TouchableOpacity 
+            style={styles.logoutBtn}
+            onPress={() => {
+              Alert.alert(
+                'Cerrar Sesión',
+                '¿Estás seguro de que deseas salir?',
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  { text: 'Salir', style: 'destructive', onPress: () => signOut() }
+                ]
+              );
+            }}
+          >
+            <LogOut size={22} color={colors.status.error} />
             <Text style={styles.logoutText}>Cerrar sesión</Text>
           </TouchableOpacity>
         </View>
@@ -407,10 +451,10 @@ const ProfileScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   center: {
     justifyContent: 'center',
@@ -422,7 +466,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONTS.sizes['3xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginBottom: SPACING.xl,
     fontFamily: FONTS.primary,
   },
@@ -431,12 +475,12 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xl,
   },
   sectionContainer: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS['2xl'],
     padding: SPACING.lg,
     marginBottom: SPACING.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   gridContainer: {
     gap: SPACING.md,
@@ -448,10 +492,10 @@ const styles = StyleSheet.create({
   },
   gridItem: {
     flex: 1,
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS['2xl'],
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
     overflow: 'hidden',
   },
   gridItemContent: {
@@ -470,13 +514,13 @@ const styles = StyleSheet.create({
   gridTitle: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },
   gridValue: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },
@@ -484,13 +528,13 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.md,
   },
   avatarInitials: {
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontSize: 44,
     fontWeight: FONTS.weights.bold,
     fontFamily: FONTS.primary,
@@ -498,13 +542,13 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: FONTS.sizes['2xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginBottom: SPACING.xs,
     fontFamily: FONTS.primary,
   },
   userEmail: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontWeight: FONTS.weights.semibold,
     marginBottom: SPACING.lg,
     fontFamily: FONTS.primary,
@@ -518,22 +562,22 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.xl,
     gap: SPACING.sm,
     borderWidth: 1.5,
-    borderColor: COLORS.primary.amber,
+    borderColor: colors.primary.amber,
   },
   editBtnText: {
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.bold,
     fontFamily: FONTS.primary,
   },
   menuContainer: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS['2xl'],
     padding: SPACING.md,
   },
   accordionItem: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   accordionHeader: {
     flexDirection: 'row',
@@ -548,7 +592,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   menuInfo: {
@@ -558,7 +602,7 @@ const styles = StyleSheet.create({
   },
   menuValueText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontWeight: FONTS.weights.semibold,
     fontFamily: FONTS.primary,
   },
@@ -567,14 +611,14 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xl,
   },
   healthConnectCard: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS['2xl'],
     padding: SPACING.xl,
     alignItems: 'center',
   },
   healthConnectText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     textAlign: 'center',
     fontWeight: FONTS.weights.semibold,
     marginVertical: SPACING.lg,
@@ -582,7 +626,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
   },
   connectBtn: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.xl,
     borderRadius: BORDER_RADIUS.xl,
@@ -590,13 +634,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   connectBtnText: {
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.bold,
     fontFamily: FONTS.primary,
   },
   macroSettingsList: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS['2xl'],
     padding: SPACING.sm,
   },
@@ -606,7 +650,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   macroItemLeft: {
     flex: 1,
@@ -616,13 +660,13 @@ const styles = StyleSheet.create({
   macroLabelText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   macroValueText: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   miniIconBox: {
@@ -634,11 +678,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   subMenuList: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS['2xl'],
     padding: SPACING.sm,
   },
@@ -661,12 +705,12 @@ const styles = StyleSheet.create({
   subMenuLabel: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   subMenuValue: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontWeight: FONTS.weights.semibold,
     fontFamily: FONTS.primary,
   },
@@ -679,7 +723,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   logoutText: {
-    color: COLORS.status.error,
+    color: colors.status.error,
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
     fontFamily: FONTS.primary,
@@ -693,7 +737,7 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS['2xl'],
     padding: SPACING.xl,
   },
@@ -706,7 +750,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   toggleRow: {
@@ -718,12 +762,12 @@ const styles = StyleSheet.create({
   toggleLabel: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   toggleSub: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontWeight: FONTS.weights.semibold,
     fontFamily: FONTS.primary,
   },
@@ -731,13 +775,13 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   inputWrapper: {
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.sm,
   },
   inputLabelSmall: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontWeight: FONTS.weights.bold,
     marginBottom: SPACING.xs,
     fontFamily: FONTS.primary,
@@ -750,14 +794,14 @@ const styles = StyleSheet.create({
   textInput: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     flex: 1,
     padding: 0,
     fontFamily: FONTS.primary,
   },
   unitText: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontWeight: FONTS.weights.bold,
     fontFamily: FONTS.primary,
   },
@@ -771,11 +815,11 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     borderRadius: BORDER_RADIUS['2xl'],
     borderWidth: 1.5,
-    borderColor: COLORS.primary.amber,
+    borderColor: colors.primary.amber,
     alignItems: 'center',
   },
   cancelBtnText: {
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontWeight: FONTS.weights.bold,
     fontSize: FONTS.sizes.base,
     fontFamily: FONTS.primary,
@@ -784,11 +828,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: SPACING.md,
     borderRadius: BORDER_RADIUS['2xl'],
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     alignItems: 'center',
   },
   saveBtnText: {
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontWeight: FONTS.weights.bold,
     fontSize: FONTS.sizes.base,
     fontFamily: FONTS.primary,
@@ -798,11 +842,11 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS['2xl'],
     borderWidth: 1.5,
-    borderColor: COLORS.primary.amber,
+    borderColor: colors.primary.amber,
     alignItems: 'center',
   },
   outlineBtnText: {
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontWeight: FONTS.weights.bold,
     fontSize: FONTS.sizes.base,
     fontFamily: FONTS.primary,

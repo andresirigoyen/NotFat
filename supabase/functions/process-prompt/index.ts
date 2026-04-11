@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { getPrismaClient } from "../_shared/db.ts"
+import { getSupabaseAdmin } from "../_shared/db.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,8 +12,18 @@ serve(async (req) => {
   }
 
   try {
-    const { message, userId, userProfile: providedProfile } = await req.json()
-    const prisma = getPrismaClient();
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      });
+    }
+
+    const { message, userId, userProfile: providedProfile } = body || {};
+    console.log('📥 Request body:', { message, userId: userId?.substring(0, 8) + '...' });
 
     if (!message || !userId) {
       return new Response(JSON.stringify({ error: 'Message and userId are required' }), { 
@@ -22,133 +32,152 @@ serve(async (req) => {
       })
     }
 
-    // 1. Fetch user profile and context if not provided
-    const userProfile = providedProfile || await prisma.profiles.findUnique({
-      where: { id: userId }
-    });
+    const supabase = getSupabaseAdmin()
 
-    // 1b. Fetch nutrition context about scanned/processed foods using raw SQL on views
-    let processedContextStr = "";
-    try {
-      // Últimos 7 días de ratio de calorías escaneadas
-      const weeklyRows = await prisma.$queryRawUnsafe<any[]>(`
-        SELECT day, total_calories, scanned_calories, scanned_calories_ratio
-        FROM daily_calories_with_scanned_ratio
-        WHERE user_id = $1
-          AND day >= (CURRENT_DATE - INTERVAL '7 days')
-        ORDER BY day DESC
-        LIMIT 7;
-      `, userId);
-
-      // Top productos escaneados globales para el usuario (basado en food_items)
-      const topProducts = await prisma.$queryRawUnsafe<any[]>(`
-        SELECT fi.name, SUM(fi.calories) AS total_calories_from_scans, COUNT(*) AS times_scanned
-        FROM food_items fi
-        JOIN meals m ON fi.meal_id = m.id
-        WHERE m.user_id = $1
-          AND fi.scanned = TRUE
-        GROUP BY fi.name
-        HAVING COUNT(*) >= 2
-        ORDER BY SUM(fi.calories) DESC
-        LIMIT 3;
-      `, userId);
-
-      if (weeklyRows && weeklyRows.length > 0) {
-        const lastDay = weeklyRows[0];
-        const avgRatio =
-          weeklyRows.reduce((acc, r) => acc + Number(r.scanned_calories_ratio || 0), 0) /
-          weeklyRows.length;
-
-        processedContextStr += `\n\nScan Analytics (últimos 7 días):\n- Promedio de calorías desde alimentos escaneados: ${(avgRatio * 100).toFixed(1)}%\n`;
-        processedContextStr += `- Día más reciente: ${(Number(lastDay.scanned_calories_ratio || 0) * 100).toFixed(1)}% de las calorías vinieron de alimentos escaneados.\n`;
+    // 1. Fetch user profile
+    let userProfile = providedProfile;
+    if (!userProfile) {
+      try {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id, first_name, diet_type, nutrition_goal')
+          .eq('id', userId)
+          .single();
+        userProfile = profileData;
+      } catch (e) {
+        console.log('Profile not found, continuing without context');
+        userProfile = null;
       }
-
-      if (topProducts && topProducts.length > 0) {
-        const productsStr = topProducts
-          .map((p) => `${p.name || 'Producto sin nombre'} (${Number(p.total_calories_from_scans || 0).toFixed(0)} kcal totales, ${Number(p.times_scanned || 0)} escaneos)`)
-          .join("; ");
-        processedContextStr += `- Productos escaneados que más calorías aportan: ${productsStr}\n`;
-      }
-    } catch (err) {
-      console.error("Error fetching processed food analytics:", err);
     }
 
-    // 2. Log user message
-    await prisma.coach_messages.create({
-      data: {
-        user_id: userId,
-        role: 'user',
-        content: message
-      }
-    });
-
     // 3. Prepare AI Prompt
-    const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
-    if (!apiKey) throw new Error('GOOGLE_GEMINI_API_KEY is not configured')
+    const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY') || Deno.env.get('GOOGLE_AI_API_KEY')
+    console.log('🔑 API Key exists:', !!apiKey)
+    if (!apiKey) {
+      console.error('❌ No API key found!');
+      throw new Error('GOOGLE_GEMINI_API_KEY is not configured. Please set the secret.')
+    }
 
-    const model = Deno.env.get('DEFAULT_LLM_MODEL') || 'gemini-2.5-flash'
+    const model = 'gemini-2.0-flash'
+    console.log(`Using model: ${model}`)
+    
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
+    // Build user context
     let userContextStr = ""
     if (userProfile) {
       const parts = []
-      if (userProfile.first_name) parts.push(`Name: ${userProfile.first_name}`)
-      if (userProfile.diet_type) parts.push(`Diet: ${userProfile.diet_type}`)
-      if (userProfile.nutrition_goal) parts.push(`Goal: ${userProfile.nutrition_goal}`)
-      userContextStr = "\n\nUser Context:\n- " + parts.join("\n- ")
+      if (userProfile.first_name) parts.push(`Nombre: ${userProfile.first_name}`)
+      if (userProfile.diet_type) parts.push(`Dieta: ${userProfile.diet_type}`)
+      if (userProfile.nutrition_goal) parts.push(`Objetivo: ${userProfile.nutrition_goal}`)
+      userContextStr = "\n\nContexto del usuario:\n- " + parts.join("\n- ")
     }
 
-    const prompt = `You are NotFat AI, an expert nutritional coach.${userContextStr}${processedContextStr}
+    const prompt = `Eres NotFat AI, un experto coach nutricional.${userContextStr}
     
-    User Message: "${message}"
+    Mensaje del usuario: "${message}"
     
-    Respond ONLY with this exact JSON:
+    Responde ÚNICAMENTE con este JSON exacto:
     {
-      "type": "chat" or "recipe",
-      "response": "your natural response",
+      "type": "chat" o "recipe",
+      "response": "tu respuesta natural en español",
       "recipeData": {
-        "name": "dish name",
+        "name": "nombre del plato",
+        "description": "breve descripción",
         "ingredients": ["ing 1", "ing 2"],
-        "instructions": ["step 1", "step 2"],
-        "nutrition": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 }
+        "instructions": ["paso 1", "paso 2"],
+        "nutrition": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 },
+        "time": 20,
+        "difficulty": "Fácil"
       }
     }
-    If it's just chat, recipeData should be null.`
+    Si es solo chat, recipeData debe ser null.`
 
-    const aiResponse = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    })
+    try {
+      console.log('🌐 Calling Gemini API...');
+      const aiResponse = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      })
 
-    const body = await aiResponse.json()
-    const responseText = body.candidates[0].content.parts[0].text
+      console.log('🤖 Gemini response status:', aiResponse.status);
+
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text()
+        console.error(`❌ Gemini Error (${aiResponse.status}):`, errorText)
+        return new Response(JSON.stringify({ 
+          error: `Gemini API error: ${aiResponse.status}`, 
+          details: errorText 
+        }), { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500
+        });
+      }
+
+      const body = await aiResponse.json()
+      console.log('📦 Gemini response body:', JSON.stringify(body).substring(0, 200));
+      
+      const responseText = body.candidates?.[0]?.content?.parts?.[0]?.text
+      
+      if (!responseText) {
+        console.error('❌ Empty response from Gemini');
+        return new Response(JSON.stringify({ 
+          error: 'Empty response from Gemini',
+          body: body
+        }), { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500
+        });
+      }
+      
+      console.log('📝 Response text:', responseText.substring(0, 100));
+    } catch (fetchError: any) {
+      console.error('❌ Fetch error:', fetchError);
+      return new Response(JSON.stringify({ 
+        error: `Fetch failed: ${fetchError.message}` 
+      }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      });
+    }
     
     let parsed;
     try {
-      parsed = JSON.parse(responseText.replace(/```json|```/g, '').trim())
+      const cleanJson = responseText.replace(/```json|```/g, '').trim()
+      parsed = JSON.parse(cleanJson)
     } catch (e) {
+      console.warn('Failed to parse AI JSON, falling back to chat');
       parsed = { type: 'chat', response: responseText.trim(), recipeData: null }
     }
 
-    // 4. Log AI response
-    await prisma.coach_messages.create({
-      data: {
+    // 4. Save conversation to database
+    try {
+      await supabase.from('coach_messages').insert({
+        user_id: userId,
+        role: 'user',
+        content: message
+      });
+      
+      await supabase.from('coach_messages').insert({
         user_id: userId,
         role: 'assistant',
         content: parsed.response,
-        metadata: parsed.recipeData ? { recipe: parsed.recipeData } : undefined
-      }
-    });
+        metadata: parsed.recipeData ? { recipe: parsed.recipeData } : null
+      });
+      console.log('💾 Messages saved to DB');
+    } catch (dbError: any) {
+      console.warn('⚠️ Failed to save messages:', dbError.message);
+    }
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error: any) {
-    console.error('Error in process-prompt:', error)
-    return new Response(JSON.stringify({ error: error.message }), { 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    console.error('❌ Error in process-prompt:', error)
+    return new Response(JSON.stringify({ error: error.message, stack: error.stack }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
       status: 500 
     })
   }

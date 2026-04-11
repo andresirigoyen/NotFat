@@ -219,21 +219,10 @@ async function seedMeals(users: any[]) {
         const meal = {
           id: faker.string.uuid(),
           user_id: user.id,
-          name: faker.helpers.arrayElement([
-            'Ensalada saludable', 'Pollo a la plancha', 'Salmón con verduras',
-            'Avena con frutas', 'Batido de proteínas', 'Tacos de pescado',
-            'Pasta integral', 'Sopa de verduras', 'Wrap de pollo'
-          ]),
+          date: currentDate,
           meal_type: getRandomEnum(mealTypes),
-          meal_at: mealTime,
           status: getRandomEnum(statuses),
           source_type: getRandomEnum(sourceTypes),
-          recorded_timezone: user.timezone || 'UTC',
-          llm_used: getRandomEnum(['gemini_2_0_flash', 'gpt_4_1_mini', 'open_food_facts', 'gemini_2_5_flash', 'gpt_4_1', 'gemini_2_5_pro']),
-          modified: Math.random() > 0.8,
-          is_from_favorite: Math.random() > 0.9,
-          api_time_ms: getRandomInt(500, 5000),
-          processing_time_ms: getRandomInt(200, 3000),
         };
         
         meals.push(meal);
@@ -243,6 +232,7 @@ async function seedMeals(users: any[]) {
         for (let itemIndex = 0; itemIndex < itemCount; itemIndex++) {
           foodItems.push({
             id: faker.string.uuid(),
+            user_id: user.id,
             meal_id: meal.id,
             name: faker.helpers.arrayElement([
               'Pollo', 'Arroz integral', 'Brócoli', 'Aguacate', 'Tomate',
@@ -460,12 +450,11 @@ async function seedMasterData() {
   
   // Daily Tips
   const dailyTips = [];
-  const tipCategories = ['nutrición', 'ejercicio', 'hidratación', 'descanso', 'mental'] as const;
+  const tipCategories = ['nutrición', 'ejercicio', 'hidratación', 'descanso', 'mental'];
   for (let i = 0; i < 100; i++) {
     dailyTips.push({
-      id: i + 1,
       emoji: getRandomEnum(['💡', '🥗', '💪', '💧', '😴', '🧘']),
-      category: getRandomEnum(tipCategories),
+      category: tipCategories[Math.floor(Math.random() * tipCategories.length)],
       title: faker.lorem.sentence(),
       description: faker.lorem.paragraph(),
     });

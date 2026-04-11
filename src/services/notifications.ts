@@ -220,10 +220,10 @@ export class NotificationService {
           deepLink: `notfat://meal?action=log`
         },
         trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: time.getHours(),
           minute: time.getMinutes(),
-          repeats: true,
-        } as Notifications.NotificationTriggerInput,
+        },
         channelId: 'meal_reminders'
       });
     } catch (error) {
@@ -244,10 +244,10 @@ export class NotificationService {
           deepLink: `notfat://water?action=log`
         },
         trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: time.getHours(),
           minute: time.getMinutes(),
-          repeats: true,
-        } as Notifications.NotificationTriggerInput,
+        },
         channelId: 'water_reminders'
       });
     } catch (error) {

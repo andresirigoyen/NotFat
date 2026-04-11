@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { getPrismaClient } from "../_shared/db.ts"
+import { getSupabaseAdmin } from "../_shared/db.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,16 +21,16 @@ serve(async (req) => {
       )
     }
 
-    const prisma = getPrismaClient();
+    const supabase = getSupabaseAdmin()
 
-    // Verify user is updating their own profile (Supabase auth headers should be checked in a real policy, 
-    // but here we trust the Edge Function context and the userId passed)
-    // In a production app, we would verify the JWT token via Supabase Auth.
-    
-    const updatedProfile = await prisma.profiles.update({
-      where: { id: userId },
-      data: updates,
-    });
+    const { data: updatedProfile, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
 
     return new Response(JSON.stringify(updatedProfile), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

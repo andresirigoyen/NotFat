@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
-import { BarCodeScannerResult } from 'expo-barcode-scanner';
+import { ScanningResult } from 'expo-camera';
 import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
-import { supabase } from '@/services/SupabaseContext';
+import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/store';
 
 interface ScanEvent {
@@ -19,7 +19,7 @@ interface ScanEvent {
 }
 
 export function useBarcodeScanner() {
-  const [isScanning, setIsScanning] = useState(false);
+  const [isScanning, setIsScanning] = useState(true);
   const [lastScanned, setLastScanned] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
@@ -81,8 +81,8 @@ export function useBarcodeScanner() {
     },
   });
 
-  const handleBarCodeScanned = useCallback(async ({ data }: BarCodeScannerResult) => {
-    if (lastScanned === data) return; // Evitar escaneos duplicados
+  const handleBarCodeScanned = useCallback(async ({ data }: ScanningResult) => {
+    if (!isScanning || lastScanned === data) return; // Evitar escaneos duplicados o si no está activo
     
     setLastScanned(data);
     setIsScanning(false);
@@ -90,7 +90,7 @@ export function useBarcodeScanner() {
     try {
       // 1. Registrar evento de escaneo
       const startTime = Date.now();
-      await registerScanMutation.mutateAsync(data);
+      const scanEvent = await registerScanMutation.mutateAsync(data);
 
       // 2. Consultar producto
       const productData = await queryProductMutation.mutateAsync(data);
@@ -100,9 +100,9 @@ export function useBarcodeScanner() {
         // Producto encontrado - mostrar información
         Alert.alert(
           'Producto Encontrado',
-          `${productData.product_name}\nCalorías: ${productData.calories || 'N/A'}`,
+          `${productData.product.name}\nCalorías: ${productData.product.calories || 'N/A'}`,
           [
-            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Cancelar', onPress: () => setIsScanning(true), style: 'cancel' },
             { text: 'Agregar a Comida', onPress: () => addToMeal(productData) }
           ]
         );
@@ -112,31 +112,32 @@ export function useBarcodeScanner() {
           'Producto No Encontrado',
           '¿Deseas contribuir con una foto de este producto para nuestra base de datos?',
           [
-            { text: 'No', style: 'cancel' },
+            { text: 'No', onPress: () => setIsScanning(true), style: 'cancel' },
             { text: 'Contribuir', onPress: () => requestContribution(data) }
           ]
         );
       }
 
-      // Actualizar evento con resultado
+      // Actualizar evento con resultado (usando el ID del evento)
       await supabase
         .from('scan_events')
         .update({
           result: productData.found ? 'found' : 'not_found',
-          product_name: productData.product_name,
+          product_name: productData.product?.name || 'Unknown',
           processing_ms: processingTime,
           completed_at: new Date().toISOString(),
         })
-        .eq('barcode', data);
+        .eq('id', scanEvent.id);
 
     } catch (error) {
       console.error('Error scanning barcode:', error);
       Alert.alert('Error', 'No se pudo procesar el código de barras');
+      setIsScanning(true);
     }
 
-    // Resetear lastScanned después de 2 segundos
-    setTimeout(() => setLastScanned(null), 2000);
-  }, [lastScanned, registerScanMutation, queryProductMutation]);
+    // Resetear lastScanned después de 5 segundos para permitir mismo producto
+    setTimeout(() => setLastScanned(null), 5000);
+  }, [isScanning, lastScanned, registerScanMutation, queryProductMutation]);
 
   const addToMeal = async (productData: any) => {
     try {
@@ -174,16 +175,17 @@ export function useBarcodeScanner() {
         .from('food_items')
         .insert({
           meal_id: meal.id,
+          user_id: user.id,
           name: productData.product.name,
           quantity: productData.product.quantity || 100,
           unit: 'g',
-          calories: productData.product.calories,
-          protein: productData.product.protein,
-          carbs: productData.product.carbs,
-          fat: productData.product.fat,
-          fiber: productData.product.fiber,
-          sugar: productData.product.sugar,
-          sodium: productData.product.sodium,
+          calories: Number(productData.product.calories) || 0,
+          protein: Number(productData.product.protein) || 0,
+          carbs: Number(productData.product.carbs) || 0,
+          fat: Number(productData.product.fat) || 0,
+          fiber: Number(productData.product.fiber) || 0,
+          sugar: Number(productData.product.sugar) || 0,
+          sodium: Number(productData.product.sodium) || 0,
           nutriscore_grade: productData.product.nutriscore_grade,
           nova_group: productData.product.nova_group,
           notfat_score: null,
@@ -285,3 +287,4 @@ export function useBarcodeScanner() {
     isLoading: registerScanMutation.isPending || queryProductMutation.isPending,
   };
 }
+

@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,6 +7,9 @@ import { Clock, Calendar, ChevronRight, ArrowLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const MealTimeScreen = ({ navigation }: any) => {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const mealTimes = [
     {
       id: 'breakfast',
@@ -16,7 +20,7 @@ const MealTimeScreen = ({ navigation }: any) => {
       color: '#f59e0b'
     },
     {
-      id: 'snack',
+      id: 'snack_morning',
       name: 'Snack Mañana',
       time: '10:00 - 11:00',
       description: 'Un pequeño tentempié',
@@ -32,7 +36,7 @@ const MealTimeScreen = ({ navigation }: any) => {
       color: '#22c55e'
     },
     {
-      id: 'snack',
+      id: 'snack_afternoon',
       name: 'Snack Tarde',
       time: '16:00 - 17:00',
       description: 'Recarga de energía',
@@ -48,7 +52,7 @@ const MealTimeScreen = ({ navigation }: any) => {
       color: '#3b82f6'
     },
     {
-      id: 'snack',
+      id: 'snack_night',
       name: 'Snack Noche',
       time: '21:00 - 22:00',
       description: 'Algo ligero antes de dormir',
@@ -136,7 +140,7 @@ const MealTimeScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',

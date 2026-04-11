@@ -21,7 +21,7 @@ export const useProfile = () => {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       return data;
@@ -85,9 +85,15 @@ export const useProfile = () => {
     mutationFn: async (updates: ProfileUpdate) => {
       if (!user?.id) throw new Error('User not authenticated');
       
-      const { data, error } = await supabase.functions.invoke('update-profile', {
-        body: { updates, userId: user.id },
-      });
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert({ 
+          ...updates, 
+          id: user.id,
+          updated_at: new Date().toISOString() 
+        }, { onConflict: 'id' })
+        .select()
+        .single();
       
       if (error) throw error;
       return data;
@@ -250,7 +256,10 @@ export const useProfile = () => {
         protein: goals.protein,
         carbs: goals.carbs,
         fat: goals.fat,
-        source: 'ia' as any, // Marcar como generado por IA
+        fiber: Math.round(goals.calories * 0.012), // ~30g para 2500 kcal
+        water: Math.round((profile?.weight_value || 70) * 35), // 35ml por kg
+        is_active: true,
+        source: 'ia', // Marcar como generado por IA
       });
 
       return result;

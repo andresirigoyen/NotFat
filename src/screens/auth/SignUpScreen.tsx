@@ -4,10 +4,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '@/store';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 export default function SignUpScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+  
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { signUp } = useAuthStore();
@@ -49,22 +53,41 @@ export default function SignUpScreen() {
 
     try {
       setIsLoading(true);
-      const { error } = await signUp(email.trim(), password, name.trim());
+      const { error, session } = await signUp(email.trim(), password, name.trim());
       if (error) {
         console.error('SignUp error:', error);
         Alert.alert('Error', error.message || 'No pudimos crear tu cuenta. Intenta nuevamente.');
         return;
       }
-      Alert.alert(
-        'Cuenta creada',
-        'Te hemos enviado un correo de confirmación (si está configurado). Inicia sesión para continuar.',
-        [
-          {
-            text: 'Ir a iniciar sesión',
-            onPress: () => navigation.navigate('Login' as never),
-          },
-        ]
-      );
+
+      // Si Supabase devuelve sesión (confirmación desactivada), vamos directo al onboarding
+      if (session) {
+        // Marcamos la identidad del usuario para seguimiento
+        const { analytics } = await import('@/services/analytics');
+        analytics.identify(session.user.id);
+        analytics.trackOnboardingStep('signup_completed', {
+          id: session.user.id,
+          email: session.user.email,
+          created_at: session.user.created_at,
+        });
+
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'OnboardingGender' as never }],
+        });
+      } else {
+        // Si requiere confirmación (session es null), mostramos el aviso habitual
+        Alert.alert(
+          'Cuenta creada',
+          'Te hemos enviado un correo de confirmación. Por favor revisa tu bandeja de entrada para activar tu cuenta e iniciar sesión.',
+          [
+            {
+              text: 'Ir a iniciar sesión',
+              onPress: () => navigation.navigate('Login' as never),
+            },
+          ]
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +96,7 @@ export default function SignUpScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={[COLORS.background.primary, COLORS.background.secondary, COLORS.background.primary]}
+        colors={[colors.background.primary, colors.background.secondary, colors.background.primary]}
         locations={[0, 0.55, 1]}
         style={StyleSheet.absoluteFill}
       />
@@ -95,7 +118,7 @@ export default function SignUpScreen() {
               activeOpacity={0.7}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons name="arrow-back" size={22} color={COLORS.text.primary} />
+              <Ionicons name="arrow-back" size={22} color={colors.text.primary} />
             </TouchableOpacity>
 
             <View style={styles.brand}>
@@ -108,7 +131,7 @@ export default function SignUpScreen() {
               activeOpacity={0.7}
               onPress={() => navigation.navigate('Login' as never)}
             >
-              <Ionicons name="log-in-outline" size={22} color={COLORS.text.primary} />
+              <Ionicons name="log-in-outline" size={22} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
 
@@ -127,34 +150,36 @@ export default function SignUpScreen() {
             <View style={styles.field}>
               <Text style={styles.label}>Nombre</Text>
               <View style={[styles.inputWrap, focused === 'name' && styles.inputWrapFocused]}>
-                <Ionicons name="person-outline" size={20} color={focused === 'name' ? COLORS.primary.amber : COLORS.text.muted} />
+                <Ionicons name="person-outline" size={20} color={focused === 'name' ? colors.primary.amber : colors.text.muted} />
                 <TextInput
                   style={styles.input}
                   value={name}
                   onChangeText={setName}
-                  placeholder="Tu nombre completo"
-                  placeholderTextColor={COLORS.text.muted}
+                  placeholder="Ej. Juan Pérez"
+                  placeholderTextColor={colors.text.muted}
                   onFocus={() => setFocused('name')}
                   onBlur={() => setFocused(null)}
                   autoCorrect={false}
+                  editable={!isLoading}
                 />
               </View>
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>Correo electrónico</Text>
               <View style={[styles.inputWrap, focused === 'email' && styles.inputWrapFocused]}>
-                <Ionicons name="mail-outline" size={20} color={focused === 'email' ? COLORS.primary.amber : COLORS.text.muted} />
+                <Ionicons name="mail-outline" size={20} color={focused === 'email' ? colors.primary.amber : colors.text.muted} />
                 <TextInput
                   style={styles.input}
                   value={email}
                   onChangeText={setEmail}
                   placeholder="tu@email.com"
-                  placeholderTextColor={COLORS.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   onFocus={() => setFocused('email')}
                   onBlur={() => setFocused(null)}
+                  editable={!isLoading}
                 />
               </View>
             </View>
@@ -162,16 +187,20 @@ export default function SignUpScreen() {
             <View style={styles.field}>
               <Text style={styles.label}>Contraseña</Text>
               <View style={[styles.inputWrap, focused === 'password' && styles.inputWrapFocused]}>
-                <Ionicons name="lock-closed-outline" size={20} color={focused === 'password' ? COLORS.primary.amber : COLORS.text.muted} />
+                <Ionicons name="lock-closed-outline" size={20} color={focused === 'password' ? colors.primary.amber : colors.text.muted} />
                 <TextInput
                   style={styles.input}
                   value={password}
                   onChangeText={setPassword}
                   placeholder="Mínimo 6 caracteres"
-                  placeholderTextColor={COLORS.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="newPassword"
                   onFocus={() => setFocused('password')}
                   onBlur={() => setFocused(null)}
+                  editable={!isLoading}
                 />
               </View>
             </View>
@@ -179,21 +208,24 @@ export default function SignUpScreen() {
             <View style={styles.field}>
               <Text style={styles.label}>Confirmar contraseña</Text>
               <View style={[styles.inputWrap, focused === 'confirm' && styles.inputWrapFocused]}>
-                <Ionicons name="shield-checkmark-outline" size={20} color={focused === 'confirm' ? COLORS.primary.amber : COLORS.text.muted} />
+                <Ionicons name="shield-checkmark-outline" size={20} color={focused === 'confirm' ? colors.primary.amber : colors.text.muted} />
                 <TextInput
                   style={styles.input}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   placeholder="Repite tu contraseña"
-                  placeholderTextColor={COLORS.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="newPassword"
                   onFocus={() => setFocused('confirm')}
                   onBlur={() => setFocused(null)}
+                  editable={!isLoading}
                 />
               </View>
             </View>
 
-            {/* Terms */}
             <TouchableOpacity
               activeOpacity={0.8}
               style={styles.termsRow}
@@ -201,44 +233,47 @@ export default function SignUpScreen() {
             >
               <View style={[styles.checkbox, acceptTerms && styles.checkboxChecked]}>
                 {acceptTerms ? (
-                  <Ionicons name="checkmark" size={16} color={COLORS.background.primary} />
+                  <Ionicons name="checkmark" size={16} color={colors.background.primary} />
                 ) : null}
               </View>
               <Text style={styles.termsText}>
-                Acepto los <Text style={styles.termsLink}>Términos</Text> y la{' '}
-                <Text style={styles.termsLink}>Política de Privacidad</Text>.
+                {'Acepto los '}
+                <Text style={styles.termsLink}>Términos</Text>
+                {' y la '}
+                <Text style={styles.termsLink}>Política de Privacidad</Text>
+                {'.'}
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Primary CTA */}
           <TouchableOpacity
             style={[styles.primaryBtn, (!acceptTerms || isLoading) && styles.primaryBtnDisabled]}
             onPress={handleSignUp}
-            disabled={!acceptTerms || isLoading}
+            disabled={isLoading}
             activeOpacity={0.85}
           >
             <LinearGradient
-              colors={[COLORS.primary.amber, '#F59E0B']}
+              colors={acceptTerms ? [colors.primary.sky, '#0EA5E9'] : [colors.interactive.disabled, colors.interactive.disabled]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.primaryBtnInner}
             >
               {isLoading ? (
-                <ActivityIndicator size="small" color={COLORS.background.primary} />
+                <ActivityIndicator size="small" color={colors.background.primary} />
               ) : (
-                <>
-                  <Text style={styles.primaryBtnText}>Crear cuenta</Text>
+                <View style={styles.primaryBtnContent}>
+                  <Text style={styles.primaryBtnText}>
+                    {isLoading ? 'Creando cuenta...' : 'Crear cuenta'}
+                  </Text>
                   <View style={styles.chevrons}>
-                    <Ionicons name="chevron-forward" size={18} color={COLORS.background.primary} />
-                    <Ionicons name="chevron-forward" size={18} color={COLORS.background.primary} style={{ marginLeft: -10, opacity: 0.5 }} />
+                    <Ionicons name="chevron-forward" size={20} color={colors.background.primary} style={{ opacity: 0.6 }} />
+                    <Ionicons name="chevron-forward" size={20} color={colors.background.primary} style={{ marginLeft: -12 }} />
                   </View>
-                </>
+                </View>
               )}
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* Secondary */}
           <TouchableOpacity
             style={styles.secondaryBtn}
             activeOpacity={0.8}
@@ -246,16 +281,24 @@ export default function SignUpScreen() {
           >
             <Text style={styles.secondaryBtnText}>Ya tengo cuenta</Text>
           </TouchableOpacity>
+          
+          <View style={styles.footerInfo}>
+            <Ionicons name="shield-checkmark" size={24} color={colors.text.secondary} style={{ marginRight: SPACING.md }} />
+            <View style={styles.footerInfoTextWrap}>
+              <Text style={styles.footerInfoTitle}>Protección garantizada</Text>
+              <Text style={styles.footerInfoDesc}>Tus datos son encriptados de extremo a extremo y nunca son compartidos con terceros.</Text>
+            </View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   keyboard: { flex: 1 },
   contentContainer: {
@@ -273,9 +316,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -289,7 +332,7 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.lg,
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     letterSpacing: -0.2,
   },
   header: { marginBottom: SPACING.xl },
@@ -297,7 +340,7 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes['4xl'],
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.extrabold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     letterSpacing: -0.6,
     marginBottom: SPACING.sm,
   },
@@ -305,14 +348,14 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.base,
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.normal,
-    color: COLORS.text.tertiary,
+    color: colors.text.tertiary,
     lineHeight: 22,
   },
   card: {
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS['2xl'],
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     padding: SPACING.lg,
     ...SHADOWS.lg,
     marginBottom: SPACING.lg,
@@ -321,7 +364,7 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.xl,
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginBottom: SPACING.lg,
   },
   field: { marginBottom: SPACING.md },
@@ -329,7 +372,7 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.sm,
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginBottom: SPACING.sm,
   },
   inputWrap: {
@@ -339,20 +382,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
     borderRadius: BORDER_RADIUS.xl,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   inputWrapFocused: {
-    borderColor: 'rgba(252, 211, 77, 0.45)',
-    backgroundColor: 'rgba(252, 211, 77, 0.06)',
+    borderColor: colors.primary.amber,
+    backgroundColor: isDark ? 'rgba(252, 211, 77, 0.08)' : 'rgba(217, 119, 6, 0.05)',
   },
   input: {
     flex: 1,
     padding: 0,
     fontSize: FONTS.sizes.base,
     fontFamily: FONTS.primary,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   termsRow: {
     flexDirection: 'row',
@@ -364,26 +407,26 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.22)',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.15)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 2,
     marginRight: SPACING.md,
   },
   checkboxChecked: {
-    backgroundColor: COLORS.primary.amber,
-    borderColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
+    borderColor: colors.primary.amber,
   },
   termsText: {
     flex: 1,
     fontSize: FONTS.sizes.sm,
     fontFamily: FONTS.primary,
-    color: COLORS.text.tertiary,
+    color: colors.text.tertiary,
     lineHeight: 20,
   },
   termsLink: {
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.semibold,
   },
@@ -402,18 +445,24 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.lg,
     paddingHorizontal: SPACING.xl,
   },
+  primaryBtnContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   primaryBtnText: {
     fontSize: FONTS.sizes.lg,
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.background.primary,
+    color: '#FFF', // Texto del botón primario siempre blanco o contrastante
   },
   chevrons: { flexDirection: 'row', alignItems: 'center' },
   secondaryBtn: {
     marginTop: SPACING.md,
     borderRadius: BORDER_RADIUS.full,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.20)',
+    borderColor: isDark ? 'rgba(255,255,255,0.20)' : 'rgba(0,0,0,0.1)',
     backgroundColor: 'transparent',
     paddingVertical: SPACING.lg,
     alignItems: 'center',
@@ -422,6 +471,30 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.lg,
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
+  },
+  footerInfo: {
+    flexDirection: 'row',
+    marginTop: SPACING.xl,
+    paddingHorizontal: SPACING.sm,
+    backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+  },
+  footerInfoTextWrap: {
+    flex: 1,
+  },
+  footerInfoTitle: {
+    fontSize: FONTS.sizes.sm,
+    fontFamily: FONTS.primary,
+    fontWeight: FONTS.weights.bold,
+    color: colors.text.primary,
+    marginBottom: 2,
+  },
+  footerInfoDesc: {
+    fontSize: FONTS.sizes.xs,
+    fontFamily: FONTS.primary,
+    color: colors.text.tertiary,
+    lineHeight: 16,
   },
 });

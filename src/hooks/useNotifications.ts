@@ -105,7 +105,10 @@ export const useNotifications = () => {
             body: `No olvides registrar tu ${mealType} en NotFat`,
             data: { type: 'meal_reminder', mealType },
           },
-          trigger: scheduledTime as any,
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: scheduledTime,
+          },
           identifier: `meal-${mealType}-${scheduledTime.toDateString()}`,
         });
       }
@@ -127,7 +130,10 @@ export const useNotifications = () => {
             body: 'Es hora de tomar agua. Mantente hidratado durante el día.',
             data: { type: 'hydration_reminder' },
           },
-          trigger: trigger as any,
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: trigger,
+          },
           identifier: `hydration-${hour}`,
         });
       }
@@ -147,10 +153,10 @@ export const useNotifications = () => {
         data: { type: 'daily_summary' },
       },
       trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
         hour: parseInt(hours),
         minute: parseInt(minutes),
-        repeats: true,
-      } as any,
+      },
       identifier: 'daily-summary',
     });
   };
@@ -245,6 +251,10 @@ export const useNotifications = () => {
   };
 
   const setupAllNotifications = async () => {
+    // ✅ FIX #15: Cancelar todas las notificaciones existentes antes de reprogramar.
+    // Sin esto, cada llamada acumula notificaciones (límite iOS: 64 notificaciones programadas).
+    await Notifications.cancelAllScheduledNotificationsAsync();
+
     const preferences = await getNotificationPreferences();
 
     if (preferences.meal_reminders) {

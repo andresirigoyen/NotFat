@@ -30,8 +30,28 @@ import SubscriptionScreen from '../screens/main/SubscriptionScreen';
 
 const Stack = createStackNavigator();
 
+import { useAuthStore } from '@/store';
+import { useProfile } from '@/hooks/useProfile';
+
 export default function Navigation() {
   const navigationRef = React.useRef<any>(null);
+  const { user, loading } = useAuthStore();
+  const { profile } = useProfile();
+
+  // Watch for Auth state changes to handle logout or login transitions
+  React.useEffect(() => {
+    if (!loading && !user && navigationRef.current) {
+      // Ensure we are not on Splash or Welcome already to avoid loops
+      const currentRoute = navigationRef.current.getCurrentRoute()?.name;
+      if (currentRoute !== 'Welcome' && currentRoute !== 'Splash' && currentRoute !== 'Login' && currentRoute !== 'SignUp') {
+        console.log('[Navigation] User logged out, redirecting to Welcome');
+        navigationRef.current.reset({
+          index: 0,
+          routes: [{ name: 'Welcome' }],
+        });
+      }
+    }
+  }, [user, loading]);
 
   React.useEffect(() => {
     // Initial URL

@@ -51,25 +51,16 @@ export const useSendMessage = () => {
 
       try {
         // Then call AI to get response using process-prompt
-        const response = await fetch('https://jcfezqakxulmtdvioxbc.supabase.co/functions/v1/process-prompt', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
+        const { data: aiResponse, error: aiError } = await supabase.functions.invoke('process-prompt', {
+          body: { 
             message: content,
+            userId: user.id,
             userProfile: {
               first_name: user.user_metadata?.first_name,
               // Add other profile data if needed
             }
-          }),
+          },
         });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-        }
-
-        const aiResponse = await response.json();
 
         // Save AI response
         const { data: assistantMessage, error: assistantError } = await supabase

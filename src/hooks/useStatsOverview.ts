@@ -81,18 +81,10 @@ export const useStatsOverview = (range: RangeDays) => {
       const [mealsRes, waterRes, bodyMetricsRes] = await Promise.all([
         supabase
           .from('meals')
-          .select(`
-            meal_at,
-            food_items (
-              calories,
-              protein,
-              carbs,
-              fat
-            )
-          `)
+          .select('id, meal_date, total_calories, total_protein, total_carbs, total_fat')
           .eq('user_id', user.id)
-          .gte('meal_at', startDate.toISOString())
-          .lt('meal_at', tomorrow.toISOString())
+          .gte('meal_date', startDate.toISOString().split('T')[0])
+          .lte('meal_date', tomorrow.toISOString().split('T')[0])
           .eq('status', 'complete'),
         supabase
           .from('water_logs')
@@ -117,6 +109,19 @@ export const useStatsOverview = (range: RangeDays) => {
       const waterLogs = waterRes.data ?? [];
       const bodyMetrics = bodyMetricsRes.data ?? [];
 
+      // If we need detailed food items for more accurate macro distribution, fetch them separately
+      const mealIds = meals.map(m => m.id);
+      let foodItems: any[] = [];
+      if (mealIds.length > 0) {
+        const { data: foodRes, error: foodErr } = await supabase
+          .from('food_items')
+          .select('meal_id, calories, protein, carbs, fat')
+          .in('meal_id', mealIds);
+        
+        if (!foodErr) foodItems = foodRes ?? [];
+      }
+
+
       const days: Date[] = [];
       for (let i = 0; i < range; i++) {
         const d = new Date(startDate);
@@ -140,17 +145,30 @@ export const useStatsOverview = (range: RangeDays) => {
       );
 
       meals.forEach((meal: any) => {
-        const mealDayKey = dayKey(new Date(meal.meal_at));
+        // meal_date is usually 'YYYY-MM-DD' and dayKey results in that same format
+        const mealDayKey = meal.meal_date;
         const bucket = dailyMap.get(mealDayKey);
         if (!bucket) return;
 
         bucket.mealCount += 1;
-        meal.food_items?.forEach((item: any) => {
-          bucket.calories += item.calories || 0;
-          bucket.protein += item.protein || 0;
-          bucket.carbs += item.carbs || 0;
-          bucket.fat += item.fat || 0;
-        });
+        
+        // Use pre-aggregated meal metrics as baseline if available, or sum food items
+        const itemsForThisMeal = foodItems.filter(fi => fi.meal_id === meal.id);
+        
+        if (itemsForThisMeal.length > 0) {
+          itemsForThisMeal.forEach((item: any) => {
+            bucket.calories += item.calories || 0;
+            bucket.protein += item.protein || 0;
+            bucket.carbs += item.carbs || 0;
+            bucket.fat += item.fat || 0;
+          });
+        } else {
+          // Fallback to meal-level metrics if items not found
+          bucket.calories += meal.total_calories || 0;
+          bucket.protein += meal.total_protein || 0;
+          bucket.carbs += meal.total_carbs || 0;
+          bucket.fat += meal.total_fat || 0;
+        }
       });
 
       waterLogs.forEach((log: any) => {

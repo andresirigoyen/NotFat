@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-export const COLORS = {
+export const darkColors = {
   // Primary Colors
   primary: {
     sky: '#38BDF8',  // sky-400
@@ -40,6 +40,41 @@ export const COLORS = {
     disabled: '#4B5563',  // disabled gray
   },
 };
+
+export const lightColors = {
+  primary: {
+    sky: '#0EA5E9',  // sky-500 (más contraste en blanco)
+    amber: '#D97706', // amber-600
+  },
+  background: {
+    primary: '#FFFFFF',   // blanco 
+    secondary: '#F9FAFB', // gray-50
+    tertiary: '#F3F4F6',  // gray-100
+    card: '#FFFFFF',      // blanco para cards
+    border: '#E5E7EB',    // gray-200
+  },
+  text: {
+    primary: '#111827',   // gray-900 (buen contraste)
+    secondary: '#374151', // gray-700
+    tertiary: '#4B5563',  // gray-600
+    muted: '#9CA3AF',     // gray-400
+  },
+  status: {
+    success: '#059669',   // emerald-600
+    warning: '#D97706',   // amber-600
+    error: '#DC2626',     // red-600
+    info: '#2563EB',      // blue-600
+  },
+  interactive: {
+    active: '#0EA5E9',    // sky-500
+    inactive: '#F3F4F6',  // gray-100
+    pressed: '#0284C7',   // sky-600
+    disabled: '#D1D5DB',  // gray-300
+  },
+};
+
+// Mantenemos COLORS exportando a darkColors temporalmente por retrocompatibilidad 
+export const COLORS = darkColors;
 
 export const FONTS = {
   // Font Family

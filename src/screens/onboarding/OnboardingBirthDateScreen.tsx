@@ -1,5 +1,6 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,9 +9,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
 import { analytics } from '@/services/analytics';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 export default function OnboardingBirthDateScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
@@ -32,13 +36,16 @@ export default function OnboardingBirthDateScreen() {
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowPicker(false);
+    // En Android cerramos el picker tras la selección
+    if (Platform.OS === 'android') {
+      setShowPicker(false);
+    }
     
     if (selectedDate) {
-      const age = calculateAge(selectedDate);
+      const selectedAge = calculateAge(selectedDate);
       
       // Validación: usuario debe tener al menos 13 años
-      if (age < 13) {
+      if (selectedAge < 13) {
         Alert.alert(
           'Edad Mínima',
           'Debes tener al menos 13 años para usar NotFat',
@@ -48,7 +55,7 @@ export default function OnboardingBirthDateScreen() {
       }
       
       // Validación: usuario no debe tener más de 120 años
-      if (age > 120) {
+      if (selectedAge > 120) {
         Alert.alert(
           'Fecha Inválida',
           'Por favor ingresa una fecha de nacimiento válida',
@@ -86,14 +93,14 @@ export default function OnboardingBirthDateScreen() {
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('es-CL', {
+    return date.toLocaleDateString('es-ES', {
       day: 'numeric',
       month: 'long',
       year: 'numeric'
     });
   };
 
-  const age = calculateAge(birthDate);
+  const userAge = calculateAge(birthDate);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -104,7 +111,7 @@ export default function OnboardingBirthDateScreen() {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.secondary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.secondary} />
           </TouchableOpacity>
           
           <View style={styles.progressContainer}>
@@ -124,43 +131,44 @@ export default function OnboardingBirthDateScreen() {
           {/* Age Display */}
           <View style={styles.ageCard}>
             <View style={styles.ageIconContainer}>
-              <Ionicons name="gift" size={32} color={COLORS.primary.sky} />
+              <Ionicons name="gift" size={32} color={colors.primary.sky} />
             </View>
             <View style={styles.ageContent}>
-              <Text style={styles.ageLabel}>Tu edad</Text>
-              <Text style={styles.ageValue}>{age} años</Text>
+              <Text style={styles.ageLabel}>Tu edad estimada</Text>
+              <Text style={styles.ageValue}>{userAge} años</Text>
             </View>
           </View>
 
-          {/* Date Picker */}
+          {/* Date Picker Button */}
           <TouchableOpacity
             style={styles.dateCard}
             onPress={() => setShowPicker(true)}
             disabled={isLoading}
+            activeOpacity={0.7}
           >
             <View style={styles.dateContent}>
               <View style={styles.dateIconContainer}>
-                <Ionicons name="calendar" size={24} color={COLORS.primary.sky} />
+                <Ionicons name="calendar-outline" size={24} color={colors.primary.sky} />
               </View>
               <View style={styles.dateText}>
-                <Text style={styles.dateLabel}>Fecha de nacimiento</Text>
+                <Text style={styles.dateLabel}>Fecha seleccionada</Text>
                 <Text style={styles.dateValue}>{formatDate(birthDate)}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
+              <Ionicons name="create-outline" size={20} color={colors.primary.sky} />
             </View>
           </TouchableOpacity>
 
           {/* Info Cards */}
           <View style={styles.infoSection}>
             <View style={styles.infoCard}>
-              <Ionicons name="shield-checkmark" size={20} color={COLORS.status.success} />
+              <Ionicons name="shield-checkmark" size={20} color={colors.status.success} />
               <Text style={styles.infoText}>
                 Tu información es segura y privada
               </Text>
             </View>
             
             <View style={styles.infoCard}>
-              <Ionicons name="calculator" size={20} color={COLORS.primary.amber} />
+              <Ionicons name="calculator" size={20} color={colors.primary.amber} />
               <Text style={styles.infoText}>
                 Usamos tu edad para calcular metas personalizadas
               </Text>
@@ -169,9 +177,9 @@ export default function OnboardingBirthDateScreen() {
 
           {/* Privacy Note */}
           <View style={styles.privacyNote}>
-            <Ionicons name="lock-closed" size={16} color={COLORS.text.muted} />
+            <Ionicons name="lock-closed" size={16} color={colors.text.muted} />
             <Text style={styles.privacyText}>
-              Solo usamos tu edad para personalizar tu experiencia nutricional
+              Cumplimos con las normativas GDPR de protección de datos.
             </Text>
           </View>
         </View>
@@ -187,7 +195,7 @@ export default function OnboardingBirthDateScreen() {
             disabled={isLoading}
           >
             <LinearGradient
-              colors={[COLORS.primary.sky, '#0EA5E9']}
+              colors={[colors.primary.sky, '#0EA5E9']}
               style={styles.continueButtonGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -197,7 +205,7 @@ export default function OnboardingBirthDateScreen() {
               ) : (
                 <>
                   <Text style={styles.continueButtonText}>Continuar</Text>
-                  <Ionicons name="arrow-forward" size={20} color={COLORS.text.primary} />
+                  <Ionicons name="arrow-forward" size={20} color={colors.text.primary} />
                 </>
               )}
             </LinearGradient>
@@ -205,25 +213,38 @@ export default function OnboardingBirthDateScreen() {
         </View>
       </ScrollView>
 
-      {/* Date Picker Modal */}
+      {/* Date Picker Modal / View */}
       {showPicker && (
-        <DateTimePicker
-          value={birthDate}
-          mode="date"
-          display="default"
-          maximumDate={new Date()}
-          minimumDate={new Date(1900, 0, 1)}
-          onChange={handleDateChange}
-        />
+        <View style={Platform.OS === 'ios' ? styles.iosPickerModal : null}>
+          {Platform.OS === 'ios' && (
+            <View style={styles.iosPickerHeader}>
+              <TouchableOpacity 
+                onPress={() => setShowPicker(false)}
+                style={styles.iosPickerDoneButton}
+              >
+                <Text style={styles.iosPickerDoneText}>Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <DateTimePicker
+            value={birthDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            maximumDate={new Date()}
+            minimumDate={new Date(1900, 0, 1)}
+            onChange={handleDateChange}
+            textColor={Platform.OS === 'ios' ? '#FFFFFF' : undefined}
+          />
+        </View>
       )}
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   scrollView: {
     flex: 1,
@@ -240,22 +261,22 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   progressContainer: {
     flex: 1,
     height: 4,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: 2,
     marginLeft: SPACING.md,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: COLORS.primary.sky,
+    backgroundColor: colors.primary.sky,
     borderRadius: 2,
   },
   content: {
@@ -268,32 +289,32 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONTS.sizes['3xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
   subtitle: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     lineHeight: 24,
   },
   ageCard: {
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.lg,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     ...SHADOWS.sm,
   },
   ageIconContainer: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: `${COLORS.primary.sky}20`,
+    backgroundColor: `${colors.primary.sky}20`,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.md,
@@ -303,21 +324,21 @@ const styles = StyleSheet.create({
   },
   ageLabel: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.xs,
   },
   ageValue: {
     fontSize: FONTS.sizes['2xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   dateCard: {
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     marginBottom: SPACING.xl,
     ...SHADOWS.sm,
   },
@@ -330,7 +351,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: `${COLORS.primary.sky}20`,
+    backgroundColor: `${colors.primary.sky}20`,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.md,
@@ -340,14 +361,14 @@ const styles = StyleSheet.create({
   },
   dateLabel: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.xs,
   },
   dateValue: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   infoSection: {
@@ -356,14 +377,14 @@ const styles = StyleSheet.create({
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     marginBottom: SPACING.sm,
   },
   infoText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     marginLeft: SPACING.sm,
     flex: 1,
@@ -372,14 +393,14 @@ const styles = StyleSheet.create({
   privacyNote: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     marginTop: SPACING.md,
   },
   privacyText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     marginLeft: SPACING.sm,
     flex: 1,
@@ -409,7 +430,34 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
+  },
+  iosPickerModal: {
+    backgroundColor: colors.background.card,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: 40,
+    borderTopWidth: 1,
+    borderTopColor: colors.background.border,
+    ...SHADOWS.lg,
+  },
+  iosPickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.background.border,
+  },
+  iosPickerDoneButton: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+  },
+  iosPickerDoneText: {
+    color: colors.primary.sky,
+    fontWeight: 'bold',
+    fontSize: FONTS.sizes.base,
   },
 });

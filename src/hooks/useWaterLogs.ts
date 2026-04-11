@@ -43,6 +43,7 @@ export const useAddWater = () => {
           ...newLog,
           user_id: user.id,
           logged_at: new Date().toISOString(),
+          date: new Date().toISOString().split('T')[0]
         })
         .select()
         .single();
@@ -52,7 +53,7 @@ export const useAddWater = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['water_logs', data.user_id] });
-      queryClient.invalidateQueries({ queryKey: ['daily_totals', data.user_id] });
+      queryClient.invalidateQueries({ queryKey: ['daily_totals'] });
     },
   });
 };

@@ -50,12 +50,12 @@ const OPTIONS = [
     screen: 'BarcodeScanner',
   },
   {
-    icon: 'search',
-    label: 'Búsqueda',
-    sub: 'Ingreso manual',
-    color: '#34D399',
-    bg: 'rgba(52,211,153,0.12)',
-    screen: 'MealLogger',
+    icon: 'restaurant',
+    label: 'NotFat Chef',
+    sub: 'Recetas con IA',
+    color: '#F59E0B',
+    bg: 'rgba(245,158,11,0.12)',
+    screen: 'NoFat',
   },
 ];
 
@@ -179,7 +179,7 @@ export default function HubModal({ visible, onClose }: HubModalProps) {
 
           <View style={styles.grid}>
             {OPTIONS.map((opt, i) => (
-              <Animated.View key={opt.label} style={{ transform: [{ scale: scales[i] }], width: '48%' }}>
+              <Animated.View key={opt.label} style={{ transform: [{ scale: scales[i] }], flexBasis: '47%' }}>
                 <TouchableOpacity
                   style={[styles.optionCard, { backgroundColor: opt.bg, borderColor: opt.color + '33' }]}
                   onPress={() => handlePress(i)}
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     alignItems: 'center',
     gap: SPACING.sm,
-    minHeight: 130,
+    height: 140, // Height fixed for symmetry
     justifyContent: 'center',
   },
   iconCircle: {

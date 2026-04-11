@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { Copy, Edit, Trash2, Flame, Heart, Plus, Search } from 'lucide-react-native';
@@ -9,6 +10,9 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useAuthStore } from '@/store';
 
 const FavoritesScreen = ({ navigation }: any) => {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newFavoriteName, setNewFavoriteName] = useState('');
@@ -257,7 +261,7 @@ const FavoritesScreen = ({ navigation }: any) => {
         )}
 
         {/* Search Results Empty */}
-        {filteredFavorites.length === 0 && searchQuery && favorites.length > 0 && (
+        {filteredFavorites.length === 0 && !!searchQuery && favorites.length > 0 && (
           <View style={styles.emptyState}>
             <Search color="#cbd5e1" size={48} />
             <Text style={styles.emptyTitle}>No se encontraron resultados</Text>
@@ -280,7 +284,7 @@ const FavoritesScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',

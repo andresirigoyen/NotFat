@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { getPrismaClient } from "../_shared/db.ts"
+import { getSupabaseAdmin } from "../_shared/db.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,7 +13,7 @@ serve(async (req) => {
 
   try {
     const { userId, date } = await req.json()
-    const prisma = getPrismaClient();
+    const supabase = getSupabaseAdmin()
 
     if (!userId) {
       return new Response(JSON.stringify({ error: 'userId is required' }), { 
@@ -29,68 +29,61 @@ serve(async (req) => {
     endOfDay.setHours(23, 59, 59, 999);
 
     // 1. Fetch nutrition goals
-    const goal = await prisma.nutrition_goals.findFirst({
-      where: { user_id: userId },
-      orderBy: { created_at: 'desc' }
-    });
+    const { data: goals } = await supabase
+      .from('nutrition_goals')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const goal = goals?.[0];
 
     // 2. Fetch meals and sum calories/macros
-    const mealsToday = await prisma.meals.findMany({
-      where: {
-        user_id: userId,
-        meal_at: {
-          gte: startOfDay,
-          lte: endOfDay
-        }
-      },
-      include: {
-        food_items: true
-      }
-    });
+    const { data: mealsToday } = await supabase
+      .from('meals')
+      .select('*, food_items(*)')
+      .eq('user_id', userId)
+      .gte('created_at', startOfDay.toISOString())
+      .lte('created_at', endOfDay.toISOString());
 
     let consumed = { calories: 0, protein: 0, carbs: 0, fat: 0 };
-    mealsToday.forEach(meal => {
-      meal.food_items.forEach(item => {
-        consumed.calories += item.calories || 0;
-        consumed.protein += item.protein || 0;
-        consumed.carbs += item.carbs || 0;
-        consumed.fat += item.fat || 0;
+    (mealsToday || []).forEach((meal: any) => {
+      (meal.food_items || []).forEach((item: any) => {
+        consumed.calories += Number(item.calories) || 0;
+        consumed.protein += Number(item.protein) || 0;
+        consumed.carbs += Number(item.carbs) || 0;
+        consumed.fat += Number(item.fat) || 0;
       });
     });
 
     // 3. Fetch water logs
-    const waterLogs = await prisma.water_logs.findMany({
-      where: {
-        user_id: userId,
-        logged_at: {
-          gte: startOfDay,
-          lte: endOfDay
-        }
-      }
-    });
+    const { data: waterLogs } = await supabase
+      .from('water_logs')
+      .select('volume')
+      .eq('user_id', userId)
+      .gte('logged_at', startOfDay.toISOString())
+      .lte('logged_at', endOfDay.toISOString());
 
-    const waterConsumed = waterLogs.reduce((acc, log) => acc + (log.volume || 0), 0);
+    const waterConsumed = (waterLogs || []).reduce((acc: number, log: any) => acc + (Number(log.volume) || 0), 0);
 
     // 4. Fetch steps from daily snapshots
-    const snapshot = await prisma.health_daily_snapshots.findFirst({
-      where: {
-        user_id: userId,
-        date: {
-          gte: startOfDay,
-          lte: endOfDay
-        }
-      }
-    });
+    const { data: snapshots } = await supabase
+      .from('health_daily_snapshots')
+      .select('steps')
+      .eq('user_id', userId)
+      .gte('date', startOfDay.toISOString().split('T')[0])
+      .lte('date', endOfDay.toISOString().split('T')[0])
+      .limit(1);
 
     return new Response(JSON.stringify({
       goals: goal || { calories: 2000, protein: 150, carbs: 200, fat: 70 },
       consumed,
       water: {
         consumed: waterConsumed,
-        target: 3000 // Default or fetch from hydration_goals
+        target: 3000
       },
       steps: {
-        current: snapshot?.steps || 0,
+        current: snapshots?.[0]?.steps || 0,
         target: 10000
       }
     }), {

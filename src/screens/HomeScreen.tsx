@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,11 +10,14 @@ import { useProfile } from '@/hooks/useProfile';
 import { useDailyTotals } from '@/hooks/useDailyTotals';
 import { useTodayMeals } from '@/hooks/useMeals';
 import { useAddWater } from '@/hooks/useWaterLogs';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { profile, nutritionGoals, isLoading: profileLoading } = useProfile();
@@ -71,17 +75,17 @@ export default function HomeScreen() {
   };
 
   const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return COLORS.status.success;
-    if (percentage >= 80) return COLORS.primary.amber;
-    if (percentage >= 60) return COLORS.primary.sky;
-    return COLORS.status.error;
+    if (percentage >= 100) return colors.status.success;
+    if (percentage >= 80) return colors.primary.amber;
+    if (percentage >= 60) return colors.primary.sky;
+    return colors.status.error;
   };
 
   if (profileLoading || totalsLoading || mealsLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary.sky} />
+          <ActivityIndicator size="large" color={colors.primary.sky} />
         </View>
       </SafeAreaView>
     );
@@ -110,7 +114,7 @@ export default function HomeScreen() {
           {profile?.avatar_url ? (
             <Image source={{ uri: profile.avatar_url }} style={styles.avatarImage} />
           ) : (
-            <Ionicons name="person" size={24} color={COLORS.text.secondary} />
+            <Ionicons name="person" size={24} color={colors.text.secondary} />
           )}
         </TouchableOpacity>
       </View>
@@ -119,11 +123,11 @@ export default function HomeScreen() {
       <View style={styles.progressSection}>
         <View style={styles.progressCard}>
           <LinearGradient
-            colors={[COLORS.primary.sky, '#0EA5E9']}
+            colors={[colors.primary.sky, '#0EA5E9']}
             style={styles.progressGradient}
           >
             <View style={styles.progressHeader}>
-              <Ionicons name="flame" size={24} color={COLORS.text.primary} />
+              <Ionicons name="flame" size={24} color={colors.text.primary} />
               <Text style={styles.progressTitle}>Calorías</Text>
             </View>
             <Text style={styles.progressValue}>
@@ -145,11 +149,11 @@ export default function HomeScreen() {
 
         <View style={styles.progressCard}>
           <LinearGradient
-            colors={[COLORS.primary.amber, '#F59E0B']}
+            colors={[colors.primary.amber, '#F59E0B']}
             style={styles.progressGradient}
           >
             <View style={styles.progressHeader}>
-              <Ionicons name="water" size={24} color={COLORS.text.primary} />
+              <Ionicons name="water" size={24} color={colors.text.primary} />
               <Text style={styles.progressTitle}>Agua</Text>
             </View>
             <Text style={styles.progressValue}>
@@ -178,8 +182,8 @@ export default function HomeScreen() {
             style={styles.actionButton}
             onPress={() => handleQuickAction('camera')}
           >
-            <View style={[styles.actionIconContainer, { backgroundColor: `${COLORS.primary.sky}20` }]}>
-              <Ionicons name="camera" size={24} color={COLORS.primary.sky} />
+            <View style={[styles.actionIconContainer, { backgroundColor: `${colors.primary.sky}20` }]}>
+              <Ionicons name="camera" size={24} color={colors.primary.sky} />
             </View>
             <Text style={styles.actionText}>Escanear</Text>
           </TouchableOpacity>
@@ -187,8 +191,8 @@ export default function HomeScreen() {
             style={styles.actionButton}
             onPress={() => handleQuickAction('water')}
           >
-            <View style={[styles.actionIconContainer, { backgroundColor: `${COLORS.primary.amber}20` }]}>
-              <Ionicons name="water" size={24} color={COLORS.primary.amber} />
+            <View style={[styles.actionIconContainer, { backgroundColor: `${colors.primary.amber}20` }]}>
+              <Ionicons name="water" size={24} color={colors.primary.amber} />
             </View>
             <Text style={styles.actionText}>Agua</Text>
           </TouchableOpacity>
@@ -196,8 +200,8 @@ export default function HomeScreen() {
             style={styles.actionButton}
             onPress={() => handleQuickAction('progress')}
           >
-            <View style={[styles.actionIconContainer, { backgroundColor: `${COLORS.status.success}20` }]}>
-              <Ionicons name="bar-chart" size={24} color={COLORS.status.success} />
+            <View style={[styles.actionIconContainer, { backgroundColor: `${colors.status.success}20` }]}>
+              <Ionicons name="bar-chart" size={24} color={colors.status.success} />
             </View>
             <Text style={styles.actionText}>Progreso</Text>
           </TouchableOpacity>
@@ -205,8 +209,8 @@ export default function HomeScreen() {
             style={styles.actionButton}
             onPress={() => handleQuickAction('favorites')}
           >
-            <View style={[styles.actionIconContainer, { backgroundColor: `${COLORS.status.info}20` }]}>
-              <Ionicons name="heart" size={24} color={COLORS.status.info} />
+            <View style={[styles.actionIconContainer, { backgroundColor: `${colors.status.info}20` }]}>
+              <Ionicons name="heart" size={24} color={colors.status.info} />
             </View>
             <Text style={styles.actionText}>Favoritos</Text>
           </TouchableOpacity>
@@ -218,7 +222,7 @@ export default function HomeScreen() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Comidas de Hoy</Text>
           <TouchableOpacity onPress={() => navigation.navigate('MealLogger' as never)}>
-            <Ionicons name="add-circle" size={24} color={COLORS.primary.sky} />
+            <Ionicons name="add-circle" size={24} color={colors.primary.sky} />
           </TouchableOpacity>
         </View>
         
@@ -255,7 +259,7 @@ export default function HomeScreen() {
           ))
         ) : (
           <View style={styles.emptyMeals}>
-            <Ionicons name="restaurant" size={48} color={COLORS.text.muted} />
+            <Ionicons name="restaurant" size={48} color={colors.text.muted} />
             <Text style={styles.emptyMealsText}>No hay comidas registradas hoy</Text>
             <TouchableOpacity 
               style={styles.addMealButton}
@@ -269,17 +273,17 @@ export default function HomeScreen() {
 
       {/* Quick Add Water */}
       <TouchableOpacity style={styles.quickAddWater} onPress={handleAddWater}>
-        <Ionicons name="water" size={20} color={COLORS.text.primary} />
+        <Ionicons name="water" size={20} color={colors.text.primary} />
         <Text style={styles.quickAddWaterText}>+250ml Agua</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   contentContainer: {
     padding: SPACING.md,
@@ -288,7 +292,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   header: {
     flexDirection: 'row',
@@ -302,24 +306,24 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: FONTS.sizes['2xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.xs,
   },
   subtitle: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   avatarImage: {
     width: '100%',
@@ -349,20 +353,20 @@ const styles = StyleSheet.create({
   progressTitle: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginLeft: SPACING.xs,
   },
   progressValue: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
   progressBar: {
     height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -376,7 +380,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.md,
   },
@@ -387,11 +391,11 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   actionIconContainer: {
     width: 48,
@@ -404,7 +408,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   mealsSection: {
@@ -417,13 +421,13 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   mealItem: {
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     marginBottom: SPACING.sm,
     flexDirection: 'row',
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   mealContent: {
     flex: 1,
@@ -431,13 +435,13 @@ const styles = StyleSheet.create({
   mealName: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.xs,
   },
   mealTime: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
@@ -451,12 +455,12 @@ const styles = StyleSheet.create({
   macroValue: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   macroLabel: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     textTransform: 'uppercase',
   },
@@ -467,23 +471,23 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.md,
   },
   emptyMeals: {
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.xl,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   emptyMealsText: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     marginTop: SPACING.md,
     marginBottom: SPACING.lg,
     textAlign: 'center',
   },
   addMealButton: {
-    backgroundColor: COLORS.primary.sky,
+    backgroundColor: colors.primary.sky,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.lg,
@@ -491,14 +495,14 @@ const styles = StyleSheet.create({
   addMealButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   quickAddWater: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primary.sky,
+    backgroundColor: colors.primary.sky,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     marginBottom: SPACING.xl,
@@ -507,7 +511,7 @@ const styles = StyleSheet.create({
   quickAddWaterText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginLeft: SPACING.sm,
   },

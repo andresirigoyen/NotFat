@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -5,10 +6,13 @@ import { ChevronLeft, Camera, User, Mail, Calendar, ChevronRight } from 'lucide-
 import { Button } from '@/components/ui/Button';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useProfile } from '@/hooks/useProfile';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import * as ImagePicker from 'expo-image-picker';
 
 const EditProfileScreen = ({ navigation }: any) => {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const { profile, isLoading, updateProfile, uploadAvatar } = useProfile();
   
   const [firstName, setFirstName] = React.useState('');
@@ -138,7 +142,7 @@ const EditProfileScreen = ({ navigation }: any) => {
   if (isLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color={COLORS.primary.amber} />
+        <ActivityIndicator size="large" color={colors.primary.amber} />
       </View>
     );
   }
@@ -151,7 +155,7 @@ const EditProfileScreen = ({ navigation }: any) => {
       >
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <ChevronLeft size={28} color={COLORS.primary.amber} />
+            <ChevronLeft size={28} color={colors.primary.amber} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Editar Perfil</Text>
           <View style={{ width: 40 }} /> 
@@ -178,9 +182,9 @@ const EditProfileScreen = ({ navigation }: any) => {
                   activeOpacity={0.85}
                 >
                   {uploadAvatar.isPending ? (
-                    <ActivityIndicator color={COLORS.background.primary} size="small" />
+                    <ActivityIndicator color={colors.background.primary} size="small" />
                   ) : (
-                    <Camera size={20} color={COLORS.background.primary} />
+                    <Camera size={20} color={colors.background.primary} />
                   )}
                 </TouchableOpacity>
               </View>
@@ -195,13 +199,13 @@ const EditProfileScreen = ({ navigation }: any) => {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Nombre</Text>
                 <View style={styles.inputContainer}>
-                  <User size={20} color={COLORS.text.secondary} />
+                  <User size={20} color={colors.text.secondary} />
                   <TextInput
                     style={styles.input}
                     value={firstName}
                     onChangeText={setFirstName}
                     placeholder="Tu nombre"
-                    placeholderTextColor={COLORS.text.secondary}
+                    placeholderTextColor={colors.text.secondary}
                   />
                 </View>
               </View>
@@ -209,13 +213,13 @@ const EditProfileScreen = ({ navigation }: any) => {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Apellidos</Text>
                 <View style={styles.inputContainer}>
-                  <User size={20} color={COLORS.text.secondary} />
+                  <User size={20} color={colors.text.secondary} />
                   <TextInput
                     style={styles.input}
                     value={lastName}
                     onChangeText={setLastName}
                     placeholder="Tus apellidos"
-                    placeholderTextColor={COLORS.text.secondary}
+                    placeholderTextColor={colors.text.secondary}
                   />
                 </View>
               </View>
@@ -223,13 +227,13 @@ const EditProfileScreen = ({ navigation }: any) => {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Tipo de dieta</Text>
                 <View style={styles.inputContainer}>
-                  <User size={20} color={COLORS.text.secondary} />
+                  <User size={20} color={colors.text.secondary} />
                   <TextInput
                     style={styles.input}
                     value={dietType}
                     onChangeText={setDietType}
                     placeholder="Ej: Balanced"
-                    placeholderTextColor={COLORS.text.secondary}
+                    placeholderTextColor={colors.text.secondary}
                   />
                 </View>
               </View>
@@ -237,13 +241,13 @@ const EditProfileScreen = ({ navigation }: any) => {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Frecuencia de entrenamiento</Text>
                 <View style={styles.inputContainer}>
-                  <User size={20} color={COLORS.text.secondary} />
+                  <User size={20} color={colors.text.secondary} />
                   <TextInput
                     style={styles.input}
                     value={workoutFrequency}
                     onChangeText={setWorkoutFrequency}
                     placeholder="Ej: 3x por semana"
-                    placeholderTextColor={COLORS.text.secondary}
+                    placeholderTextColor={colors.text.secondary}
                   />
                 </View>
               </View>
@@ -251,13 +255,13 @@ const EditProfileScreen = ({ navigation }: any) => {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Altura</Text>
                 <View style={styles.inputContainer}>
-                  <User size={20} color={COLORS.text.secondary} />
+                  <User size={20} color={colors.text.secondary} />
                   <TextInput
                     style={styles.input}
                     value={heightValue}
                     onChangeText={setHeightValue}
                     placeholder="Ej: 170"
-                    placeholderTextColor={COLORS.text.secondary}
+                    placeholderTextColor={colors.text.secondary}
                     keyboardType="numeric"
                   />
                 </View>
@@ -266,13 +270,13 @@ const EditProfileScreen = ({ navigation }: any) => {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Peso</Text>
                 <View style={styles.inputContainer}>
-                  <User size={20} color={COLORS.text.secondary} />
+                  <User size={20} color={colors.text.secondary} />
                   <TextInput
                     style={styles.input}
                     value={weightValue}
                     onChangeText={setWeightValue}
                     placeholder="Ej: 70"
-                    placeholderTextColor={COLORS.text.secondary}
+                    placeholderTextColor={colors.text.secondary}
                     keyboardType="numeric"
                   />
                 </View>
@@ -287,13 +291,13 @@ const EditProfileScreen = ({ navigation }: any) => {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Correo electrónico</Text>
                 <View style={styles.inputContainer}>
-                  <Mail size={20} color={COLORS.text.secondary} />
+                  <Mail size={20} color={colors.text.secondary} />
                   <TextInput
                     style={styles.input}
                     value={email}
                     onChangeText={setEmail}
                     placeholder="tu@email.com"
-                    placeholderTextColor={COLORS.text.secondary}
+                    placeholderTextColor={colors.text.secondary}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     editable={false}
@@ -308,11 +312,11 @@ const EditProfileScreen = ({ navigation }: any) => {
                   style={styles.inputContainer} 
                   onPress={() => setShowDatePicker(true)}
                 >
-                  <Calendar size={20} color={COLORS.text.secondary} />
+                  <Calendar size={20} color={colors.text.secondary} />
                   <Text style={styles.dateText}>
                     {birthDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                   </Text>
-                  <ChevronRight size={20} color={COLORS.text.secondary} />
+                  <ChevronRight size={20} color={colors.text.secondary} />
                 </TouchableOpacity>
               </View>
 
@@ -352,10 +356,10 @@ const EditProfileScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   center: {
     justifyContent: 'center',
@@ -374,24 +378,24 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   scrollContent: {
     padding: SPACING.xl,
   },
   sectionContainer: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS['2xl'],
     padding: SPACING.lg,
     marginBottom: SPACING.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   sectionTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginBottom: SPACING.lg,
     fontFamily: FONTS.primary,
   },
@@ -405,10 +409,10 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: COLORS.primary.amber,
+    shadowColor: colors.primary.amber,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -420,7 +424,7 @@ const styles = StyleSheet.create({
     borderRadius: 60,
   },
   avatarInitials: {
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontSize: 48,
     fontWeight: FONTS.weights.bold,
     fontFamily: FONTS.primary,
@@ -429,18 +433,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: COLORS.background.secondary,
+    borderColor: colors.background.secondary,
   },
   changePhotoText: {
     marginTop: SPACING.md,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.bold,
     fontFamily: FONTS.primary,
@@ -454,26 +458,26 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginLeft: SPACING.xs,
     fontFamily: FONTS.primary,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS.xl,
     paddingHorizontal: SPACING.md,
     height: 60,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   input: {
     flex: 1,
     marginLeft: SPACING.sm,
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   dateText: {
@@ -481,7 +485,7 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.sm,
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   footer: {
@@ -496,7 +500,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
   },
   cancelText: {
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
     fontFamily: FONTS.primary,

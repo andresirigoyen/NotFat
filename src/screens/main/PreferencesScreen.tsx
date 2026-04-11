@@ -3,16 +3,47 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 're
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { useThemeStore, ThemeMode } from '@/store/themeStore';
+import { useThemeColors } from '@/hooks/useThemeColors';
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 export default function PreferencesScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
 
+  // Consumimos el estado global y los colores
+  const { themeMode, setThemeMode } = useThemeStore();
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const [notifications, setNotifications] = React.useState(true);
   const [emailNotifications, setEmailNotifications] = React.useState(false);
-  const [darkMode, setDarkMode] = React.useState(true);
   const [analytics, setAnalytics] = React.useState(true);
+
+  // Helper para renderizar selectores personalizados en vez de un Switch simple
+  const renderThemeSelector = () => (
+    <View style={styles.themeSelectorContainer}>
+      {(['light', 'dark', 'system'] as ThemeMode[]).map((mode) => (
+        <TouchableOpacity
+          key={mode}
+          style={[
+            styles.themeOptionBtn,
+            themeMode === mode && styles.themeOptionBtnActive,
+          ]}
+          onPress={() => setThemeMode(mode)}
+        >
+          <Text
+            style={[
+              styles.themeOptionText,
+              themeMode === mode && styles.themeOptionTextActive,
+            ]}
+          >
+            {mode === 'light' ? 'Claro' : mode === 'dark' ? 'Oscuro' : 'Auto'}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
 
   const preferences = [
     {
@@ -27,7 +58,7 @@ export default function PreferencesScreen() {
       title: 'Apariencia',
       icon: 'color-palette',
       items: [
-        { label: 'Modo Oscuro', value: darkMode, onToggle: setDarkMode },
+        { label: 'Tema de la Aplicación', customComponent: renderThemeSelector() },
       ]
     },
     {
@@ -48,7 +79,7 @@ export default function PreferencesScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Preferencias</Text>
         <View style={styles.placeholder} />
@@ -58,20 +89,25 @@ export default function PreferencesScreen() {
       {preferences.map((section, index) => (
         <View key={index} style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name={section.icon as any} size={20} color={COLORS.primary.amber} />
+            <Ionicons name={section.icon as any} size={20} color={colors.primary.amber} />
             <Text style={styles.sectionTitle}>{section.title}</Text>
           </View>
           <View style={styles.sectionContent}>
-            {section.items.map((item, itemIndex) => (
-              <View key={itemIndex} style={styles.preferenceItem}>
+            {section.items.map((item: any, itemIndex: number) => (
+              <View key={itemIndex} style={item.customComponent ? styles.preferenceItemColumn : styles.preferenceItem}>
                 <Text style={styles.preferenceLabel}>{item.label}</Text>
-                <Switch
-                  value={item.value}
-                  onValueChange={item.onToggle}
-                  trackColor={{ false: COLORS.background.border, true: COLORS.primary.amber }}
-                  thumbColor={item.value ? COLORS.background.primary : COLORS.text.secondary}
-                  ios_backgroundColor={COLORS.background.tertiary}
-                />
+                
+                {item.customComponent ? (
+                  item.customComponent
+                ) : (
+                  <Switch
+                    value={item.value}
+                    onValueChange={item.onToggle}
+                    trackColor={{ false: colors.background.border, true: colors.primary.amber }}
+                    thumbColor={item.value ? colors.background.primary : colors.text.secondary}
+                    ios_backgroundColor={colors.background.tertiary}
+                  />
+                )}
               </View>
             ))}
           </View>
@@ -81,21 +117,21 @@ export default function PreferencesScreen() {
       {/* Account Actions */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Ionicons name="person" size={20} color={COLORS.primary.amber} />
+          <Ionicons name="person" size={20} color={colors.primary.amber} />
           <Text style={styles.sectionTitle}>Cuenta</Text>
         </View>
         <View style={styles.sectionContent}>
           <TouchableOpacity style={styles.actionItem}>
             <Text style={styles.actionLabel}>Cambiar Contraseña</Text>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
+            <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionItem}>
             <Text style={styles.actionLabel}>Exportar Datos</Text>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
+            <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionItem, styles.dangerAction]}>
             <Text style={[styles.actionLabel, styles.dangerText]}>Eliminar Cuenta</Text>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.status.error} />
+            <Ionicons name="chevron-forward" size={20} color={colors.status.error} />
           </TouchableOpacity>
         </View>
       </View>
@@ -109,10 +145,10 @@ export default function PreferencesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   contentContainer: {
     padding: SPACING.lg,
@@ -127,18 +163,18 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   placeholder: {
     width: 24,
   },
   section: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.xl,
     marginBottom: SPACING.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
     ...SHADOWS.sm,
   },
   sectionHeader: {
@@ -146,12 +182,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.lg,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.background.border,
+    borderBottomColor: colors.background.border,
   },
   sectionTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginLeft: SPACING.sm,
     fontFamily: FONTS.primary,
   },
@@ -164,12 +200,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.lg,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.03)',
+    borderBottomColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+  },
+  preferenceItemColumn: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    padding: SPACING.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
   },
   preferenceLabel: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
+  },
+  themeSelectorContainer: {
+    flexDirection: 'row',
+    backgroundColor: colors.background.tertiary,
+    borderRadius: BORDER_RADIUS.md,
+    padding: 4,
+    marginTop: SPACING.md,
+    width: '100%',
+  },
+  themeOptionBtn: {
+    flex: 1,
+    paddingVertical: SPACING.sm,
+    alignItems: 'center',
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  themeOptionBtnActive: {
+    backgroundColor: colors.background.card,
+    ...SHADOWS.sm,
+  },
+  themeOptionText: {
+    fontSize: FONTS.sizes.sm,
+    color: colors.text.tertiary,
+    fontFamily: FONTS.primary,
+    fontWeight: FONTS.weights.medium,
+  },
+  themeOptionTextActive: {
+    color: colors.primary.amber,
+    fontWeight: FONTS.weights.bold,
   },
   actionItem: {
     flexDirection: 'row',
@@ -177,18 +248,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.lg,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.03)',
+    borderBottomColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
   },
   actionLabel: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   dangerAction: {
     borderBottomWidth: 0,
   },
   dangerText: {
-    color: COLORS.status.error,
+    color: colors.status.error,
   },
   footer: {
     alignItems: 'center',
@@ -197,13 +268,13 @@ const styles = StyleSheet.create({
   },
   version: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginBottom: SPACING.xs,
     fontFamily: FONTS.primary,
   },
   copyright: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
   },
 });

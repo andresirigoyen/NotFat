@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
 import {
   View,
@@ -12,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ChevronLeft } from 'lucide-react-native';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import { useHealthSettings } from '@/hooks/useHealthSettings';
 import { useAuthStore } from '@/store';
 
@@ -55,6 +56,9 @@ const ACTIVITY_TYPES = [
 ];
 
 export default function HealthIntegrationScreen({ navigation }: any) {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const { user } = useAuthStore();
   const { healthSettings, updateHealthSettings, isLoading } = useHealthSettings();
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
@@ -99,7 +103,7 @@ export default function HealthIntegrationScreen({ navigation }: any) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color={COLORS.primary.amber} />
+          <ChevronLeft size={24} color={colors.primary.amber} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.title}>Integración de Salud</Text>
@@ -153,7 +157,7 @@ export default function HealthIntegrationScreen({ navigation }: any) {
                   <Text style={styles.platformName}>{platform.name}</Text>
                   <Text style={styles.platformStatus}>Conectar</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={COLORS.text.secondary} />
+                <Ionicons name="chevron-forward" size={20} color={colors.text.secondary} />
               </View>
               <Text style={styles.platformDescription}>{platform.description}</Text>
             </TouchableOpacity>
@@ -167,7 +171,7 @@ export default function HealthIntegrationScreen({ navigation }: any) {
           {ACTIVITY_TYPES.map((activity) => (
             <View key={activity.id} style={styles.activityRow}>
               <View style={styles.activityIcon}>
-                <Ionicons name={activity.icon as any} size={20} color={COLORS.primary.sky} />
+                <Ionicons name={activity.icon as any} size={20} color={colors.primary.sky} />
               </View>
               <Text style={styles.activityName}>{activity.name}</Text>
               <Text style={styles.activityValue}>
@@ -176,7 +180,7 @@ export default function HealthIntegrationScreen({ navigation }: any) {
               <Switch
                 value={(healthSettings as any)?.[`track_${activity.id}`] || false}
                 onValueChange={(value) => toggleSetting(`track_${activity.id}`, value)}
-                trackColor={{ false: 'transparent', true: COLORS.primary.amber }}
+                trackColor={{ false: 'transparent', true: colors.primary.amber }}
               />
             </View>
           ))}
@@ -204,7 +208,7 @@ export default function HealthIntegrationScreen({ navigation }: any) {
                 // Aquí iría la lógica de sincronización
               }}
             >
-              <Ionicons name="sync-outline" size={20} color={COLORS.text.primary} />
+              <Ionicons name="sync-outline" size={20} color={colors.text.primary} />
               <Text style={styles.syncBtnText}>Sincronizar ahora</Text>
             </TouchableOpacity>
           </View>
@@ -219,7 +223,7 @@ export default function HealthIntegrationScreen({ navigation }: any) {
             <Switch
               value={healthSettings?.share_health_data || false}
               onValueChange={(value) => toggleSetting('share_health_data', value)}
-              trackColor={{ false: 'transparent', true: COLORS.primary.amber }}
+              trackColor={{ false: 'transparent', true: colors.primary.amber }}
             />
           </View>
           
@@ -228,7 +232,7 @@ export default function HealthIntegrationScreen({ navigation }: any) {
             <Switch
               value={healthSettings?.anonymous_data || false}
               onValueChange={(value) => toggleSetting('anonymous_data', value)}
-              trackColor={{ false: 'transparent', true: COLORS.primary.amber }}
+              trackColor={{ false: 'transparent', true: colors.primary.amber }}
             />
           </View>
         </View>
@@ -237,10 +241,10 @@ export default function HealthIntegrationScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   header: {
     padding: SPACING.lg,
@@ -259,12 +263,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   subtitle: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginTop: SPACING.xs,
   },
   content: {
@@ -278,16 +282,16 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginBottom: SPACING.md,
   },
   platformCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   platformHeader: {
     flexDirection: 'row',
@@ -309,18 +313,18 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   platformStatus: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginTop: 2,
   },
   platformDescription: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginTop: SPACING.sm,
   },
   disconnectBtn: {
@@ -331,13 +335,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SPACING.md,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.background.border,
+    borderBottomColor: colors.background.border,
   },
   activityIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.primary.sky + '20',
+    backgroundColor: colors.primary.sky + '20',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: SPACING.md,
@@ -346,12 +350,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   activityValue: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     textAlign: 'right',
   },
   syncRow: {
@@ -366,18 +370,18 @@ const styles = StyleSheet.create({
   syncLabel: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
   },
   syncValue: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   syncBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.md,
@@ -386,7 +390,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     marginLeft: SPACING.sm,
   },
   privacyRow: {
@@ -395,12 +399,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SPACING.md,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.background.border,
+    borderBottomColor: colors.background.border,
   },
   privacyLabel: {
     flex: 1,
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
 });

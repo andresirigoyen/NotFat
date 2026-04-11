@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useHealthScore } from '@/hooks/useHealthScore';
-import { COLORS, SPACING, FONTS } from '@/constants/theme';
+import { COLORS, SPACING, FONTS, BORDER_RADIUS } from '@/constants/theme';
 
 const TYPOGRAPHY = {
   heading: {
@@ -208,7 +208,7 @@ export const HealthScoreCard: React.FC<HealthScoreCardProps> = ({
         )}
 
         {/* Insights */}
-        {(healthScore?.insights && healthScore?.insights?.length > 0) && (
+        {!!(healthScore?.insights && healthScore?.insights?.length > 0) && (
           <View style={styles.insightsContainer}>
             <Text style={styles.insightsTitle}>Insights del Día</Text>
             {healthScore.insights.slice(0, 2).map((insight, index) => (
@@ -221,9 +221,9 @@ export const HealthScoreCard: React.FC<HealthScoreCardProps> = ({
         )}
 
         {/* Fortalezas y Debilidades */}
-        {((healthScore?.strengths?.length > 0) || (healthScore?.weaknesses?.length > 0)) && (
+        {!!((healthScore?.strengths?.length > 0) || (healthScore?.weaknesses?.length > 0)) && (
           <View style={styles.analysisContainer}>
-            {(healthScore?.strengths && healthScore?.strengths?.length > 0) && (
+            {!!(healthScore?.strengths && healthScore?.strengths?.length > 0) && (
               <View style={styles.strengthContainer}>
                 <Text style={styles.sectionTitle}>✅ Fortalezas</Text>
                 {healthScore.strengths.slice(0, 2).map((strength, index) => (
@@ -232,7 +232,7 @@ export const HealthScoreCard: React.FC<HealthScoreCardProps> = ({
               </View>
             )}
  
-            {(healthScore?.weaknesses && healthScore?.weaknesses?.length > 0) && (
+            {!!(healthScore?.weaknesses && healthScore?.weaknesses?.length > 0) && (
               <View style={styles.weaknessContainer}>
                 <Text style={styles.sectionTitle}>⚠️ A Mejorar</Text>
                 {healthScore.weaknesses.slice(0, 2).map((weakness, index) => (
@@ -244,7 +244,7 @@ export const HealthScoreCard: React.FC<HealthScoreCardProps> = ({
         )}
 
         {/* Recomendaciones */}
-        {(healthScore?.recommendations && healthScore?.recommendations?.length > 0) && (
+        {!!(healthScore?.recommendations && healthScore?.recommendations?.length > 0) && (
           <View style={styles.recommendationsContainer}>
             <Text style={styles.recommendationsTitle}>💡 Recomendaciones</Text>
             {healthScore.recommendations.slice(0, 2).map((rec, index) => (
@@ -261,18 +261,19 @@ export const HealthScoreCard: React.FC<HealthScoreCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: SPACING.md,
     marginVertical: SPACING.sm,
   },
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: SPACING.lg,
+    backgroundColor: COLORS.background.secondary,
+    borderRadius: BORDER_RADIUS['2xl'],
+    padding: SPACING.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   header: {
     flexDirection: 'row',
@@ -286,11 +287,11 @@ const styles = StyleSheet.create({
   title: {
     ...TYPOGRAPHY.heading,
     fontSize: 18,
-    color: '#000000',
+    color: '#FFFFFF',
   },
   subtitle: {
     ...TYPOGRAPHY.caption,
-    color: '#666666',
+    color: 'rgba(255,255,255,0.6)',
     marginTop: 2,
   },
   refreshButton: {
@@ -307,7 +308,7 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   scoreNumber: {
     ...TYPOGRAPHY.heading,
@@ -397,18 +398,18 @@ const styles = StyleSheet.create({
   },
   recommendationsTitle: {
     ...TYPOGRAPHY.subheading,
-    color: '#000000',
+    color: '#FFFFFF',
     marginBottom: SPACING.sm,
   },
   recommendationItem: {
-    backgroundColor: '#f8f8f8',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     padding: SPACING.sm,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: SPACING.xs,
   },
   recommendationText: {
     ...TYPOGRAPHY.caption,
-    color: '#333333',
+    color: '#FFFFFF',
   },
   processedContainer: {
     flexDirection: 'row',
@@ -426,8 +427,8 @@ const styles = StyleSheet.create({
   },
   loadingCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: SPACING.lg,
+    borderRadius: 24,
+    padding: SPACING.xl,
   },
   skeleton: {
     gap: SPACING.sm,
@@ -450,9 +451,11 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderRadius: 24,
     padding: SPACING.xl,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)',
   },
   emptyTitle: {
     ...TYPOGRAPHY.heading,

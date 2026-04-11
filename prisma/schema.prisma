@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,7 +7,222 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enums
+model profiles {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  email                 String?
+  full_name             String?
+  first_name            String?
+  last_name             String?
+  avatar_url            String?
+  gender                String?
+  expo_push_token       String?
+  platform              String?
+  subscription_ends_at  DateTime?
+  achievement_goal      String?
+  date_of_birth         String?
+  birth_date            DateTime?
+  height                Decimal? @db.Decimal
+  height_unit           String?  @default("cm")
+  height_value          Decimal? @db.Decimal
+  weight                Decimal? @db.Decimal
+  weight_unit           String?  @default("kg")
+  weight_value          Decimal? @db.Decimal
+  target_weight         Decimal? @db.Decimal
+  activity_level        Decimal? @db.Decimal
+  goal                  String?
+  nutrition_goal        String?
+  diet_type             String?
+  workout_frequency     String?
+  subscription_status   String?  @default("free")
+  onboarding_completed  Boolean? @default(false)
+  onboarding_step       String?  @default("welcome")
+  role                  String?  @default("user")
+  steps_goal            Int?     @default(10000)
+  show_calories         Boolean? @default(true)
+  show_hydration        Boolean? @default(true)
+  preferred_bottle_size Int?     @default(500)
+  preferred_bottle_unit String?  @default("ml")
+  timezone              String?
+  language              String?  @default("es")
+  notifications_enabled Boolean? @default(true)
+  dark_mode             Boolean? @default(false)
+
+  @@map("profiles")
+}
+
+model meals {
+  id             String   @id @default(uuid())
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  user_id        String   @map("user_id") @db.Uuid
+  date           DateTime @db.Date
+  meal_type      String
+  source_type    String?
+  status         String?
+  llm_model      String?
+  image_url      String?
+  text_input     String?
+  notes          String?
+  total_calories Decimal? @default(0) @db.Decimal
+  total_protein  Decimal? @default(0) @db.Decimal
+  total_carbs    Decimal? @default(0) @db.Decimal
+  total_fat      Decimal? @default(0) @db.Decimal
+  profilesId     String?  @db.Uuid
+
+  food_items     food_items[]
+
+  @@map("meals")
+}
+
+model food_items {
+  id                     String   @id @default(uuid())
+  created_at             DateTime @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  user_id                String   @db.Uuid
+  name                   String
+  brand                  String?
+  quantity               Decimal? @db.Decimal
+  unit                   String?
+  calories               Decimal? @db.Decimal
+  protein                Decimal? @db.Decimal
+  carbs                  Decimal? @db.Decimal
+  fat                    Decimal? @db.Decimal
+  fiber                  Decimal? @db.Decimal
+  sugar                  Decimal? @db.Decimal
+  sodium                 Decimal? @db.Decimal
+  barcode_number         String?
+  scanned                Boolean  @default(false)
+  servings               Decimal? @db.Decimal
+  contributed            Boolean  @default(false)
+  nutriscore_grade       String?
+  nova_group             Int?
+  notfat_score           Int?
+  labels_tags            Json?
+  additives_tags         Json?
+  notfat_score_breakdown Json?
+  additives_details      Json?
+  is_alcoholic           Boolean  @default(false)
+  has_ingredients_data   Boolean?
+  meal_id                String   @map("meal_id")
+  profilesId             String?  @db.Uuid
+
+  meals                  meals?   @relation(fields: [meal_id], references: [id])
+
+  @@map("food_items")
+}
+
+model recommendation_sessions {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id               String   @db.Uuid
+  meal_type             String?
+  available_ingredients String?
+  remaining_calories    Decimal? @db.Decimal
+  remaining_protein     Decimal? @db.Decimal
+  remaining_carbs       Decimal? @db.Decimal
+  remaining_fat         Decimal? @db.Decimal
+  fridge_image_url      String?
+  llm_used              String?
+  api_time_ms           Int?
+  total_time_ms         Int?
+  created_at            DateTime @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime @updatedAt @db.Timestamptz(6)
+  recipes               recipes[]
+
+  @@map("recommendation_sessions")
+}
+
+model recipes {
+  id                        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                   String   @db.Uuid
+  name                      String
+  description               String?
+  instructions              String[]
+  prep_time_minutes         Int?
+  servings                  Int?
+  total_calories            Decimal? @db.Decimal
+  total_protein             Decimal? @db.Decimal
+  total_carbs               Decimal? @db.Decimal
+  total_fat                 Decimal? @db.Decimal
+  image_url                 String?
+  source_type               String?  @default("ia")
+  recommendation_session_id String?  @db.Uuid
+  created_at                DateTime @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime @updatedAt @db.Timestamptz(6)
+  recommendation_sessions   recommendation_sessions? @relation(fields: [recommendation_session_id], references: [id])
+  recipe_items              recipe_items[]
+
+  @@map("recipes")
+}
+
+model recipe_items {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipe_id  String   @db.Uuid
+  name       String
+  quantity   Decimal? @db.Decimal
+  unit       String?
+  calories   Decimal? @db.Decimal
+  protein    Decimal? @db.Decimal
+  carbs      Decimal? @db.Decimal
+  fat        Decimal? @db.Decimal
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  recipes    recipes  @relation(fields: [recipe_id], references: [id], onDelete: Cascade)
+
+  @@map("recipe_items")
+}
+
+model products {
+  id               String   @id @default(uuid())
+  barcode          String   @unique
+  name             String
+  calories         Decimal? @db.Decimal
+  protein          Decimal? @db.Decimal
+  carbs            Decimal? @db.Decimal
+  fat              Decimal? @db.Decimal
+  fiber            Decimal? @db.Decimal
+  sugar            Decimal? @db.Decimal
+  sodium           Decimal? @db.Decimal
+  nutriscore_grade String?
+  nova_group       Int?
+  image_url        String?
+  labels_tags      Json?
+  additives_tags   Json?
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@map("products")
+}
+
+model water_logs {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
+  user_id          String    @map("user_id") @db.Uuid
+  logged_at        DateTime  @default(now()) @db.Timestamptz(6)
+  recorded_timezone String?
+  volume           Decimal   @db.Decimal
+  unit             String
+  profilesId       String?   @db.Uuid
+
+  @@map("water_logs")
+}
+
+model scan_events {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  barcode       String
+  origin        String
+  result        String?
+  product_name  String?
+  processing_ms Int?
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  completed_at  DateTime? @db.Timestamptz(6)
+  user_id       String    @map("user_id") @db.Uuid
+  meal_id       String?   @map("meal_id") @db.Uuid
+
+  @@map("scan_events")
+}
+
 enum gender_enum {
   male
   female
@@ -118,1184 +330,359 @@ enum nutrition_goal_source {
   manual
 }
 
-// Core Tables
-model profiles {
-  id                    String           @id @default(uuid())
-  created_at            DateTime         @default(now())
-  updated_at            DateTime         @updatedAt
-  first_name            String?
-  avatar_url            String?
-  diet_type             String?          @default("Balanced")
-  last_name             String?
-  birth_date            DateTime?
-  gender                gender_enum      @default(other)
-  email                 String
-  onboarding_completed  Boolean?
-  workout_frequency     String?
-  height_value          Float?
-  weight_value          Float?
-  height_unit           height_unit_enum @default(cm)
-  weight_unit           weight_unit_enum @default(kg)
-  timezone              String?          @default("")
-  nutrition_goal        String?          @db.VarChar(255)
-  achievement_goal      String?          @db.VarChar(255)
-  subscription_status   String?          @default("free")
-  subscription_ends_at  DateTime?
-  expo_push_token       String?
-  platform              String?          @default("ios")
-  preferred_bottle_size Int              @default(1000)
-  preferred_bottle_unit water_unit_enum  @default(ml)
-  show_calories         Boolean          @default(true)
-  show_hydration        Boolean          @default(true)
-  onboarding_step       String?
-  role                  user_role        @default(user)
-  steps_goal            Int              @default(10000)
-
-  // Relations
-  meals                              meals[]
-  food_items                         food_items[]
-  water_logs                         water_logs[]
-  body_metrics                       body_metrics[]
-  subscriptions                      subscriptions[]
-  payments                           payments[]
-  notification_logs                  notification_logs[]
-  notification_preferences           notification_preferences[]
-  favorite_meals                     favorite_meals[]
-  nutrition_goals                    nutrition_goals[]
-  hydration_goals                    hydration_goals[]
-  user_sports                        user_sports[]
-  health_settings                    health_settings[]
-  health_daily_snapshots             health_daily_snapshots[]
-  user_activity_profile              user_activity_profile[]
-  nutrition_guidelines               nutrition_guidelines[]
-  profile_nutritionists              profile_nutritionists[]
-  manual_workouts                    manual_workouts[]
-  scan_events                        scan_events[]
-  task_queue                         task_queue[]
-  contribution_queue                 contribution_queue[]
-  recipes                            recipes[]
-  recipe_items                       recipe_items[]
-  recommendation_sessions            recommendation_sessions[]
-  coach_messages                     coach_messages[]
-  coach_insights                     coach_insights[]
-  daily_tips_used                    daily_tips_used[]
-  pricing_ab_tests                   pricing_ab_tests[]
-  offer_code_attempts                offer_code_attempts[]
-  promo_codes_created                promo_codes[]
-  payments_analytics                 payments_analytics[]
-  cancellation_recovery_attempts     cancellation_recovery_attempts[]
-  cancellation_with_plan             cancellation_with_plan[]
-  cancellation_with_plan_and_payment cancellation_with_plan_and_payment[]
-  feedback                           feedback[]
-  influencers                        influencers[]
-  institutions_created               institutions[]
-  nutritionists                      nutritionists[]
-  additives                          additives[]
-  cron_job_logs                      cron_job_logs[]
-  marketing_campaign_history         marketing_campaign_history[]
-  daily_tips                         daily_tips[]
-
-  @@map("profiles")
-}
-
-model meals {
-  id                 String                @id @default(uuid())
-  created_at         DateTime              @default(now())
-  updated_at         DateTime              @updatedAt
-  name               String?
-  image_url          String?
-  meal_type          meal_type_enum?
-  meal_at            DateTime              @default(now())
-  status             meal_status           @default(analyzing)
-  source_type        meal_source_type_enum @default(unknown)
-  recorded_timezone  String?
-  llm_used           llm_model_enum?
-  modified           Boolean               @default(false)
-  is_from_favorite   Boolean               @default(false)
-  image_url_aux      String?
-  feedback           String?
-  recommendation     String?
-  api_time_ms        Int?
-  processing_time_ms Int?
-  prompt_version     String?
-
-  // Relations
-  user_id            String               @map("user_id")
-  user               profiles             @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  food_items         food_items[]
-  scan_events        scan_events[]
-  task_queue         task_queue[]
-  contribution_queue contribution_queue[]
-  favorite_meals     favorite_meals[]
-
-  @@map("meals")
-}
-
-model food_items {
-  id                     String     @id @default(uuid())
-  created_at             DateTime   @default(now())
-  updated_at             DateTime   @updatedAt
-  name                   String
-  quantity               Float?     @default(1)
-  unit                   unit_enum?
-  calories               Float?
-  protein                Float?
-  carbs                  Float?
-  fat                    Float?
-  barcode_number         String?
-  scanned                Boolean    @default(false)
-  servings               Float?
-  contributed            Boolean    @default(false)
-  nutriscore_grade       String?
-  nova_group             Int?
-  notfat_score           Int?
-  labels_tags            Json?
-  additives_tags         Json?
-  notfat_score_breakdown Json?
-  additives_details      Json?
-  is_alcoholic           Boolean    @default(false)
-  has_ingredients_data   Boolean?
-
-  // Relations
-  meal_id            String               @map("meal_id")
-  meal               meals                @relation(fields: [meal_id], references: [id], onDelete: Cascade)
-  profiles           profiles?            @relation(fields: [profilesId], references: [id])
-  profilesId         String?
-  contribution_queue contribution_queue[]
-
-  @@map("food_items")
-}
-
-model water_logs {
-  id                String          @id @default(uuid())
-  logged_at         DateTime
-  recorded_timezone String?
-  volume            Float
-  unit              water_unit_enum @default(ml)
-  created_at        DateTime        @default(now())
-  updated_at        DateTime        @updatedAt
-
-  // Relations
-  user_id String   @map("user_id")
-  user    profiles @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@map("water_logs")
-}
-
-model body_metrics {
-  id             String             @id @default(uuid())
-  measured_at    DateTime           @default(now())
-  weight_value   Float?
-  body_fat_value Float?
-  height_value   Float?
-  weight_unit    weight_unit_enum   @default(kg)
-  height_unit    height_unit_enum   @default(cm)
-  body_fat_unit  body_fat_unit_enum @default(pct)
-
-  // Relations
-  user_id String   @map("user_id")
-  user    profiles @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@map("body_metrics")
-}
-
-model subscriptions {
-  id                       String    @id @default(uuid())
-  user_id                  String?   @map("user_id")
-  mercadopago_id           String?
-  plan_type                String
-  status                   String    @default("pending")
-  amount                   Float?
-  currency                 String    @default("CLP")
-  start_date               DateTime?
-  trial_end_date           DateTime?
-  end_date                 DateTime?
-  created_at               DateTime  @default(now())
-  updated_at               DateTime  @updatedAt
-  payment_provider         String    @default("mercadopago")
-  provider_subscription_id String?
-  revenuecat_id            String?
-  environment              String?
-  offer_code               String?
-  applied_offer_code       String?   @db.VarChar(50)
-
-  // Relations
-  user                               profiles?                            @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  payments                           payments[]
-  promo_code_payments                promo_code_payments[]
-  offer_code_attempts                offer_code_attempts[]
-  cancellation_with_plan             cancellation_with_plan[]
-  cancellation_with_plan_and_payment cancellation_with_plan_and_payment[]
-  cancellation_recovery_attempts     cancellation_recovery_attempts[]
-
-  @@map("subscriptions")
-}
-
-model payments {
-  id                     String   @id @default(uuid())
-  user_id                String   @map("user_id")
-  subscription_id        String?  @map("subscription_id")
-  mercadopago_payment_id String?
-  status                 String
-  status_detail          String?
-  payment_type           String?
-  amount                 Float
-  currency               String
-  payment_date           DateTime
-  last_modified          DateTime
-  payment_data           Json?
-  created_at             DateTime @default(now())
-  updated_at             DateTime @updatedAt
-  operation_type         String?
-  revenuecat_payment_id  String?
-  environment            String?
-
-  // Relations
-  user         profiles       @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  subscription subscriptions? @relation(fields: [subscription_id], references: [id], onDelete: SetNull)
-
-  @@map("payments")
-}
-
-model notification_logs {
-  id                String            @id @default(uuid())
-  sent_at           DateTime          @default(now())
-  notification_type notification_type
-  reminder_id       String?           @map("reminder_id")
-
-  // Relations
-  user_id  String                    @map("user_id")
-  user     profiles                  @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  reminder notification_preferences? @relation(fields: [reminder_id], references: [id], onDelete: SetNull)
-
-  @@map("notification_logs")
-}
-
-model notification_preferences {
-  id              String          @id @default(uuid())
-  hour            Int
-  minute          Int
-  meal_type       meal_type_enum?
-  enabled         Boolean         @default(true)
-  created_at      DateTime        @default(now())
-  updated_at      DateTime        @updatedAt
-  is_custom       Boolean         @default(false)
-  label           String?
-  message         String?
-  icon            String?
-  predefined_type String?
-
-  // Relations
-  user_id           String              @map("user_id")
-  user              profiles            @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  notification_logs notification_logs[]
-
-  @@map("notification_preferences")
-}
-
-model favorite_meals {
-  id               String                @id @default(uuid())
-  created_at       DateTime              @default(now())
-  updated_at       DateTime              @updatedAt
-  name             String?
-  image_url        String?
-  meal_type        meal_type_enum?
-  source_type      meal_source_type_enum @default(unknown)
-  original_meal_id String?
-
-  // Relations
-  user_id             String                @map("user_id")
-  user                profiles              @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  meals               meals?                @relation(fields: [original_meal_id], references: [id], onDelete: SetNull)
-  favorite_meal_items favorite_meal_items[]
-
-  @@map("favorite_meals")
-}
-
-model favorite_meal_items {
-  id             String     @id @default(uuid())
-  created_at     DateTime   @default(now())
-  name           String
-  quantity       Float?     @default(1)
-  unit           unit_enum?
-  calories       Float?
-  protein        Float?
-  carbs          Float?
-  fat            Float?
-  servings       Float?
-  barcode_number String?
-  scanned        Boolean    @default(false)
-  contributed    Boolean    @default(false)
-
-  // Relations
-  favorite_meal_id String         @map("favorite_meal_id")
-  favorite_meal    favorite_meals @relation(fields: [favorite_meal_id], references: [id], onDelete: Cascade)
-
-  @@map("favorite_meal_items")
-}
-
 model nutrition_goals {
-  id         String                 @id @default(uuid())
-  calories   Int?
-  protein    Int?
-  carbs      Int?
-  fat        Int?
-  start_date DateTime               @default(now())
-  end_date   DateTime?
-  created_at DateTime               @default(now())
-  updated_at DateTime               @updatedAt
-  source     nutrition_goal_source?
-
-  // Relations
-  user_id String   @map("user_id")
-  user    profiles @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid())
+  user_id     String   @db.Uuid
+  calories    Int?
+  protein     Int?
+  carbs       Int?
+  fat         Int?
+  fiber       Int?
+  water       Int?
+  is_active   Boolean? @default(true)
+  source      String?
+  start_date  DateTime @default(now())
+  end_date    DateTime?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @updatedAt @db.Timestamptz(6)
 
   @@map("nutrition_goals")
 }
 
 model hydration_goals {
-  id          String          @id @default(uuid())
-  target      Float
-  target_unit water_unit_enum @default(ml)
-  start_date  DateTime
+  id          String   @id @default(uuid())
+  user_id     String   @db.Uuid
+  target      Int?
+  target_unit String?
+  start_date  DateTime @default(now())
   end_date    DateTime?
-  created_at  DateTime        @default(now())
-  updated_at  DateTime        @updatedAt
-
-  // Relations
-  user_id String   @map("user_id")
-  user    profiles @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @updatedAt @db.Timestamptz(6)
 
   @@map("hydration_goals")
 }
 
 model user_sports {
-  id             String   @id @default(uuid())
-  sport_type     String
-  hours_per_week Float?
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
-
-  // Relations
-  user_id String   @map("user_id")
-  user    profiles @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sport_type    String
+  hours_per_week Decimal? @db.Decimal
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @updatedAt @db.Timestamptz(6)
+  user_id       String   @db.Uuid
 
   @@map("user_sports")
 }
 
 model health_settings {
-  id                         String    @id @default(uuid())
-  health_platform            String?
-  connected_at               DateTime?
-  disconnected_at            DateTime?
-  eat_back_exercise_calories Boolean   @default(true)
-  eat_back_neat_calories     Boolean   @default(true)
-  sync_weight                Boolean   @default(true)
-  created_at                 DateTime  @default(now())
-  updated_at                 DateTime  @updatedAt
-
-  // Relations
-  user_id String   @map("user_id")
-  user    profiles @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  health_platform       String?
+  connected_at         DateTime?
+  disconnected_at      DateTime?
+  eat_back_exercise_calories Boolean @default(true)
+  eat_back_neat_calories  Boolean @default(true)
+  sync_weight          Boolean  @default(true)
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime @updatedAt @db.Timestamptz(6)
+  user_id             String   @db.Uuid
 
   @@map("health_settings")
 }
 
 model health_daily_snapshots {
-  id                      String   @id @default(uuid())
-  date                    DateTime @db.Date
-  steps                   Int?
-  active_calories_burned  Float?
-  workout_calories_burned Float?
-  workout_count           Int?
-  workout_minutes         Int?
-  weight_kg               Float?
-  sleep_hours             Float?
-  sleep_quality           String?
-  synced_at               DateTime @default(now())
-  source                  String?  @default("apple_health")
-
-  // Relations
-  user_id String   @map("user_id")
-  user    profiles @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date                 DateTime @db.Date
+  steps                 Int?
+  active_calories_burned  Decimal? @db.Decimal
+  workout_calories_burned Decimal? @db.Decimal
+  workout_count         Int?
+  workout_minutes       Int?
+  weight_kg           Decimal? @db.Decimal
+  sleep_hours         Decimal? @db.Decimal
+  sleep_quality       String?
+  synced_at           DateTime @default(now()) @db.Timestamptz(6)
+  source              String?
+  user_id             String   @db.Uuid
 
   @@map("health_daily_snapshots")
 }
 
 model user_activity_profile {
-  id                      String    @id @default(uuid())
-  does_sport              Boolean?
-  daily_activity_level    String?
-  activity_system_version String    @default("v2")
-  upgraded_to_v2_at       DateTime?
-  created_at              DateTime  @default(now())
-  updated_at              DateTime  @updatedAt
-
-  // Relations
-  user_id String   @map("user_id")
-  user    profiles @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  does_sport            Boolean?
+  daily_activity_level  String?
+  activity_system_version String   @default("v2")
+  upgraded_to_v2_at    DateTime?
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime @updatedAt @db.Timestamptz(6)
+  user_id             String   @db.Uuid
 
   @@map("user_activity_profile")
 }
 
+model body_metrics {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  measured_at   DateTime @default(now()) @db.Timestamptz(6)
+  weight_value  Decimal? @db.Decimal
+  body_fat_value Decimal? @db.Decimal
+  height_value  Decimal? @db.Decimal
+  weight_unit   String   @default("kg")
+  height_unit   String   @default("cm")
+  body_fat_unit String   @default("pct")
+  user_id       String   @db.Uuid
+
+  @@map("body_metrics")
+}
+
+model notification_preferences {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hour            Int
+  minute          Int
+  meal_type       String?
+  enabled         Boolean  @default(true)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @updatedAt @db.Timestamptz(6)
+  is_custom       Boolean  @default(false)
+  label           String?
+  message         String?
+  icon            String?
+  predefined_type String?
+  user_id         String   @db.Uuid
+
+  @@map("notification_preferences")
+}
+
+model notification_logs {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sent_at           DateTime @default(now()) @db.Timestamptz(6)
+  notification_type String
+  reminder_id        String?
+  user_id           String   @db.Uuid
+
+  @@map("notification_logs")
+}
+
+model subscriptions {
+  id                    String   @id @default(uuid())
+  user_id               String?  @db.Uuid
+  mercadopago_id         String?
+  plan_type             String
+  status                String   @default("pending")
+  amount                Decimal? @db.Decimal
+  currency              String   @default("CLP")
+  start_date            DateTime?
+  trial_end_date        DateTime?
+  end_date              DateTime?
+  created_at            DateTime @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime @updatedAt @db.Timestamptz(6)
+  payment_provider      String   @default("mercadopago")
+  provider_subscription_id String?
+  revenuecat_id         String?
+  environment           String?
+  offer_code            String?
+  applied_offer_code   String?   @db.VarChar(50)
+
+  @@map("subscriptions")
+}
+
+model payments {
+  id                    String   @id @default(uuid())
+  user_id                String   @db.Uuid
+  subscription_id         String?  @db.Uuid
+  mercadopago_payment_id String?
+  status                String
+  status_detail          String?
+  payment_type           String?
+  amount                Decimal  @db.Decimal
+  currency              String
+  payment_date          DateTime
+  last_modified        DateTime
+  payment_data          Json?
+  created_at            DateTime @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime @updatedAt @db.Timestamptz(6)
+  operation_type        String?
+  revenuecat_payment_id String?
+  environment           String?
+
+  @@map("payments")
+}
+
+model payments_analytics {
+  id                String   @id @default(uuid())
+  event_type         String   @db.VarChar(50)
+  is_chilean        Boolean?
+  ab_test_group     String?  @db.VarChar(1)
+  plan_type         String?  @db.VarChar(20)
+  payment_method   String?  @db.VarChar(20)
+  transaction_id    String?  @db.VarChar(100)
+  amount           Decimal?  @db.Decimal
+  currency         String?   @db.VarChar(3)
+  is_successful    Boolean?
+  error_message    String?
+  error_code      String?  @db.VarChar(50)
+  platform        String?  @db.VarChar(20)
+  app_version     String?  @db.VarChar(20)
+  metadata        Json?
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  user_id         String   @db.Uuid
+
+  @@map("payments_analytics")
+}
+
+model institutions {
+  id          String   @id @default(uuid())
+  name        String
+  logo_url    String?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  creator_id  String?
+
+  @@map("institutions")
+}
+
+model nutritionists {
+  id                String   @id @default(uuid())
+  first_name        String?
+  last_name         String?
+  email             String
+  gender            String?
+  institution_id    String?  @db.Uuid
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+  auth_id           String?
+  profile_image_url String?
+  clicks_ig         Decimal? @db.Decimal
+  clicks_wtp        Decimal? @db.Decimal
+  instagram_url     String?
+  long_description  String?
+  phone            String?
+  short_description String?
+  specialties      String[]
+  visible_in_app   Boolean  @default(false)
+  profilesId       String?  @db.Uuid
+  institutions     institutions? @relation(fields: [institution_id], references: [id])
+  nutrition_guidelines nutrition_guidelines[]
+  profile_nutritionists profile_nutritionists[]
+
+  @@map("nutritionists")
+}
+
 model nutrition_guidelines {
-  id              String   @id @default(uuid())
-  user_id         String?  @map("user_id")
-  nutritionist_id String?  @map("nutritionist_id")
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String?  @db.Uuid
+  nutritionist_id String?  @db.Uuid
   name            String
   status          String   @default("draft")
   allergies       String[]
   pathologies     String[]
   food_aversions  String[]
   cooking_time    String?
-  supplementation Boolean  @default(false)
+  supplementation Boolean? @default(false)
   notes           String?
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
-
-  // Relations
-  user                  profiles?               @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  nutritionist          nutritionists?          @relation(fields: [nutritionist_id], references: [id], onDelete: SetNull)
-  guideline_days        guideline_days[]
-  profile_nutritionists profile_nutritionists[]
+  source          String?  @default("ia")
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @updatedAt @db.Timestamptz(6)
+  nutritionists   nutritionists? @relation(fields: [nutritionist_id], references: [id])
+  guideline_days  guideline_days[]
 
   @@map("nutrition_guidelines")
 }
 
-model profile_nutritionists {
-  id         String   @id @default(uuid())
-  created_at DateTime @default(now())
-
-  // Relations
-  profile_id             String                @map("profile_id")
-  profile                profiles              @relation(fields: [profile_id], references: [id], onDelete: Cascade)
-  nutritionist_id        String                @map("nutritionist_id")
-  nutritionist           nutritionists         @relation(fields: [nutritionist_id], references: [id], onDelete: Cascade)
-  nutrition_guidelines   nutrition_guidelines? @relation(fields: [nutrition_guidelinesId], references: [id])
-  nutrition_guidelinesId String?
-
-  @@map("profile_nutritionists")
-}
-
-model manual_workouts {
-  id                 String   @id @default(uuid())
-  workout_date       DateTime @db.Date
-  sport_type         String
-  duration_minutes   Int
-  estimated_calories Int
-  created_at         DateTime @default(now())
-
-  // Relations
-  user_id String   @map("user_id")
-  user    profiles @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@map("manual_workouts")
-}
-
-model scan_events {
-  id            String    @id @default(uuid())
-  barcode       String
-  origin        String
-  result        String?
-  product_name  String?
-  processing_ms Int?
-  created_at    DateTime  @default(now())
-  completed_at  DateTime?
-
-  // Relations
-  user_id String   @map("user_id")
-  user    profiles @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  meal_id String?  @map("meal_id")
-  meal    meals?   @relation(fields: [meal_id], references: [id], onDelete: SetNull)
-
-  @@map("scan_events")
-}
-
-model task_queue {
-  id                      String    @id @default(uuid())
-  image_url               String?
-  text_description        String?
-  audio_url               String?
-  barcode                 String?
-  retry_count             Int       @default(0)
-  max_retries             Int       @default(3)
-  error_message           String?
-  last_error_at           DateTime?
-  processing_started_at   DateTime?
-  processing_completed_at DateTime?
-  metadata                Json?
-  photo_comment           String?
-  task_type               task_type
-  status                  String    @default("pending")
-  priority                Int       @default(5)
-  created_at              DateTime  @default(now())
-  updated_at              DateTime  @updatedAt
-
-  // Relations
-  meal_id    String    @map("meal_id")
-  meal       meals     @relation(fields: [meal_id], references: [id], onDelete: Cascade)
-  profiles   profiles? @relation(fields: [profilesId], references: [id])
-  profilesId String?
-
-  @@map("task_queue")
-}
-
-model contribution_queue {
-  id                      String              @id @default(uuid())
-  user_id                 String?
-  barcode                 String?
-  front_image_url         String?
-  nutrition_image_url     String?
-  extra_image_url         String?
-  retry_count             Int                 @default(0)
-  max_retries             Int                 @default(3)
-  processing_started_at   DateTime?
-  processing_completed_at DateTime?
-  error_message           String?
-  last_error_at           DateTime?
-  result_data             Json?
-  metadata                Json?
-  updated_at              DateTime?
-  status                  contribution_status @default(pending)
-  priority                Int                 @default(5)
-  created_at              DateTime            @default(now())
-
-  // Relations
-  meal_id      String?     @map("meal_id")
-  meal         meals?      @relation(fields: [meal_id], references: [id], onDelete: SetNull)
-  food_item_id String?     @map("food_item_id")
-  food_item    food_items? @relation(fields: [food_item_id], references: [id], onDelete: SetNull)
-  profiles     profiles?   @relation(fields: [profilesId], references: [id])
-  profilesId   String?
-
-  @@map("contribution_queue")
-}
-
-model recipes {
-  id                        String          @id @default(uuid())
-  created_at                DateTime        @default(now())
-  updated_at                DateTime        @updatedAt
-  name                      String
-  image_url                 String?
-  meal_type                 meal_type_enum
-  source                    String?         @default("ai_recommendation")
-  description               String?
-  estimated_time            String?
-  difficulty                String?
-  recipe_type               String?
-  steps                     String[]
-  llm_used                  llm_model_enum?
-  api_time_ms               Int?
-  processing_time_ms        Int?
-  is_favorite               Boolean         @default(false)
-  recommendation_session_id String?         @map("recommendation_session_id")
-
-  // Relations
-  user_id                String                   @map("user_id")
-  user                   profiles                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  recipe_items           recipe_items[]
-  recommendation_session recommendation_sessions? @relation(fields: [recommendation_session_id], references: [id], onDelete: SetNull)
-
-  @@map("recipes")
-}
-
-model recipe_items {
-  id             String     @id @default(uuid())
-  created_at     DateTime   @default(now())
-  name           String
-  quantity       Float?     @default(1)
-  unit           unit_enum?
-  calories       Float?
-  protein        Float?
-  carbs          Float?
-  fat            Float?
-  updated_at     DateTime   @updatedAt
-  barcode_number String?
-  scanned        Boolean    @default(false)
-  servings       Float?
-  contributed    Boolean    @default(false)
-
-  // Relations
-  recipe_id  String    @map("recipe_id")
-  recipe     recipes   @relation(fields: [recipe_id], references: [id], onDelete: Cascade)
-  profiles   profiles? @relation(fields: [profilesId], references: [id])
-  profilesId String?
-
-  @@map("recipe_items")
-}
-
-model recommendation_sessions {
-  id                    String          @id @default(uuid())
-  meal_type             meal_type_enum
-  available_ingredients String?
-  remaining_calories    Float?
-  remaining_protein     Float?
-  remaining_carbs       Float?
-  remaining_fat         Float?
-  llm_used              llm_model_enum?
-  api_time_ms           Int?
-  total_time_ms         Int?
-  fridge_image_url      String?
-  created_at            DateTime        @default(now())
-  updated_at            DateTime        @updatedAt
-
-  // Relations
-  user_id String    @map("user_id")
-  user    profiles  @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  recipes recipes[]
-
-  @@map("recommendation_sessions")
-}
-
-model coach_messages {
-  id         String   @id @default(uuid())
-  role       String
-  content    String
-  audio_url  String?
-  metadata   Json?
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  // Relations
-  user_id String   @map("user_id")
-  user    profiles @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@map("coach_messages")
-}
-
-model coach_insights {
-  id           String   @id @default(uuid())
-  insights     Json
-  generated_at DateTime @default(now())
-  expires_at   DateTime @default(dbgenerated("(now() + '04:00:00'::interval)"))
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
-
-  // Relations
-  user_id String   @map("user_id")
-  user    profiles @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@map("coach_insights")
-}
-
-model daily_tips {
-  id          Int       @id @default(autoincrement())
-  emoji       String    @default("💡")
-  category    String    @default("nutrición")
-  title       String
-  description String
-  used_at     DateTime? @db.Date
-  created_at  DateTime  @default(now())
-
-  // Relations
-  daily_tips_used daily_tips_used[]
-  profiles        profiles?         @relation(fields: [profilesId], references: [id])
-  profilesId      String?
-
-  @@map("daily_tips")
-}
-
-// Support tables for daily_tips relationship
-model daily_tips_used {
-  id      String   @id @default(uuid())
-  used_at DateTime @default(now())
-
-  // Relations
-  user_id String     @map("user_id")
-  user    profiles   @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  tip_id  Int        @map("tip_id")
-  tip     daily_tips @relation(fields: [tip_id], references: [id], onDelete: Cascade)
-
-  @@unique([user_id, tip_id])
-  @@map("daily_tips_used")
-}
-
-model pricing_ab_tests {
-  id           Int       @id @default(autoincrement())
-  test_group   String
-  price_shown  Int
-  converted    Boolean   @default(false)
-  converted_at DateTime?
-  created_at   DateTime  @default(now())
-
-  // Relations
-  user_id String   @map("user_id")
-  user    profiles @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@map("pricing_ab_tests")
-}
-
-model offer_code_attempts {
-  id         String    @id @default(uuid())
-  offer_code String    @db.VarChar(50)
-  used_at    DateTime?
-  status     String    @default("pending") @db.VarChar(20)
-  created_at DateTime  @default(now())
-
-  // Relations
-  user_id         String         @map("user_id")
-  user            profiles       @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  subscription_id String?        @map("subscription_id")
-  subscription    subscriptions? @relation(fields: [subscription_id], references: [id], onDelete: SetNull)
-
-  @@map("offer_code_attempts")
-}
-
-model promo_codes {
-  id              Int      @id @default(autoincrement())
-  code            String
-  creator_name    String?
-  active          Boolean?
-  type            String?
-  commission_rate Float?   @default(0.0)
-  payment_type    String?  @default("commission")
-  absolute_amount Float?
-  created_at      DateTime @default(now())
-
-  // Relations
-  creator_id          String?               @map("creator_id")
-  creator             profiles?             @relation(fields: [creator_id], references: [id], onDelete: SetNull)
-  promo_code_payments promo_code_payments[]
-
-  @@map("promo_codes")
-}
-
-model promo_code_payments {
-  id               Int      @id @default(autoincrement())
-  amount           Float
-  payment_date     DateTime @default(now())
-  period_start     DateTime @db.Date
-  period_end       DateTime @db.Date
-  payment_method   String?
-  payment_account  String?
-  status           String   @default("pending")
-  reference_number String?
-  notes            String?
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
-
-  // Relations
-  promo_code_id   Int            @map("promo_code_id")
-  promo_code      promo_codes    @relation(fields: [promo_code_id], references: [id], onDelete: Cascade)
-  subscriptions   subscriptions? @relation(fields: [subscriptionsId], references: [id])
-  subscriptionsId String?
-
-  @@map("promo_code_payments")
-}
-
-model payments_analytics {
-  id             String   @id @default(uuid())
-  event_type     String   @db.VarChar(50)
-  is_chilean     Boolean?
-  ab_test_group  String?  @db.VarChar(1)
-  plan_type      String?  @db.VarChar(20)
-  payment_method String?  @db.VarChar(20)
-  transaction_id String?  @db.VarChar(100)
-  amount         Float?
-  currency       String?  @db.VarChar(3)
-  is_successful  Boolean?
-  error_message  String?
-  error_code     String?  @db.VarChar(50)
-  platform       String?  @db.VarChar(20)
-  app_version    String?  @db.VarChar(20)
-  metadata       Json?
-  created_at     DateTime @default(now())
-
-  // Relations
-  user_id String   @map("user_id")
-  user    profiles @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@map("payments_analytics")
-}
-
-model cancellation_recovery_attempts {
-  id                        String    @id @default(uuid())
-  cancellation_reason       String?   @db.VarChar(50)
-  detailed_feedback         String?
-  experiment_group          String?   @db.VarChar(20)
-  recovery_offer_shown      Boolean   @default(false)
-  offer_type                String?   @db.VarChar(30)
-  from_product              String?   @db.VarChar(100)
-  to_product                String?   @db.VarChar(100)
-  original_price            Float?
-  new_price                 Float?
-  user_action               String?   @db.VarChar(30)
-  revenuecat_transaction_id String?   @db.VarChar(200)
-  subscription_age_days     Int?
-  ltv_before_attempt        Float?
-  created_at                DateTime  @default(now())
-  completed_at              DateTime?
-  cancelled                 Boolean?
-
-  // Relations
-  user_id                  String         @map("user_id")
-  user                     profiles       @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  original_subscription_id String?        @map("original_subscription_id")
-  original_subscription    subscriptions? @relation(fields: [original_subscription_id], references: [id], onDelete: SetNull)
-
-  @@map("cancellation_recovery_attempts")
-}
-
-model feedback {
-  id         String   @id @default(uuid())
-  message    String
-  note       String?
-  user_type  String?
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  // Relations
-  user_id    String?        @map("user_id")
-  user       nutritionists? @relation(fields: [user_id], references: [id], onDelete: SetNull)
-  profiles   profiles?      @relation(fields: [profilesId], references: [id])
-  profilesId String?
-
-  @@map("feedback")
-}
-
-model influencers {
-  id             String   @id @default(uuid())
-  first_name     String
-  last_name      String
-  affiliate_code String
-  banking_data   String?
-  followers      Int      @default(0)
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
-
-  // Relations
-  user_id String?   @map("user_id")
-  user    profiles? @relation(fields: [user_id], references: [id], onDelete: SetNull)
-
-  @@map("influencers")
-}
-
-model institutions {
-  id         String   @id @default(uuid())
-  name       String
-  logo_url   String?
-  created_at DateTime @default(now())
-
-  // Relations
-  creator_id    String?         @map("creator_id")
-  creator       profiles?       @relation(fields: [creator_id], references: [id], onDelete: SetNull)
-  nutritionists nutritionists[]
-
-  @@map("institutions")
-}
-
-model nutritionists {
-  id                String       @id @default(uuid())
-  first_name        String?
-  last_name         String?
-  email             String
-  gender            gender_enum?
-  institution_id    String?      @map("institution_id")
-  created_at        DateTime     @default(now())
-  auth_id           String?
-  profile_image_url String?
-  clicks_ig         Float?
-  clicks_wtp        Float?
-  instagram_url     String?
-  long_description  String?
-  phone             String?
-  short_description String?
-  specialties       String[]
-  visible_in_app    Boolean      @default(false)
-
-  // Relations
-  institution           institutions?           @relation(fields: [institution_id], references: [id], onDelete: SetNull)
-  nutrition_guidelines  nutrition_guidelines[]
-  profile_nutritionists profile_nutritionists[]
-  feedback              feedback[]
-  profiles              profiles?               @relation(fields: [profilesId], references: [id])
-  profilesId            String?
-
-  @@map("nutritionists")
-}
-
-model additives {
-  id             String   @id @default(uuid())
-  e_number       String
-  name_en        String?
-  name_es        String?
-  risk_level     String   @default("unknown")
-  penalty_points Int      @default(0)
-  justification  String?
-  bibliography   String?
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
-
-  // Relations
-  creator_id String?   @map("creator_id")
-  creator    profiles? @relation(fields: [creator_id], references: [id], onDelete: SetNull)
-
-  @@map("additives")
-}
-
-model cron_job_logs {
-  id          Int      @id @default(autoincrement())
-  job_name    String
-  result      Json?
-  executed_at DateTime @default(now())
-
-  // Relations
-  creator_id String?   @map("creator_id")
-  creator    profiles? @relation(fields: [creator_id], references: [id], onDelete: SetNull)
-
-  @@map("cron_job_logs")
-}
-
-model marketing_campaign_history {
-  id              Int      @id @default(autoincrement())
-  send_type       String
-  title           String?
-  content         String
-  segment_summary String
-  target_count    Int      @default(0)
-  filters_applied Json?
-  created_at      DateTime @default(now())
-
-  // Relations
-  creator_id String?   @map("creator_id")
-  creator    profiles? @relation(fields: [creator_id], references: [id], onDelete: SetNull)
-
-  @@map("marketing_campaign_history")
-}
-
-// Analytics Views (not actual tables but included for completeness)
 model guideline_days {
-  id             String   @id @default(uuid())
-  day_name       String
-  day_order      Int
-  context        String?
-  total_calories Int?
-  total_protein  Float?
-  total_carbs    Float?
-  total_fat      Float?
-  notes          String?
-  created_at     DateTime @default(now())
-
-  // Relations
-  guideline_id        String                @map("guideline_id")
-  guideline           nutrition_guidelines  @relation(fields: [guideline_id], references: [id], onDelete: Cascade)
-  guideline_trainings guideline_trainings[]
-  guideline_meals     guideline_meals[]
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guideline_id    String   @db.Uuid
+  day_name        String
+  day_order       Int
+  context         String?
+  total_calories  Decimal? @db.Decimal
+  total_protein   Decimal? @db.Decimal
+  total_carbs     Decimal? @db.Decimal
+  total_fat       Decimal? @db.Decimal
+  notes           String?
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  nutrition_guidelines nutrition_guidelines @relation(fields: [guideline_id], references: [id], onDelete: Cascade)
+  guideline_meals      guideline_meals[]
 
   @@map("guideline_days")
 }
 
-model guideline_trainings {
-  id               String  @id @default(uuid())
-  training_order   Int
-  sport_type       String
-  duration_minutes Int
-  intensity        String?
-  scheduled_time   String?
-
-  // Relations
-  guideline_day_id String         @map("guideline_day_id")
-  guideline_day    guideline_days @relation(fields: [guideline_day_id], references: [id], onDelete: Cascade)
-
-  @@map("guideline_day_trainings")
-}
-
 model guideline_meals {
-  id             String   @id @default(uuid())
-  meal_order     Int
-  meal_type      String
-  meal_name      String
-  scheduled_time String?
-  created_at     DateTime @default(now())
-
-  // Relations
-  guideline_day_id     String                 @map("guideline_day_id")
-  guideline_day        guideline_days         @relation(fields: [guideline_day_id], references: [id], onDelete: Cascade)
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guideline_day_id String   @db.Uuid
+  meal_order       Int
+  meal_type        String
+  meal_name        String
+  scheduled_time   String?
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+  guideline_days   guideline_days @relation(fields: [guideline_day_id], references: [id], onDelete: Cascade)
   guideline_meal_items guideline_meal_items[]
 
   @@map("guideline_meals")
 }
 
 model guideline_meal_items {
-  id         String     @id @default(uuid())
-  item_order Int
-  name       String
-  quantity   Float?
-  unit       unit_enum?
-  calories   Float?
-  protein    Float?
-  carbs      Float?
-  fat        Float?
-  servings   Float?
-  created_at DateTime   @default(now())
-  updated_at DateTime   @updatedAt
-
-  // Relations
-  guideline_meal_id String          @map("guideline_meal_id")
-  guideline_meal    guideline_meals @relation(fields: [guideline_meal_id], references: [id], onDelete: Cascade)
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guideline_meal_id String   @db.Uuid
+  item_order        Int
+  name              String
+  quantity          Decimal? @db.Decimal
+  unit              String?
+  calories          Decimal? @db.Decimal
+  protein           Decimal? @db.Decimal
+  carbs             Decimal? @db.Decimal
+  fat               Decimal? @db.Decimal
+  servings          Decimal? @default(1) @db.Decimal
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime @updatedAt @db.Timestamptz(6)
+  guideline_meals   guideline_meals @relation(fields: [guideline_meal_id], references: [id], onDelete: Cascade)
 
   @@map("guideline_meal_items")
 }
 
-// Analytics tables (read-only views)
-model payment_funnel_conversion {
-  id                          Int      @id @default(autoincrement())
-  is_chilean                  Boolean?
-  ab_test_group               String?  @db.VarChar(1)
-  payment_method              String?  @db.VarChar(20)
-  total_users                 BigInt?
-  paywall_views               BigInt?
-  plan_selections             BigInt?
-  card_submissions            BigInt?
-  subscriptions               BigInt?
-  plan_selection_rate         Float?
-  card_submission_rate        Float?
-  mp_conversion_rate          Float?
-  rc_conversion_rate          Float?
-  overall_conversion_rate     Float?
-  avg_conversion_time_minutes Float?
+model profile_nutritionists {
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profile_id              String   @db.Uuid
+  nutritionist_id         String   @db.Uuid
+  nutrition_guidelines_id String?  @db.Uuid
+  created_at              DateTime @default(now()) @db.Timestamptz(6)
+  nutritionists           nutritionists @relation(fields: [nutritionist_id], references: [id], onDelete: Cascade)
 
-  @@map("payment_funnel_conversion")
+  @@map("profile_nutritionists")
 }
 
-model daily_payment_metrics {
-  id             Int       @id @default(autoincrement())
-  day            DateTime?
-  is_chilean     Boolean?
-  payment_method String?   @db.VarChar(20)
-  event_type     String?   @db.VarChar(50)
-  event_count    BigInt?
-  unique_users   BigInt?
-  avg_amount     Float?
+model additives {
+  id              String   @id @default(uuid())
+  e_number       String
+  name_en        String?
+  name_es       String?
+  risk_level    String   @default("unknown")
+  penalty_points Int     @default(0)
+  justification String?
+  bibliography  String?
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @updatedAt @db.Timestamptz(6)
+  creator_id    String?
 
-  @@map("daily_payment_metrics")
+  @@map("additives")
 }
 
-model ab_test_comparison {
-  id                       Int     @id @default(autoincrement())
-  ab_test_group            String? @db.VarChar(1)
-  payment_method           String? @db.VarChar(20)
-  paywall_views            BigInt?
-  plan_selections          BigInt?
-  card_submissions         BigInt?
-  subscriptions            BigInt?
-  total_revenue            Float?
-  plan_selection_rate      Float?
-  card_submission_rate     Float?
-  subscription_rate        Float?
-  overall_conversion_rate  Float?
-  revenue_per_subscription Float?
+model daily_tips {
+  id          Int      @id @default(autoincrement())
+  emoji       String   @default("💡")
+  category    String   @default("nutrición")
+  title       String
+  description String
+  used_at     DateTime? @db.Date
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  profilesId String?  @db.Uuid
 
-  @@map("ab_test_comparison")
+  @@map("daily_tips")
 }
 
-model scan_events_daily_stats {
-  id                Int       @id @default(autoincrement())
-  scan_date         DateTime? @db.Date
-  origin            String?
-  result            String?
-  event_count       BigInt?
-  unique_users      BigInt?
-  unique_barcodes   BigInt?
-  avg_processing_ms Float?
-  p95_processing_ms Float?
+model coach_messages {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  role       String
+  content    String
+  metadata   Json?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
 
-  @@map("scan_events_daily_stats")
-}
-
-model scanner_daily_stats {
-  id                     Int                    @id @default(autoincrement())
-  scan_date              DateTime?              @db.Date
-  source_type            meal_source_type_enum?
-  status                 meal_status?
-  scan_count             BigInt?
-  unique_users           BigInt?
-  unique_products        BigInt?
-  avg_processing_seconds Float?
-  missing_notfat_score   BigInt?
-  missing_nutriscore     BigInt?
-  missing_nova           BigInt?
-  missing_additives_data BigInt?
-  contributed_count      BigInt?
-  alcoholic_products     BigInt?
-
-  @@map("scanner_daily_stats")
-}
-
-model geography_payment_comparison {
-  id                  Int     @id @default(autoincrement())
-  geography           String?
-  payment_method      String? @db.VarChar(20)
-  paywall_views       BigInt?
-  plan_selections     BigInt?
-  subscriptions       BigInt?
-  plan_selection_rate Float?
-  conversion_rate     Float?
-  total_revenue       Float?
-
-  @@map("geography_payment_comparison")
-}
-
-model cancellation_with_plan {
-  id                        String    @id @default(uuid())
-  user_id                   String    @map("user_id")
-  original_subscription_id  String?   @map("original_subscription_id")
-  cancellation_reason       String?   @db.VarChar(50)
-  detailed_feedback         String?
-  experiment_group          String?   @db.VarChar(20)
-  recovery_offer_shown      Boolean?
-  offer_type                String?   @db.VarChar(30)
-  from_product              String?   @db.VarChar(100)
-  to_product                String?   @db.VarChar(100)
-  original_price            Float?
-  new_price                 Float?
-  user_action               String?   @db.VarChar(30)
-  revenuecat_transaction_id String?   @db.VarChar(200)
-  subscription_age_days     Int?
-  ltv_before_attempt        Float?
-  created_at                DateTime?
-  completed_at              DateTime?
-  cancelled                 Boolean?
-  plan_type                 String?
-  resolved_offer_code       String?   @db.VarChar(50)
-  subscription_status       String?
-  ever_paid                 Boolean?
-
-  // Relations
-  user                  profiles       @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  original_subscription subscriptions? @relation(fields: [original_subscription_id], references: [id], onDelete: SetNull)
-
-  @@map("cancellation_with_plan")
-}
-
-model cancellation_with_plan_and_payment {
-  id                        String    @id @default(uuid())
-  user_id                   String    @map("user_id")
-  original_subscription_id  String?   @map("original_subscription_id")
-  cancellation_reason       String?   @db.VarChar(50)
-  detailed_feedback         String?
-  experiment_group          String?   @db.VarChar(20)
-  recovery_offer_shown      Boolean?
-  offer_type                String?   @db.VarChar(30)
-  from_product              String?   @db.VarChar(100)
-  to_product                String?   @db.VarChar(100)
-  original_price            Float?
-  new_price                 Float?
-  user_action               String?   @db.VarChar(30)
-  revenuecat_transaction_id String?   @db.VarChar(200)
-  subscription_age_days     Int?
-  ltv_before_attempt        Float?
-  created_at                DateTime?
-  completed_at              DateTime?
-  cancelled                 Boolean?
-  plan_type                 String?
-  resolved_offer_code       String?   @db.VarChar(50)
-  subscription_status       String?
-  ever_paid                 Boolean?
-
-  // Relations
-  user                  profiles       @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  original_subscription subscriptions? @relation(fields: [original_subscription_id], references: [id], onDelete: SetNull)
-
-  @@map("cancellation_with_plan_and_payment")
+  @@map("coach_messages")
 }

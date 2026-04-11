@@ -1,3 +1,4 @@
+import { supabase } from '@/services/supabase';
 export type Gender = 'male' | 'female' | 'non_binary' | 'other';
 
 export interface CalculationInput {
@@ -62,22 +63,16 @@ CONSIDERACIONES:
 - Incluye explicación clara y 3 recomendaciones prácticas`;
 
     // Llamar al endpoint de NotFat IA
-    const response = await fetch('https://jcfezqakxulmtdvioxbc.supabase.co/functions/v1/process-prompt', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const { data, error: fnError } = await supabase.functions.invoke('process-prompt', {
+      body: {
         message: prompt,
         userProfile: userProfile
-      }),
+      },
     });
 
-    if (!response.ok) {
-      throw new Error(`Error en API: ${response.status}`);
+    if (fnError) {
+      throw fnError;
     }
-
-    const data = await response.json();
     console.log('📊 Respuesta de NotFat IA:', data);
 
     // Si la IA devuelve una respuesta de chat, extraer los números

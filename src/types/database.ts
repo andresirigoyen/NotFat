@@ -22,6 +22,7 @@ export type Database = {
           timezone: string | null;
           nutrition_goal: string | null;
           achievement_goal: string | null;
+          goal: string | null;
           subscription_status: string | null;
           subscription_ends_at: string | null;
           expo_push_token: string | null;
@@ -71,6 +72,9 @@ export type Database = {
           protein: number | null;
           carbs: number | null;
           fat: number | null;
+          fiber: number | null;
+          water: number | null;
+          is_active: boolean | null;
           start_date: string;
           end_date: string | null;
           created_at: string;
@@ -132,10 +136,18 @@ export type Database = {
           recorded_timezone: string | null;
           volume: number;
           unit: 'ml' | 'oz';
-          created_at: string;
-          updated_at: string;
+          created_at: string | null;
+          updated_at: string | null;
+          profilesId: string | null;
         };
-        Insert: Omit<Database['public']['Tables']['water_logs']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Insert: {
+          user_id: string;
+          logged_at: string;
+          recorded_timezone?: string | null;
+          volume: number;
+          unit: 'ml' | 'oz';
+          profilesId?: string | null;
+        };
         Update: Partial<Database['public']['Tables']['water_logs']['Insert']>;
       };
       body_metrics: {

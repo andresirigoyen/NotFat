@@ -22,7 +22,8 @@ export class OfflineService {
     return OfflineService.instance;
   }
 
-  constructor() {
+  // ✅ FIX #18: Constructor privado — previene múltiples instancias con colas de sync separadas
+  private constructor() {
     this.initialize();
   }
 
@@ -272,10 +273,16 @@ export class OfflineQueryClient {
   async mutate<T>(
     key: string,
     mutationFn: () => Promise<T>,
+    // ✅ FIX #12: Recibimos los datos reales de la mutación para poder sincronizarlos
+    offlinePayload?: {
+      type: 'create' | 'update' | 'delete';
+      table: string;
+      data: any;
+    },
     optimisticUpdate?: (data: T) => void
   ): Promise<T> {
     const cacheKey = `query_${key}`;
-    
+
     // Optimistic update
     if (optimisticUpdate) {
       const cached = await this.offlineService.getOfflineData(cacheKey);
@@ -290,29 +297,30 @@ export class OfflineQueryClient {
 
     if (this.offlineService.getNetworkStatus()) {
       const result = await mutationFn();
-      
+
       // Invalidate cache
       await this.offlineService.saveOfflineData(cacheKey, {
         data: result,
         timestamp: Date.now()
       });
-      
+
       return result;
     } else {
-      // Queue mutation for later sync
-      await this.offlineService.queueOperation({
-        type: 'update',
-        table: this.extractTableFromKey(key),
-        data: { key, mutation: 'mutate' }
-      });
-      
+      // ✅ FIX #12: Si hay payload real, lo encolamos para sincronizar datos correctos.
+      // Si no, lanzamos error indicando que la operación no puede encolarse sin payload.
+      if (offlinePayload) {
+        await this.offlineService.queueOperation(offlinePayload);
+      } else {
+        throw new Error('Offline - operación no soportada sin conexión');
+      }
+
       // Return cached data or throw
       const cached = await this.offlineService.getOfflineData(cacheKey);
       if (cached) {
         return cached.data;
       }
-      
-      throw new Error('Offline - mutation queued');
+
+      throw new Error('Offline - sin datos en caché');
     }
   }
 

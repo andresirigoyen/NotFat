@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
 import { analytics } from '@/services/analytics';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 // Sincronizado con Prisma: nutrition_goals table
 interface AIGeneratedGoals {
@@ -22,6 +23,9 @@ interface AIGeneratedGoals {
 }
 
 export default function OnboardingAIGoalsScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile, generateAutomaticGoals, generateAutomaticHydrationGoal } = useProfile();
@@ -122,7 +126,7 @@ export default function OnboardingAIGoalsScreen() {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.secondary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.secondary} />
           </TouchableOpacity>
           
           <View style={styles.progressContainer}>
@@ -142,7 +146,7 @@ export default function OnboardingAIGoalsScreen() {
           {/* AI Status Card */}
           <View style={styles.aiCard}>
             <LinearGradient
-              colors={[COLORS.primary.sky, '#0EA5E9']}
+              colors={[colors.primary.sky, '#0EA5E9']}
               style={styles.aiGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -150,7 +154,7 @@ export default function OnboardingAIGoalsScreen() {
               <View style={styles.aiContent}>
                 {isGenerating ? (
                   <View style={styles.generatingContent}>
-                    <ActivityIndicator size="large" color={COLORS.text.primary} />
+                    <ActivityIndicator size="large" color={colors.text.primary} />
                     <Text style={styles.generatingText}>Analizando tu perfil...</Text>
                     <Text style={styles.generatingSubtext}>
                       Nuestra IA está creando metas personalizadas para ti
@@ -159,7 +163,7 @@ export default function OnboardingAIGoalsScreen() {
                 ) : showResults && aiGoals ? (
                   <View style={styles.resultsContent}>
                     <View style={styles.aiIconContainer}>
-                      <Ionicons name="sparkles" size={32} color={COLORS.text.primary} />
+                      <Ionicons name="sparkles" size={32} color={colors.text.primary} />
                     </View>
                     <Text style={styles.resultsTitle}>¡Metas Generadas!</Text>
                     <Text style={styles.resultsSubtitle}>
@@ -169,7 +173,7 @@ export default function OnboardingAIGoalsScreen() {
                 ) : (
                   <View style={styles.initialContent}>
                     <View style={styles.aiIconContainer}>
-                      <Ionicons name="analytics" size={32} color={COLORS.text.primary} />
+                      <Ionicons name="analytics" size={32} color={colors.text.primary} />
                     </View>
                     <Text style={styles.initialTitle}>IA Lista para Analizar</Text>
                     <Text style={styles.initialSubtitle}>
@@ -189,7 +193,7 @@ export default function OnboardingAIGoalsScreen() {
               {/* Reasoning */}
               <View style={styles.reasoningCard}>
                 <View style={styles.reasoningHeader}>
-                  <Ionicons name="bulb" size={20} color={COLORS.primary.amber} />
+                  <Ionicons name="bulb" size={20} color={colors.primary.amber} />
                   <Text style={styles.reasoningTitle}>¿Por qué estas metas?</Text>
                 </View>
                 <Text style={styles.reasoningText}>{aiGoals.reasoning}</Text>
@@ -198,37 +202,37 @@ export default function OnboardingAIGoalsScreen() {
               {/* Goals Grid */}
               <View style={styles.goalsGrid}>
                 <View style={styles.goalItem}>
-                  <Ionicons name="flame" size={24} color={COLORS.status.error} />
+                  <Ionicons name="flame" size={24} color={colors.status.error} />
                   <Text style={styles.goalValue}>{aiGoals.calories}</Text>
                   <Text style={styles.goalLabel}>Calorías/día</Text>
                 </View>
 
                 <View style={styles.goalItem}>
-                  <Ionicons name="fitness" size={24} color={COLORS.primary.sky} />
+                  <Ionicons name="fitness" size={24} color={colors.primary.sky} />
                   <Text style={styles.goalValue}>{aiGoals.protein}g</Text>
                   <Text style={styles.goalLabel}>Proteína</Text>
                 </View>
 
                 <View style={styles.goalItem}>
-                  <Ionicons name="nutrition" size={24} color={COLORS.primary.amber} />
+                  <Ionicons name="nutrition" size={24} color={colors.primary.amber} />
                   <Text style={styles.goalValue}>{aiGoals.carbs}g</Text>
                   <Text style={styles.goalLabel}>Carbohidratos</Text>
                 </View>
 
                 <View style={styles.goalItem}>
-                  <Ionicons name="water" size={24} color={COLORS.status.success} />
+                  <Ionicons name="water" size={24} color={colors.status.success} />
                   <Text style={styles.goalValue}>{aiGoals.water_ml}ml</Text>
                   <Text style={styles.goalLabel}>Agua</Text>
                 </View>
 
                 <View style={styles.goalItem}>
-                  <Ionicons name="footsteps" size={24} color={COLORS.status.info} />
+                  <Ionicons name="footsteps" size={24} color={colors.status.info} />
                   <Text style={styles.goalValue}>{aiGoals.steps_daily.toLocaleString()}</Text>
                   <Text style={styles.goalLabel}>Pasos/día</Text>
                 </View>
 
                 <View style={styles.goalItem}>
-                  <Ionicons name="bicycle" size={24} color={COLORS.text.secondary} />
+                  <Ionicons name="bicycle" size={24} color={colors.text.secondary} />
                   <Text style={styles.goalValue}>{aiGoals.workout_frequency}</Text>
                   <Text style={styles.goalLabel}>Ejercicio</Text>
                 </View>
@@ -237,9 +241,9 @@ export default function OnboardingAIGoalsScreen() {
           )}
 
           {/* Error Message */}
-          {error && (
+          {!!error && (
             <View style={styles.errorCard}>
-              <Ionicons name="warning" size={20} color={COLORS.status.error} />
+              <Ionicons name="warning" size={20} color={colors.status.error} />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
@@ -253,16 +257,16 @@ export default function OnboardingAIGoalsScreen() {
                 disabled={isGenerating}
               >
                 <LinearGradient
-                  colors={[COLORS.primary.sky, '#0EA5E9']}
+                  colors={[colors.primary.sky, '#0EA5E9']}
                   style={styles.generateButtonGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
                   {isGenerating ? (
-                    <ActivityIndicator size="small" color={COLORS.text.primary} />
+                    <ActivityIndicator size="small" color={colors.text.primary} />
                   ) : (
                     <>
-                      <Ionicons name="sparkles" size={20} color={COLORS.text.primary} />
+                      <Ionicons name="sparkles" size={20} color={colors.text.primary} />
                       <Text style={styles.generateButtonText}>Generar con IA</Text>
                     </>
                   )}
@@ -274,12 +278,12 @@ export default function OnboardingAIGoalsScreen() {
                 onPress={saveAIGoals}
               >
                 <LinearGradient
-                  colors={[COLORS.status.success, '#059669']}
+                  colors={[colors.status.success, '#059669']}
                   style={styles.saveButtonGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                 >
-                  <Ionicons name="checkmark-circle" size={20} color={COLORS.text.primary} />
+                  <Ionicons name="checkmark-circle" size={20} color={colors.text.primary} />
                   <Text style={styles.saveButtonText}>Usar estas metas</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -289,14 +293,14 @@ export default function OnboardingAIGoalsScreen() {
               style={styles.manualButton}
               onPress={handleManualSetup}
             >
-              <Ionicons name="create" size={20} color={COLORS.text.secondary} />
+              <Ionicons name="create" size={20} color={colors.text.secondary} />
               <Text style={styles.manualButtonText}>Configurar manualmente</Text>
             </TouchableOpacity>
           </View>
 
           {/* Privacy Note */}
           <View style={styles.privacyNote}>
-            <Ionicons name="shield-checkmark" size={16} color={COLORS.text.muted} />
+            <Ionicons name="shield-checkmark" size={16} color={colors.text.muted} />
             <Text style={styles.privacyText}>
               Tus metas se guardan de forma privada y puedes cambiarlas cuando quieras
             </Text>
@@ -307,10 +311,10 @@ export default function OnboardingAIGoalsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   scrollView: {
     flex: 1,
@@ -327,22 +331,22 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   progressContainer: {
     flex: 1,
     height: 4,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: 2,
     marginLeft: SPACING.md,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: COLORS.primary.sky,
+    backgroundColor: colors.primary.sky,
     borderRadius: 2,
   },
   content: {
@@ -355,13 +359,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONTS.sizes['3xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
   subtitle: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     lineHeight: 24,
   },
@@ -385,14 +389,14 @@ const styles = StyleSheet.create({
   generatingText: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginTop: SPACING.md,
     marginBottom: SPACING.sm,
   },
   generatingSubtext: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },
@@ -403,7 +407,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.md,
@@ -411,13 +415,13 @@ const styles = StyleSheet.create({
   resultsTitle: {
     fontSize: FONTS.sizes['2xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
   resultsSubtitle: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },
@@ -427,13 +431,13 @@ const styles = StyleSheet.create({
   initialTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
   initialSubtitle: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },
@@ -443,17 +447,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.md,
   },
   reasoningCard: {
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     ...SHADOWS.sm,
   },
   reasoningHeader: {
@@ -465,12 +469,12 @@ const styles = StyleSheet.create({
   reasoningTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   reasoningText: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     lineHeight: 22,
   },
@@ -481,25 +485,25 @@ const styles = StyleSheet.create({
   },
   goalItem: {
     width: '48%',
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     ...SHADOWS.sm,
   },
   goalValue: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.xs,
   },
   goalLabel: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },
@@ -511,11 +515,11 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     marginBottom: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.status.error,
+    borderColor: colors.status.error,
   },
   errorText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.status.error,
+    color: colors.status.error,
     fontFamily: FONTS.primary,
     marginLeft: SPACING.sm,
     flex: 1,
@@ -543,7 +547,7 @@ const styles = StyleSheet.create({
   generateButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   saveButton: {
@@ -563,38 +567,38 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   manualButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.lg,
     paddingVertical: SPACING.lg,
     paddingHorizontal: SPACING.xl,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     gap: SPACING.sm,
   },
   manualButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   privacyNote: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     marginTop: SPACING.md,
   },
   privacyText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     marginLeft: SPACING.sm,
     flex: 1,

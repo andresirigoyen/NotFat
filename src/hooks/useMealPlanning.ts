@@ -210,24 +210,14 @@ export const useGenerateMealPlan = () => {
         cooking_time?: 'quick' | 'medium' | 'extensive';
       };
     }) => {
-      // Call AI service to generate meal plan
-      const response = await fetch('https://jcfezqakxulmtdvioxbc.supabase.co/functions/v1/generate-meal-plan', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          preferences,
-        }),
+      // ✅ FIX #3: supabase.functions.invoke() con auth automática
+      const { data: generatedPlan, error: fnError } = await supabase.functions.invoke('generate-meal-plan', {
+        body: { userId, preferences },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate meal plan');
-      }
-
-      const generatedPlan = await response.json();
+      if (fnError) throw fnError;
       return generatedPlan;
+
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal_plans'] });

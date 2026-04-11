@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { getPrismaClient } from "../_shared/db.ts"
+import { getSupabaseAdmin } from "../_shared/db.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,7 +13,7 @@ serve(async (req) => {
 
   try {
     const { ingredients: requestedIngredients, userId } = await req.json()
-    const prisma = getPrismaClient();
+    const supabase = getSupabaseAdmin()
 
     if (!requestedIngredients) {
       return new Response(JSON.stringify({ error: 'Ingredients are required' }), { 
@@ -53,8 +53,9 @@ serve(async (req) => {
     // 3. Persist Recipe if userId is provided
     let recipeId = null;
     if (userId) {
-      const recipe = await prisma.recipes.create({
-        data: {
+      const { data: recipe, error: recipeError } = await supabase
+        .from('recipes')
+        .insert({
           name: recipeData.name,
           description: recipeData.description,
           ingredients: recipeData.ingredients,
@@ -64,12 +65,15 @@ serve(async (req) => {
           carbs: recipeData.nutrition?.carbs,
           fat: recipeData.nutrition?.fat,
           prep_time: recipeData.time,
-          difficulty: recipeData.difficulty.toLowerCase(),
+          difficulty: recipeData.difficulty?.toLowerCase(),
           created_by: userId,
           is_public: false
-        }
-      });
-      recipeId = recipe.id;
+        })
+        .select()
+        .single();
+      
+      if (recipeError) throw recipeError;
+      recipeId = recipe?.id;
     }
 
     return new Response(JSON.stringify({ 

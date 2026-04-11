@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -14,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAIAnalysis } from '@/hooks/useAIAnalysis';
 import { useCreateMealWithItems } from '@/hooks/useMeals';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 type Ingredient = {
   id: string;
@@ -34,6 +35,9 @@ const MOCK_INGREDIENTS: Ingredient[] = [
 ];
 
 export default function AnalysisResultScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const route = useRoute<any>();
   const { imageUri, mealType = 'snack', mealDate } = route.params ?? {};
@@ -143,7 +147,7 @@ export default function AnalysisResultScreen() {
       });
       
       Alert.alert('Éxito', 'Comida guardada correctamente');
-      navigation.navigate('Home' as never);
+      navigation.navigate('DashboardTab' as never);
     } catch (error) {
       Alert.alert('Error', 'No se pudo guardar la comida');
     } finally {
@@ -154,7 +158,7 @@ export default function AnalysisResultScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-        <Ionicons name="arrow-back" size={22} color={COLORS.text.primary} />
+        <Ionicons name="arrow-back" size={22} color={colors.text.primary} />
         <Text style={styles.backLabel}>Resultado del análisis</Text>
       </TouchableOpacity>
 
@@ -171,14 +175,14 @@ export default function AnalysisResultScreen() {
             )}
           </View>
           <View style={styles.aiChip}>
-            <Ionicons name="sparkles" size={14} color={COLORS.primary.amber} />
+            <Ionicons name="sparkles" size={14} color={colors.primary.amber} />
             <Text style={styles.aiChipText}>Gemini Vision</Text>
           </View>
         </View>
 
         {analyzing ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.primary.amber} />
+            <ActivityIndicator size="large" color={colors.primary.amber} />
             <Text style={styles.loadingText}>Analizando imagen con IA...</Text>
           </View>
         ) : (
@@ -194,18 +198,24 @@ export default function AnalysisResultScreen() {
               onPress={() => toggleIngredient(ing.id)}
               activeOpacity={0.8}
             >
-              <View style={[styles.checkbox, ing.confirmed && styles.checkboxChecked]}>
-                {ing.confirmed && <Ionicons name="checkmark" size={14} color={COLORS.background.primary} />}
+              <View style={styles.cardHeader}>
+                <View style={[styles.checkbox, ing.confirmed && styles.checkboxChecked]}>
+                  {ing.confirmed && <Ionicons name="checkmark" size={12} color={colors.background.primary} />}
+                </View>
+                <Text style={styles.macroKcal}>🔥 {ing.calories}</Text>
               </View>
+
               <View style={styles.ingredientInfo}>
-                <Text style={[styles.ingredientName, !ing.confirmed && { color: COLORS.text.secondary }]}>
+                <Text 
+                  style={[styles.ingredientName, !ing.confirmed && { color: colors.text.secondary }]}
+                  numberOfLines={1}
+                >
                   {ing.name}
                 </Text>
-                <View style={styles.macroRow}>
-                  <Text style={styles.macro}>🔥 {ing.calories} kcal</Text>
-                  <Text style={styles.macro}>P: {ing.protein}g</Text>
-                  <Text style={styles.macro}>C: {ing.carbs}g</Text>
-                  <Text style={styles.macro}>G: {ing.fat}g</Text>
+                <View style={styles.macroGrid}>
+                  <Text style={styles.macroMini}>P: {ing.protein}g</Text>
+                  <Text style={styles.macroMini}>C: {ing.carbs}g</Text>
+                  <Text style={styles.macroMini}>G: {ing.fat}g</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -248,9 +258,9 @@ export default function AnalysisResultScreen() {
           activeOpacity={0.85}
         >
           {saving ? (
-            <ActivityIndicator size="small" color={COLORS.background.primary} />
+            <ActivityIndicator size="small" color={colors.background.primary} />
           ) : (
-            <Ionicons name="checkmark-circle" size={22} color={COLORS.background.primary} />
+            <Ionicons name="checkmark-circle" size={22} color={colors.background.primary} />
           )}
           <Text style={styles.confirmButtonText}>
             {saving ? 'Guardando...' : 'Confirmar y Guardar'}
@@ -261,16 +271,16 @@ export default function AnalysisResultScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background.primary },
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background.primary },
   backBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.xl, paddingVertical: SPACING.lg, gap: SPACING.sm },
-  backLabel: { color: COLORS.text.primary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.base, fontWeight: '600' },
+  backLabel: { color: colors.text.primary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.base, fontWeight: '600' },
   content: { paddingHorizontal: SPACING.xl, paddingBottom: 120 },
   photoBadgeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.lg, marginBottom: SPACING.xl },
   thumbnailContainer: { width: 110, height: 110, borderRadius: BORDER_RADIUS.xl, overflow: 'hidden' },
   thumbnailImage: { width: '100%', height: '100%', borderRadius: BORDER_RADIUS.xl },
-  thumbnailPlaceholder: { width: 110, height: 110, backgroundColor: '#1A1A1A', borderRadius: BORDER_RADIUS.xl, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)', gap: 6 },
-  thumbnailLabel: { color: COLORS.text.secondary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.xs },
+  thumbnailPlaceholder: { width: 110, height: 110, backgroundColor: colors.background.card, borderRadius: BORDER_RADIUS.xl, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)', gap: 6 },
+  thumbnailLabel: { color: colors.text.secondary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.xs },
   loadingContainer: { 
     flex: 1, 
     justifyContent: 'center', 
@@ -279,33 +289,51 @@ const styles = StyleSheet.create({
     gap: SPACING.md 
   },
   loadingText: { 
-    color: COLORS.text.secondary, 
+    color: colors.text.secondary, 
     fontFamily: FONTS.primary, 
     fontSize: FONTS.sizes.base,
     textAlign: 'center',
     marginTop: SPACING.md 
   },
   aiChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(252,211,77,0.1)', borderRadius: BORDER_RADIUS.full, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, gap: 6, borderWidth: 1, borderColor: 'rgba(252,211,77,0.25)', alignSelf: 'flex-start' },
-  aiChipText: { color: COLORS.primary.amber, fontFamily: FONTS.primary, fontSize: FONTS.sizes.xs, fontWeight: '700' },
-  sectionTitle: { color: COLORS.text.primary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.xl, fontWeight: '700', marginBottom: 4 },
-  sectionSub: { color: COLORS.text.secondary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.sm, marginBottom: SPACING.lg },
-  ingredientsList: { gap: SPACING.sm, marginBottom: SPACING.xl },
-  ingredientCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A1A', borderRadius: BORDER_RADIUS.xl, padding: SPACING.lg, gap: SPACING.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+  aiChipText: { color: colors.primary.amber, fontFamily: FONTS.primary, fontSize: FONTS.sizes.xs, fontWeight: '700' },
+  sectionTitle: { color: colors.text.primary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.xl, fontWeight: '700', marginBottom: 4 },
+  sectionSub: { color: colors.text.secondary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.sm, marginBottom: SPACING.lg },
+  ingredientsList: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    justifyContent: 'space-between', 
+    rowGap: SPACING.md, 
+    marginBottom: SPACING.xl 
+  },
+  ingredientCard: { 
+    width: '48.5%', 
+    backgroundColor: colors.background.card, 
+    borderRadius: BORDER_RADIUS.xl, 
+    padding: SPACING.md, 
+    borderWidth: 1, 
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
+    gap: SPACING.xs
+  },
   ingredientCardUnchecked: { opacity: 0.45 },
-  checkbox: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
-  checkboxChecked: { backgroundColor: COLORS.primary.amber, borderColor: COLORS.primary.amber },
-  ingredientInfo: { flex: 1, gap: 4 },
-  ingredientName: { color: COLORS.text.primary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.base, fontWeight: '600' },
+  checkbox: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
+  checkboxChecked: { backgroundColor: colors.primary.amber, borderColor: colors.primary.amber },
+  ingredientInfo: { flex: 1, gap: 2 },
+  ingredientName: { color: colors.text.primary, fontFamily: FONTS.primary, fontSize: 13, fontWeight: '700' },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
+  macroKcal: { fontSize: 11, fontWeight: '700', color: colors.text.secondary },
+  macroGrid: { gap: 1 },
+  macroMini: { fontSize: 10, color: colors.text.tertiary, fontFamily: FONTS.primary },
   macroRow: { flexDirection: 'row', gap: SPACING.sm, flexWrap: 'wrap' },
-  macro: { fontSize: FONTS.sizes.xs, color: COLORS.text.secondary, fontFamily: FONTS.primary },
+  macro: { fontSize: FONTS.sizes.xs, color: colors.text.secondary, fontFamily: FONTS.primary },
   summaryCard: { backgroundColor: '#111', borderRadius: BORDER_RADIUS.xl, padding: SPACING.xl, borderWidth: 1, borderColor: 'rgba(252,211,77,0.15)' },
-  summaryTitle: { color: COLORS.text.secondary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.sm, marginBottom: SPACING.lg },
+  summaryTitle: { color: colors.text.secondary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.sm, marginBottom: SPACING.lg },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   summaryBlock: { alignItems: 'center', flex: 1 },
-  summaryNumber: { color: COLORS.primary.amber, fontFamily: FONTS.primary, fontWeight: '800', fontSize: FONTS.sizes['2xl'] },
-  summaryLabel: { color: COLORS.text.secondary, fontFamily: FONTS.primary, fontSize: 11, marginTop: 2 },
-  summaryDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.06)' },
-  ctaContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.xl, paddingBottom: SPACING['3xl'], backgroundColor: COLORS.background.primary, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
-  confirmButton: { backgroundColor: COLORS.primary.amber, borderRadius: BORDER_RADIUS.full, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: SPACING.lg, gap: SPACING.sm },
-  confirmButtonText: { color: COLORS.background.primary, fontFamily: FONTS.primary, fontWeight: '700', fontSize: FONTS.sizes.base },
+  summaryNumber: { color: colors.primary.amber, fontFamily: FONTS.primary, fontWeight: '800', fontSize: FONTS.sizes['2xl'] },
+  summaryLabel: { color: colors.text.secondary, fontFamily: FONTS.primary, fontSize: 11, marginTop: 2 },
+  summaryDivider: { width: 1, height: 32, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' },
+  ctaContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.xl, paddingBottom: SPACING['3xl'], backgroundColor: colors.background.primary, borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' },
+  confirmButton: { backgroundColor: colors.primary.amber, borderRadius: BORDER_RADIUS.full, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: SPACING.lg, gap: SPACING.sm },
+  confirmButtonText: { color: colors.background.primary, fontFamily: FONTS.primary, fontWeight: '700', fontSize: FONTS.sizes.base },
 });

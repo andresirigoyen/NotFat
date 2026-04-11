@@ -60,7 +60,10 @@ export const useOfflineData = <T>(
     } finally {
       setIsLoading(false);
     }
-  }, [key, fetchFn, staleTime, cacheTime, enabled]);
+  // ✅ FIX #17: fetchFn eliminado de dependencias. El consumidor DEBE memoizar
+  // fetchFn con useCallback para evitar re-fetches infinitos con funciones inline.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, staleTime, cacheTime, enabled]);
 
   // Initial fetch
   useEffect(() => {

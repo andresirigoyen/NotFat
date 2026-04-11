@@ -66,7 +66,6 @@ export function useWater() {
         .insert({
           ...waterData,
           user_id: user.id,
-          logged_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -102,8 +101,8 @@ export function useWater() {
     return await addWaterMutation.mutateAsync({
       volume: amount,
       unit,
-      recorded_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       logged_at: new Date().toISOString(),
+      recorded_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
   };
 

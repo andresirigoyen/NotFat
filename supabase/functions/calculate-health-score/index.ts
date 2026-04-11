@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { getPrismaClient } from "../_shared/db.ts"
+import { getSupabaseAdmin } from "../_shared/db.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,7 +24,7 @@ serve(async (req) => {
 
   try {
     const { nutritionData, userId, date } = await req.json()
-    const prisma = getPrismaClient();
+    const supabase = getSupabaseAdmin()
 
     if (!nutritionData || !userId || !date) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), { 
@@ -33,22 +33,29 @@ serve(async (req) => {
       })
     }
 
-    const profile = await prisma.profiles.findUnique({
-      where: { id: userId }
-    });
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
 
     if (!profile) {
       throw new Error('User profile not found');
     }
 
-    // 1. Calculate Goals (Simplified fallback or fetch from DB)
-    const goal = await prisma.nutrition_goals.findFirst({
-      where: { user_id: userId },
-      orderBy: { created_at: 'desc' }
-    }) || { calories: 2000, protein: 70, carbs: 250, fat: 65 };
+    // 1. Calculate Goals
+    const { data: goals } = await supabase
+      .from('nutrition_goals')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const goal = goals?.[0] || { calories: 2000, protein: 70, carbs: 250, fat: 65 };
 
     // 2. Score Calculation Logic
-    let score = 70; // Start with a fair score
+    let score = 70;
     const analysis: any = {};
     
     const calorieRatio = nutritionData.totalCalories / (goal.calories || 2000);
@@ -57,24 +64,28 @@ serve(async (req) => {
 
     score = Math.max(0, Math.min(100, score));
 
-    // 3. Persist Insights using Prisma
-    const insights = await prisma.coach_insights.create({
-      data: {
+    // 3. Persist Insights
+    const { data: insights, error: insightsError } = await supabase
+      .from('coach_insights')
+      .insert({
         user_id: userId,
         insights: {
           score,
           nutritionData,
           analysis: "AI analysis logic preserved in results",
         },
-        generated_at: new Date(),
-        expires_at: new Date(Date.now() + 4 * 60 * 60 * 1000)
-      }
-    });
+        generated_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString()
+      })
+      .select()
+      .single();
+
+    if (insightsError) throw insightsError;
 
     return new Response(JSON.stringify({
       score,
-      insightsId: insights.id,
-      ...insights.insights as any
+      insightsId: insights?.id,
+      ...insights?.insights
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

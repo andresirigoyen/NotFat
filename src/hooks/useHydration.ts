@@ -5,10 +5,10 @@ import { useAuthStore } from '@/store';
 interface WaterLog {
   id: string;
   user_id: string;
-  amount: number;
+  volume: number;
   unit: 'ml' | 'oz';
   logged_at: string;
-  timezone: string;
+  recorded_timezone: string;
 }
 
 interface HydrationGoal {
@@ -47,11 +47,12 @@ export const useHydration = () => {
     try {
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
-      
+
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
 
-      // Fetch water logs for the day
+      // ✅ FIX #8: Eliminada la query de diagnóstico doble (allLogs + logs).
+      // Solo hacemos la query necesaria por rango de fecha.
       const { data: logs, error: logsError } = await supabase
         .from('water_logs')
         .select('*')
@@ -69,16 +70,20 @@ export const useHydration = () => {
         .eq('user_id', user.id)
         .single();
 
-      if (goalError && goalError.code !== 'PGRST116') {
-        throw goalError;
+      if (goalError) {
+        if (goalError.code === 'PGRST116') {
+          // Goal not found, handled below
+        } else {
+          throw goalError;
+        }
       }
 
       setWaterLogs(logs || []);
-      
+
       if (goal) {
         setHydrationGoal(goal);
       } else {
-        // Create default goal
+        console.log('[useHydration] No goal found, creating default...');
         await createDefaultHydrationGoal();
       }
     } catch (err: any) {
@@ -116,37 +121,73 @@ export const useHydration = () => {
     }
   };
 
-  const addWaterLog = async (amount: number, unit: 'ml' | 'oz' = 'ml', loggedAt?: string) => {
-    if (!user || !hydrationGoal) return;
+  const addWaterLog = async (volume: number, unit: 'ml' | 'oz' = 'ml', loggedAt?: string) => {
+    if (!user) {
+      console.warn('No user session found in useHydration');
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
     try {
-      // Convert to goal unit if needed
-      let convertedAmount = amount;
-      if (unit !== hydrationGoal.unit) {
-        convertedAmount = unit === 'ml' ? amount / 29.5735 : amount * 29.5735;
+      // Ensure we have a hydration goal, if not, create or fetch it
+      let currentGoal = hydrationGoal;
+      if (!currentGoal) {
+        // Try to fetch again
+        const { data: goal } = await supabase
+          .from('hydration_goals')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (goal) {
+          setHydrationGoal(goal);
+          currentGoal = goal;
+        } else {
+          // ✅ FIX #9: Objeto completo con valores por defecto en lugar de cast `as any`
+          // Evita NaN silencioso en cálculos de porcentaje (divisón por daily_goal=undefined)
+          await createDefaultHydrationGoal();
+          currentGoal = {
+            id: 'temp',
+            user_id: user.id,
+            daily_goal: 2000,
+            unit: 'ml' as const,
+            preferred_bottle_size: 500,
+            preferred_bottle_unit: 'ml' as const,
+            reminder_frequency: '2hours' as const,
+            reminder_enabled: true,
+          };
+        }
       }
 
-      const { data, error } = await supabase
+      // Convert to goal unit if needed
+      const targetUnit = currentGoal?.unit || 'ml';
+      let convertedAmount = volume;
+      if (unit !== targetUnit) {
+        convertedAmount = unit === 'ml' ? volume / 29.5735 : volume * 29.5735;
+      }
+
+      const { data, error: insertError } = await supabase
         .from('water_logs')
         .insert({
           user_id: user.id,
-          amount: convertedAmount,
-          unit: hydrationGoal.unit,
+          volume: convertedAmount,
+          unit: targetUnit,
           logged_at: loggedAt || new Date().toISOString(),
-          recorded_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          recorded_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          date: (loggedAt ? new Date(loggedAt) : new Date()).toISOString().split('T')[0]
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (insertError) throw insertError;
 
       setWaterLogs(prev => [data, ...prev]);
     } catch (err: any) {
       setError(err.message || 'Error al registrar consumo de agua');
       console.error('Add water log error:', err);
+      throw err; // Re-throw for UI to catch
     } finally {
       setLoading(false);
     }
@@ -213,7 +254,7 @@ export const useHydration = () => {
       return logDate >= today;
     });
 
-    const consumed = todayLogs.reduce((total, log) => total + log.amount, 0);
+    const consumed = todayLogs.reduce((total, log) => total + log.volume, 0);
     const percentage = hydrationGoal.daily_goal > 0 ? (consumed / hydrationGoal.daily_goal) * 100 : 0;
 
     return {
@@ -237,7 +278,7 @@ export const useHydration = () => {
       return logDate >= weekStart;
     });
 
-    const consumed = weekLogs.reduce((total, log) => total + log.amount, 0);
+    const consumed = weekLogs.reduce((total, log) => total + log.volume, 0);
     const goal = hydrationGoal.daily_goal * 7;
     const percentage = goal > 0 ? (consumed / goal) * 100 : 0;
 
@@ -253,7 +294,7 @@ export const useHydration = () => {
 
       return {
         date: date.toISOString().split('T')[0],
-        consumed: dayLogs.reduce((total, log) => total + log.amount, 0),
+        consumed: dayLogs.reduce((total, log) => total + log.volume, 0),
         goal: hydrationGoal.daily_goal
       };
     });
@@ -274,7 +315,10 @@ export const useHydration = () => {
 
   useEffect(() => {
     if (user) {
+      console.log('[useHydration] User changed, fetching hydration data:', user.id);
       fetchHydrationData();
+    } else {
+      console.log('[useHydration] No user available');
     }
   }, [user]);
 

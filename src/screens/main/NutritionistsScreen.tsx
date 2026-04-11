@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
 import {
   View,
@@ -20,7 +21,7 @@ import {
   useUserNutritionistConnections
 } from '@/hooks/useNutritionists';
 import { useProfile } from '@/hooks/useProfile';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 const SPECIALTIES = [
   'Deportología',
@@ -36,6 +37,9 @@ const SPECIALTIES = [
 ];
 
 export default function NutritionistsScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const { profile } = useProfile();
   const { data: nutritionists, isLoading } = useNutritionists();
@@ -96,7 +100,7 @@ export default function NutritionistsScreen() {
               <Image source={{ uri: nutritionist.profile_image_url }} style={styles.profileImage} />
             ) : (
               <View style={styles.profilePlaceholder}>
-                <Ionicons name="person" size={24} color={COLORS.text.secondary} />
+                <Ionicons name="person" size={24} color={colors.text.secondary} />
               </View>
             )}
             <View style={styles.nameSection}>
@@ -117,7 +121,7 @@ export default function NutritionistsScreen() {
           </View>
           {isConnected && (
             <View style={styles.connectedBadge}>
-              <Ionicons name="checkmark-circle" size={16} color={COLORS.status.success} />
+              <Ionicons name="checkmark-circle" size={16} color={colors.status.success} />
               <Text style={styles.connectedText}>Conectado</Text>
             </View>
           )}
@@ -129,11 +133,11 @@ export default function NutritionistsScreen() {
 
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Ionicons name="logo-instagram" size={16} color={COLORS.text.secondary} />
+            <Ionicons name="logo-instagram" size={16} color={colors.text.secondary} />
             <Text style={styles.statText}>{nutritionist.clicks_ig || 0}</Text>
           </View>
           <View style={styles.statItem}>
-            <Ionicons name="logo-whatsapp" size={16} color={COLORS.text.secondary} />
+            <Ionicons name="logo-whatsapp" size={16} color={colors.text.secondary} />
             <Text style={styles.statText}>{nutritionist.clicks_wtp || 0}</Text>
           </View>
         </View>
@@ -144,7 +148,7 @@ export default function NutritionistsScreen() {
             onPress={() => handleInstagramPress(nutritionist)}
             disabled={!nutritionist.instagram_url}
           >
-            <Ionicons name="logo-instagram" size={20} color={COLORS.background.primary} />
+            <Ionicons name="logo-instagram" size={20} color={colors.background.primary} />
             <Text style={styles.actionButtonText}>Instagram</Text>
           </TouchableOpacity>
 
@@ -153,7 +157,7 @@ export default function NutritionistsScreen() {
             onPress={() => handleWhatsAppPress(nutritionist)}
             disabled={!nutritionist.phone}
           >
-            <Ionicons name="logo-whatsapp" size={20} color={COLORS.background.primary} />
+            <Ionicons name="logo-whatsapp" size={20} color={colors.background.primary} />
             <Text style={styles.actionButtonText}>WhatsApp</Text>
           </TouchableOpacity>
 
@@ -162,7 +166,7 @@ export default function NutritionistsScreen() {
               style={[styles.actionButton, styles.connectButton]}
               onPress={() => handleConnect(nutritionist.id)}
             >
-              <Ionicons name="person-add" size={20} color={COLORS.background.primary} />
+              <Ionicons name="person-add" size={20} color={colors.background.primary} />
               <Text style={styles.actionButtonText}>Conectar</Text>
             </TouchableOpacity>
           )}
@@ -176,24 +180,24 @@ export default function NutritionistsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.primary.amber} />
+          <Ionicons name="arrow-back" size={24} color={colors.primary.amber} />
         </TouchableOpacity>
         <Text style={styles.title}>Nutricionistas</Text>
         <TouchableOpacity style={styles.filterBtn} onPress={() => setShowFilters(!showFilters)}>
-          <Ionicons name="options" size={24} color={COLORS.primary.amber} />
+          <Ionicons name="options" size={24} color={colors.primary.amber} />
         </TouchableOpacity>
       </View>
 
       {/* Search */}
       <View style={styles.searchSection}>
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color={COLORS.text.secondary} />
+          <Ionicons name="search" size={20} color={colors.text.secondary} />
           <TextInput
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Buscar nutricionista..."
-            placeholderTextColor={COLORS.text.secondary}
+            placeholderTextColor={colors.text.secondary}
           />
         </View>
       </View>
@@ -248,7 +252,7 @@ export default function NutritionistsScreen() {
           filteredNutritionists.map(renderNutritionistCard)
         ) : (
           <View style={styles.emptyState}>
-            <Ionicons name="people" size={48} color={COLORS.text.muted} />
+            <Ionicons name="people" size={48} color={colors.text.muted} />
             <Text style={styles.emptyText}>No se encontraron nutricionistas</Text>
             <Text style={styles.emptySub}>Intenta ajustar los filtros de búsqueda</Text>
           </View>
@@ -258,10 +262,10 @@ export default function NutritionistsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   header: {
     flexDirection: 'row',
@@ -278,7 +282,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   filterBtn: {
@@ -291,17 +295,17 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING.md,
     gap: SPACING.sm,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   searchInput: {
     flex: 1,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     paddingVertical: SPACING.sm,
   },
@@ -309,12 +313,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   filterTitle: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
@@ -323,7 +327,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   specialtyFilter: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.full,
@@ -331,28 +335,28 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
   },
   specialtyFilterActive: {
-    backgroundColor: COLORS.primary.amber,
-    borderColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
+    borderColor: colors.primary.amber,
   },
   specialtyFilterText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   specialtyFilterTextActive: {
-    color: COLORS.background.primary,
+    color: colors.background.primary,
   },
   content: {
     padding: SPACING.lg,
     paddingBottom: 100,
   },
   nutritionistCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -369,13 +373,13 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
   },
   profilePlaceholder: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -385,13 +389,13 @@ const styles = StyleSheet.create({
   nutritionistName: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.xs,
   },
   institutionName: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
@@ -408,7 +412,7 @@ const styles = StyleSheet.create({
   },
   specialtyText: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontFamily: FONTS.primary,
   },
   connectedBadge: {
@@ -422,12 +426,12 @@ const styles = StyleSheet.create({
   },
   connectedText: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.status.success,
+    color: colors.status.success,
     fontFamily: FONTS.primary,
   },
   description: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     lineHeight: 20,
     marginBottom: SPACING.md,
@@ -444,7 +448,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   actionButtons: {
@@ -467,12 +471,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#25D366',
   },
   connectButton: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
   },
   actionButtonText: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontFamily: FONTS.primary,
   },
   loadingContainer: {
@@ -481,7 +485,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   emptyState: {
@@ -490,14 +494,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FONTS.sizes.lg,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     marginTop: SPACING.md,
     marginBottom: SPACING.sm,
   },
   emptySub: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },

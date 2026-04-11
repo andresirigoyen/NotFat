@@ -52,14 +52,22 @@ export const useSubscriptionEnhanced = () => {
 
   useEffect(() => {
     if (user?.id) {
-      fetchSubscription();
-      fetchPayments();
+      // ✅ FIX #16: Cargar ambos en paralelo con un único estado de carga compartido
+      loadAllData();
     }
   }, [user?.id]);
 
+  const loadAllData = async () => {
+    setIsLoading(true);
+    try {
+      await Promise.all([fetchSubscription(), fetchPayments()]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const fetchSubscription = async () => {
     try {
-      setIsLoading(true);
       const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
@@ -71,14 +79,13 @@ export const useSubscriptionEnhanced = () => {
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
-      
+
       setSubscription(data);
     } catch (error) {
       console.error('Error fetching subscription:', error);
       setSubscription(null);
-    } finally {
-      setIsLoading(false);
     }
+    // ✅ FIX #16: isLoading ahora es controlado por loadAllData, no por esta función
   };
 
   const fetchPayments = async () => {

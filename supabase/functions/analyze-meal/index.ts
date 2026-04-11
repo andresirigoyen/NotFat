@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { getPrismaClient } from "../_shared/db.ts"
+import { getSupabaseAdmin } from "../_shared/db.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,7 +14,6 @@ serve(async (req) => {
   try {
     const { imageUrl, userId } = await req.json()
 
-    // 1. Input validation
     if (!imageUrl || !userId) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameters: imageUrl and userId' }), 
@@ -22,21 +21,36 @@ serve(async (req) => {
       )
     }
 
-    // 2. AI API Configuration
     const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
     if (!apiKey) {
       throw new Error('GOOGLE_GEMINI_API_KEY is not configured')
     }
 
+    // Usar gemini-2.5-flash tal como solicitó el usuario
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
 
-    const prompt = `Analyze this food image and return a JSON with:
-    - name: name of the dish
-    - calories: estimated total
-    - macros: { protein, carbs, fat } in grams
-    - ingredients: Array of { name, calories, protein, carbs, fat }
-    - health_score: 1-10
-    IMPORTANT: Respond ONLY with the JSON.`
+    const prompt = `Analiza esta imagen de comida y devuelve un JSON estricto con la siguiente estructura:
+    {
+      "name": "Nombre descriptivo del plato en español",
+      "calories": calorias_totales_estimadas,
+      "macros": {
+        "protein": gramos_proteina,
+        "carbs": gramos_carbohidratos,
+        "fat": gramos_grasa
+      },
+      "ingredients": [
+        {
+          "name": "nombre del ingrediente",
+          "calories": calorias,
+          "protein": proteina,
+          "carbs": carbohidratos,
+          "fat": grasa
+        }
+      ],
+      "health_score": puntuacion_1_a_10,
+      "explanation": "Breve explicación de por qué es saludable o no"
+    }
+    IMPORTANTE: Responde ÚNICAMENTE con el objeto JSON, nada de texto extra.`
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -59,53 +73,22 @@ serve(async (req) => {
     })
 
     if (!response.ok) {
-      throw new Error(`Gemini API Error: ${response.statusText}`)
+      const errorText = await response.text();
+      throw new Error(`Gemini API Error: ${response.status} - ${errorText}`)
     }
 
     const result = await response.json()
-    const content = result.candidates[0].content.parts[0].text
-    const analysis = JSON.parse(content.replace(/```json|```/g, '').trim())
-
-    // 3. Database Persistence using Prisma
-    const prisma = getPrismaClient();
-
-    // Verify user exists
-    const user = await prisma.profiles.findUnique({
-      where: { id: userId }
-    });
-
-    if (!user) {
-      throw new Error('User profile not found. Please complete onboarding first.');
+    
+    if (!result.candidates || result.candidates.length === 0) {
+      throw new Error('No se pudo generar un análisis para esta imagen.')
     }
 
-    // Create the meal record
-    const meal = await prisma.meals.create({
-      data: {
-        user_id: userId,
-        name: analysis.name,
-        image_url: imageUrl,
-        status: 'complete',
-        source_type: 'camera',
-        llm_used: 'gemini_2_5_flash',
-        food_items: {
-          create: (analysis.ingredients || []).map((ing: any) => ({
-            name: ing.name,
-            calories: ing.calories || 0,
-            protein: ing.protein || 0,
-            carbs: ing.carbs || 0,
-            fat: ing.fat || 0,
-          }))
-        }
-      },
-      include: {
-        food_items: true
-      }
-    });
+    const content = result.candidates[0].content.parts[0].text
+    const cleanContent = content.replace(/```json|```/g, '').trim()
+    const analysis = JSON.parse(cleanContent)
 
-    return new Response(JSON.stringify({ 
-      ...analysis,
-      mealId: meal.id 
-    }), {
+    // Solo devolvemos el análisis al frontend para que el usuario confirme
+    return new Response(JSON.stringify(analysis), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })

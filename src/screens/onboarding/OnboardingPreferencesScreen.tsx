@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
 import { useCreateNotificationPreference } from '@/hooks/useNotifications';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 import { analytics } from '@/services/analytics';
 
 // Sincronizado con Prisma: water_unit_enum
@@ -23,6 +24,9 @@ const BOTTLE_SIZES = {
 };
 
 export default function OnboardingPreferencesScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
@@ -159,7 +163,7 @@ export default function OnboardingPreferencesScreen() {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.secondary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.secondary} />
           </TouchableOpacity>
           
           <View style={styles.progressContainer}>
@@ -182,7 +186,7 @@ export default function OnboardingPreferencesScreen() {
             
             <View style={styles.preferenceCard}>
               <View style={styles.preferenceHeader}>
-                <Ionicons name="water" size={24} color={COLORS.primary.sky} />
+                <Ionicons name="water" size={24} color={colors.primary.sky} />
                 <Text style={styles.preferenceTitle}>Unidad de Medida</Text>
               </View>
               
@@ -210,7 +214,7 @@ export default function OnboardingPreferencesScreen() {
 
             <View style={styles.preferenceCard}>
               <View style={styles.preferenceHeader}>
-                <Ionicons name="wine" size={24} color={COLORS.primary.amber} />
+                <Ionicons name="wine" size={24} color={colors.primary.amber} />
                 <Text style={styles.preferenceTitle}>Tamaño de Botella Preferido</Text>
               </View>
               
@@ -221,19 +225,19 @@ export default function OnboardingPreferencesScreen() {
                     style={[
                       styles.bottleCard,
                       preferredBottleSize === size && styles.bottleCardSelected,
-                      { borderColor: preferredBottleSize === size ? COLORS.primary.sky : COLORS.background.border }
+                      { borderColor: preferredBottleSize === size ? colors.primary.sky : colors.background.border }
                     ]}
                     onPress={() => setPreferredBottleSize(size)}
                     disabled={isLoading}
                   >
                     <View style={[
                       styles.bottleIcon,
-                      { backgroundColor: preferredBottleSize === size ? `${COLORS.primary.sky}20` : COLORS.background.tertiary }
+                      { backgroundColor: preferredBottleSize === size ? `${colors.primary.sky}20` : colors.background.tertiary }
                     ]}>
                       <Ionicons 
                         name="water" 
                         size={20} 
-                        color={preferredBottleSize === size ? COLORS.primary.sky : COLORS.text.secondary} 
+                        color={preferredBottleSize === size ? colors.primary.sky : colors.text.secondary} 
                       />
                     </View>
                     <Text style={[
@@ -244,7 +248,7 @@ export default function OnboardingPreferencesScreen() {
                     </Text>
                     {preferredBottleSize === size && (
                       <View style={styles.bottleCheck}>
-                        <Ionicons name="checkmark-circle" size={16} color={COLORS.primary.sky} />
+                        <Ionicons name="checkmark-circle" size={16} color={colors.primary.sky} />
                       </View>
                     )}
                   </TouchableOpacity>
@@ -260,7 +264,7 @@ export default function OnboardingPreferencesScreen() {
             <View style={styles.preferenceCard}>
               <View style={styles.switchContainer}>
                 <View style={styles.switchContent}>
-                  <Ionicons name="flame" size={20} color={COLORS.status.error} />
+                  <Ionicons name="flame" size={20} color={colors.status.error} />
                   <View style={styles.switchText}>
                     <Text style={styles.switchTitle}>Mostrar Calorías</Text>
                     <Text style={styles.switchDescription}>
@@ -271,8 +275,8 @@ export default function OnboardingPreferencesScreen() {
                 <Switch
                   value={showCalories}
                   onValueChange={setShowCalories}
-                  trackColor={{ false: COLORS.background.border, true: COLORS.status.error }}
-                  thumbColor={COLORS.text.primary}
+                  trackColor={{ false: colors.background.border, true: colors.status.error }}
+                  thumbColor={colors.text.primary}
                   disabled={isLoading}
                 />
               </View>
@@ -281,7 +285,7 @@ export default function OnboardingPreferencesScreen() {
             <View style={styles.preferenceCard}>
               <View style={styles.switchContainer}>
                 <View style={styles.switchContent}>
-                  <Ionicons name="water" size={20} color={COLORS.primary.sky} />
+                  <Ionicons name="water" size={20} color={colors.primary.sky} />
                   <View style={styles.switchText}>
                     <Text style={styles.switchTitle}>Mostrar Hidratación</Text>
                     <Text style={styles.switchDescription}>
@@ -292,8 +296,8 @@ export default function OnboardingPreferencesScreen() {
                 <Switch
                   value={showHydration}
                   onValueChange={setShowHydration}
-                  trackColor={{ false: COLORS.background.border, true: COLORS.primary.sky }}
-                  thumbColor={COLORS.text.primary}
+                  trackColor={{ false: colors.background.border, true: colors.primary.sky }}
+                  thumbColor={colors.text.primary}
                   disabled={isLoading}
                 />
               </View>
@@ -303,13 +307,13 @@ export default function OnboardingPreferencesScreen() {
           {/* Summary Card */}
           <View style={styles.summaryCard}>
             <LinearGradient
-              colors={[COLORS.primary.sky, '#0EA5E9']}
+              colors={[colors.primary.sky, '#0EA5E9']}
               style={styles.summaryGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
               <View style={styles.summaryContent}>
-                <Ionicons name="checkmark-circle" size={32} color={COLORS.text.primary} />
+                <Ionicons name="checkmark-circle" size={32} color={colors.text.primary} />
                 <Text style={styles.summaryTitle}>¡Todo Listo!</Text>
                 <Text style={styles.summaryDescription}>
                   Tu perfil está completo. Vamos a personalizar tu experiencia.
@@ -320,7 +324,7 @@ export default function OnboardingPreferencesScreen() {
 
           {/* Privacy Note */}
           <View style={styles.privacyNote}>
-            <Ionicons name="lock-closed" size={16} color={COLORS.text.muted} />
+            <Ionicons name="lock-closed" size={16} color={colors.text.muted} />
             <Text style={styles.privacyText}>
               Puedes cambiar estas preferencias en cualquier momento desde configuración
             </Text>
@@ -338,7 +342,7 @@ export default function OnboardingPreferencesScreen() {
             disabled={isLoading}
           >
             <LinearGradient
-              colors={[COLORS.primary.sky, '#0EA5E9']}
+              colors={[colors.primary.sky, '#0EA5E9']}
               style={styles.continueButtonGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -348,7 +352,7 @@ export default function OnboardingPreferencesScreen() {
               ) : (
                 <>
                   <Text style={styles.continueButtonText}>Comenzar NotFat</Text>
-                  <Ionicons name="rocket" size={20} color={COLORS.text.primary} />
+                  <Ionicons name="rocket" size={20} color={colors.text.primary} />
                 </>
               )}
             </LinearGradient>
@@ -359,10 +363,10 @@ export default function OnboardingPreferencesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   scrollView: {
     flex: 1,
@@ -379,22 +383,22 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   progressContainer: {
     flex: 1,
     height: 4,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: 2,
     marginLeft: SPACING.md,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: COLORS.primary.sky,
+    backgroundColor: colors.primary.sky,
     borderRadius: 2,
   },
   content: {
@@ -407,13 +411,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONTS.sizes['3xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
   subtitle: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     lineHeight: 24,
   },
@@ -423,17 +427,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.md,
   },
   preferenceCard: {
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     ...SHADOWS.sm,
   },
   preferenceHeader: {
@@ -445,12 +449,12 @@ const styles = StyleSheet.create({
   preferenceTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   unitSelector: {
     flexDirection: 'row',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.xs,
   },
@@ -460,16 +464,16 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.sm,
   },
   unitButtonSelected: {
-    backgroundColor: COLORS.primary.sky,
+    backgroundColor: colors.primary.sky,
   },
   unitText: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   unitTextSelected: {
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   bottleGrid: {
     flexDirection: 'row',
@@ -478,7 +482,7 @@ const styles = StyleSheet.create({
   },
   bottleCard: {
     width: '31%',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     marginBottom: SPACING.sm,
@@ -487,7 +491,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   bottleCardSelected: {
-    backgroundColor: `${COLORS.primary.sky}20`,
+    backgroundColor: `${colors.primary.sky}20`,
     borderWidth: 2,
   },
   bottleIcon: {
@@ -501,11 +505,11 @@ const styles = StyleSheet.create({
   bottleSize: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   bottleSizeSelected: {
-    color: COLORS.primary.sky,
+    color: colors.primary.sky,
   },
   bottleCheck: {
     position: 'absolute',
@@ -529,13 +533,13 @@ const styles = StyleSheet.create({
   switchTitle: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.xs,
   },
   switchDescription: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     lineHeight: 18,
   },
@@ -555,14 +559,14 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: FONTS.sizes['2xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginTop: SPACING.md,
     marginBottom: SPACING.sm,
   },
   summaryDescription: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
     lineHeight: 22,
@@ -570,14 +574,14 @@ const styles = StyleSheet.create({
   privacyNote: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     marginTop: SPACING.md,
   },
   privacyText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     marginLeft: SPACING.sm,
     flex: 1,
@@ -607,7 +611,7 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
 });

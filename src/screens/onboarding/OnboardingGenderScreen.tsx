@@ -1,5 +1,6 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,57 +11,28 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 import { analytics } from '@/services/analytics';
 
-const GENDER_OPTIONS = [
-  {
-    id: 'male',
-    label: 'Masculino',
-    icon: 'man' as keyof typeof Ionicons.glyphMap,
-    description: 'Hombre',
-    color: COLORS.primary.sky,
-  },
-  {
-    id: 'female',
-    label: 'Femenino',
-    icon: 'woman' as keyof typeof Ionicons.glyphMap,
-    description: 'Mujer',
-    color: '#EC4899', // Pink
-  },
-  {
-    id: 'non_binary',
-    label: 'No Binario',
-    icon: 'person' as keyof typeof Ionicons.glyphMap,
-    description: 'No binario',
-    color: COLORS.primary.amber,
-  },
-  {
-    id: 'other',
-    label: 'Otro',
-    icon: 'help-circle' as keyof typeof Ionicons.glyphMap,
-    description: 'Otro / Prefiero no decir',
-    color: COLORS.text.secondary,
-  },
-];
+// Se define dentro del componente
 
 // Animacion Individual para Boton
 const AnimatedOptionCard = ({ 
-  option, selectedId, onPress, disabled 
+  option, selectedId, onPress, disabled, colors, styles
 }: { 
-  option: typeof GENDER_OPTIONS[0], selectedId: string, onPress: () => void, disabled: boolean 
+  option: any, selectedId: string, onPress: () => void, disabled: boolean, colors: any, styles: any
 }) => {
   const isSelected = selectedId === option.id;
   const scale = useSharedValue(1);
   
   const animatedCardStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
-    borderColor: withTiming(isSelected ? option.color : COLORS.background.border, { duration: 200 }),
-    backgroundColor: withTiming(isSelected ? 'rgba(255,255,255,0.03)' : COLORS.background.card, { duration: 200 })
+    borderColor: withTiming(isSelected ? option.color : colors.background.border, { duration: 200 }),
+    backgroundColor: withTiming(isSelected ? 'rgba(255,255,255,0.03)' : colors.background.card, { duration: 200 })
   }));
 
   const animatedIconBgStyle = useAnimatedStyle(() => ({
-    backgroundColor: withTiming(isSelected ? option.color : COLORS.background.tertiary, { duration: 300 })
+    backgroundColor: withTiming(isSelected ? option.color : colors.background.tertiary, { duration: 300 })
   }));
 
   return (
@@ -77,7 +49,7 @@ const AnimatedOptionCard = ({
             <Ionicons 
               name={option.icon} 
               size={32} 
-              color={isSelected ? COLORS.background.primary : COLORS.text.secondary} 
+              color={isSelected ? colors.background.primary : colors.text.secondary} 
             />
           </Animated.View>
           
@@ -102,23 +74,52 @@ const AnimatedOptionCard = ({
 };
 
 export default function OnboardingGenderScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
+  const GENDER_OPTIONS = React.useMemo(() => [
+    {
+      id: 'male',
+      label: 'Masculino',
+      icon: 'man' as keyof typeof Ionicons.glyphMap,
+      description: 'Hombre',
+      color: colors.primary.sky,
+    },
+    {
+      id: 'female',
+      label: 'Femenino',
+      icon: 'woman' as keyof typeof Ionicons.glyphMap,
+      description: 'Mujer',
+      color: '#EC4899', // Pink
+    },
+    {
+      id: 'non_binary',
+      label: 'No Binario',
+      icon: 'person' as keyof typeof Ionicons.glyphMap,
+      description: 'No binario',
+      color: colors.primary.amber,
+    },
+    {
+      id: 'other',
+      label: 'Otro',
+      icon: 'help-circle' as keyof typeof Ionicons.glyphMap,
+      description: 'Otro / Prefiero no decir',
+      color: colors.text.secondary,
+    },
+  ], [colors]);
+
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
   const [selectedGender, setSelectedGender] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-
   // Progreso Animado
   const progressWidth = useSharedValue(0);
 
+  // useEffect para analytics
   useEffect(() => {
     analytics.trackScreenView('OnboardingGender');
-    const timer = setTimeout(() => {
-      setIsReady(true);
-      progressWidth.value = withSpring(25, { damping: 12, stiffness: 90 });
-    }, 100);
-    return () => clearTimeout(timer);
+    progressWidth.value = withSpring(25, { damping: 12, stiffness: 90 });
   }, []);
 
   const progressStyle = useAnimatedStyle(() => ({
@@ -131,7 +132,17 @@ export default function OnboardingGenderScreen() {
   };
 
   const handleContinue = async () => {
-    if (!selectedGender || !user) return;
+    if (!selectedGender) return;
+    
+    if (!user) {
+      Alert.alert(
+        'Sesión Requerida',
+        'Tu sesión ha expirado o no se ha cargado correctamente. Por favor intenta reiniciar la aplicación.',
+        [{ text: 'Entendido' }]
+      );
+      return;
+    }
+
     setIsLoading(true);
     try {
       if (updateProfile?.mutateAsync) {
@@ -139,20 +150,20 @@ export default function OnboardingGenderScreen() {
           gender: selectedGender as any, 
           onboarding_step: 'birth_date',
         });
-      } else {
-        // Fallback en caso de incompatibilidad con useMutation
-        console.warn("updateProfile fallback method called");
       }
       analytics.trackOnboardingStep('gender', { gender: selectedGender });
       navigation.navigate('OnboardingBirthDate' as never);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating gender:', error);
+      Alert.alert(
+        'Error',
+        'No pudimos guardar tu preferencia. Por favor verifica tu conexión e intenta nuevamente.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setIsLoading(false);
     }
   };
-
-  if (!isReady) return <View style={styles.container} />;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -162,9 +173,19 @@ export default function OnboardingGenderScreen() {
         <Animated.View entering={FadeInDown.duration(600)} style={styles.header}>
           <Pressable 
             style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.7 }]}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                // Force return to Welcome by resetting the stack
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'Welcome' as never }],
+                });
+              }
+            }}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </Pressable>
           
           <View style={styles.progressContainer}>
@@ -190,6 +211,8 @@ export default function OnboardingGenderScreen() {
                   selectedId={selectedGender} 
                   onPress={() => handleGenderSelect(option.id)} 
                   disabled={isLoading}
+                  colors={colors}
+                  styles={styles}
                 />
               </Animated.View>
             ))}
@@ -197,7 +220,7 @@ export default function OnboardingGenderScreen() {
 
           {/* Nota de Privacidad */}
           <Animated.View entering={FadeIn.duration(800).delay(1000)} style={styles.privacyNote}>
-            <Ionicons name="shield-checkmark" size={20} color={COLORS.primary.sky} />
+            <Ionicons name="shield-checkmark" size={20} color={colors.primary.sky} />
             <Text style={styles.privacyText}>
               Protegemos tu privacidad y solo usamos esto para calcular tu perfil nutricional real.
             </Text>
@@ -217,17 +240,17 @@ export default function OnboardingGenderScreen() {
             disabled={!selectedGender || isLoading}
           >
             <LinearGradient
-              colors={selectedGender ? [COLORS.primary.sky, '#0284C7'] : [COLORS.background.border, COLORS.background.border]}
+              colors={selectedGender ? [colors.primary.sky, '#0284C7'] : [colors.background.border, colors.background.border]}
               style={styles.continueButtonGradient}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             >
               {isLoading ? (
                 <Text style={styles.continueButtonText}>Guardando...</Text>
               ) : (
-                <>
-                  <Text style={[styles.continueButtonText, !selectedGender && { color: COLORS.text.muted }]}>Continuar</Text>
-                  <Ionicons name="arrow-forward" size={24} color={selectedGender ? COLORS.background.primary : COLORS.text.muted} />
-                </>
+                <View style={styles.continueButtonContent}>
+                  <Text style={[styles.continueButtonText, !selectedGender && { color: colors.text.muted }]}>Continuar</Text>
+                  <Ionicons name="arrow-forward" size={24} color={selectedGender ? colors.background.primary : colors.text.muted} />
+                </View>
               )}
             </LinearGradient>
           </Pressable>
@@ -238,10 +261,10 @@ export default function OnboardingGenderScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   scrollView: {
     flex: 1,
@@ -258,23 +281,23 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   progressContainer: {
     flex: 1,
     height: 6,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: 3,
     marginLeft: SPACING.xl,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: COLORS.primary.sky,
+    backgroundColor: colors.primary.sky,
     borderRadius: 3,
   },
   content: {
@@ -288,14 +311,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONTS.sizes['4xl'],
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.md,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: FONTS.sizes.lg,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     lineHeight: 26,
   },
@@ -304,10 +327,10 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   optionCard: {
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.xl,
     borderWidth: 2,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     padding: SPACING.lg,
     ...SHADOWS.sm,
   },
@@ -332,13 +355,13 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: FONTS.sizes.xl,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: 4,
   },
   optionDescription: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
   },
   checkContainer: {
@@ -356,7 +379,7 @@ const styles = StyleSheet.create({
   },
   privacyText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     marginLeft: SPACING.md,
     flex: 1,
@@ -386,10 +409,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xl,
     gap: SPACING.sm,
   },
+  continueButtonContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+  },
   continueButtonText: {
     fontSize: FONTS.sizes.lg,
     fontWeight: '700',
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontFamily: FONTS.primary,
   },
 });

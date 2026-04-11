@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useThemeColors } from '@/hooks/useThemeColors';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   Alert,
@@ -13,30 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ChevronLeft } from 'lucide-react-native';
 import { useScientificGoals } from '@/hooks/useScientificGoals';
 import { useProfile } from '@/hooks/useProfile';
-import { COLORS, SPACING, FONTS, BORDER_RADIUS } from '@/constants/theme';
-
-const TYPOGRAPHY = {
-  heading: {
-    fontFamily: FONTS.primary,
-    fontWeight: FONTS.weights.bold,
-  },
-  subheading: {
-    fontFamily: FONTS.primary,
-    fontWeight: FONTS.weights.semibold,
-  },
-  body: {
-    fontFamily: FONTS.primary,
-    fontWeight: FONTS.weights.normal,
-  },
-  button: {
-    fontFamily: FONTS.primary,
-    fontWeight: FONTS.weights.bold,
-  },
-  caption: {
-    fontFamily: FONTS.primary,
-    fontWeight: FONTS.weights.normal,
-  },
-};
+import { getStyles } from './ScientificGoalsScreen.styles';
 
 interface ScientificGoalsScreenProps {
   navigation: any;
@@ -50,9 +27,10 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
   
   const { profile, isLoading: profileLoading } = useProfile();
   const { generateAndSaveGoals, isLoading: goalsLoading } = useScientificGoals();
+  const { colors, isDark } = useThemeColors();
+  const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
   useEffect(() => {
-    // Verificar si el perfil está completo
     if (profile && !profileLoading) {
       const hasRequiredData = 
         profile.height_value && 
@@ -233,7 +211,7 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary.amber} />
+          <ActivityIndicator size="large" color={colors.primary?.amber} />
           <Text style={styles.loadingText}>Cargando perfil...</Text>
         </View>
       </SafeAreaView>
@@ -244,7 +222,7 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color={COLORS.primary.amber} />
+          <ChevronLeft size={24} color={colors.primary?.amber} />
         </TouchableOpacity>
         <Text style={styles.title}>Objetivos Científicos</Text>
         <View style={styles.placeholder} />
@@ -255,7 +233,7 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
 
         {!showResults ? (
           <View style={styles.introductionCard}>
-            <Ionicons name="analytics" size={48} color={COLORS.primary.amber} />
+            <Ionicons name="analytics" size={48} color={colors.primary?.amber} />
             <Text style={styles.introductionTitle}>
               Objetivos Basados en Ciencia
             </Text>
@@ -298,216 +276,5 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FAF3ED',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.lg,
-    paddingBottom: SPACING.md,
-    backgroundColor: COLORS.primary.amber,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    ...TYPOGRAPHY.heading,
-    color: '#ffffff',
-    fontSize: 18,
-  },
-  placeholder: {
-    width: 40,
-  },
-  content: {
-    flex: 1,
-    padding: SPACING.md,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    ...TYPOGRAPHY.body,
-    color: '#666666',
-    marginTop: SPACING.md,
-  },
-  profileCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: SPACING.lg,
-    marginBottom: SPACING.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  profileTitle: {
-    ...TYPOGRAPHY.heading,
-    fontSize: 18,
-    color: '#000000',
-    marginBottom: SPACING.md,
-  },
-  profileInfo: {
-    gap: SPACING.sm,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  infoLabel: {
-    ...TYPOGRAPHY.body,
-    color: '#666666',
-  },
-  infoValue: {
-    ...TYPOGRAPHY.body,
-    color: '#000000',
-    fontWeight: '600',
-  },
-  introductionCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: SPACING.xl,
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  introductionTitle: {
-    ...TYPOGRAPHY.heading,
-    fontSize: FONTS.sizes.xl,
-    color: COLORS.text.primary,
-    textAlign: 'center',
-    marginTop: SPACING.md,
-    marginBottom: SPACING.md,
-  },
-  introductionText: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: SPACING.md,
-  },
-  generateButton: {
-    backgroundColor: COLORS.primary.amber,
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
-    borderRadius: BORDER_RADIUS.xl,
-    marginTop: SPACING.lg,
-    minWidth: 200,
-  },
-  generateButtonText: {
-    ...TYPOGRAPHY.button,
-    color: COLORS.background.primary,
-    textAlign: 'center',
-  },
-  formulasCard: {
-    backgroundColor: COLORS.background.secondary,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.lg,
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
-  },
-  formulasTitle: {
-    ...TYPOGRAPHY.heading,
-    fontSize: FONTS.sizes.lg,
-    color: COLORS.text.primary,
-    marginBottom: SPACING.md,
-  },
-  formulaSection: {
-    marginBottom: SPACING.md,
-    paddingBottom: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
-  },
-  formulaName: {
-    ...TYPOGRAPHY.subheading,
-    color: COLORS.text.primary,
-    marginBottom: SPACING.xs,
-  },
-  formulaValue: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.text.secondary,
-    fontFamily: 'monospace',
-    marginBottom: SPACING.xs,
-  },
-  formulaResult: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.primary.amber,
-    fontWeight: '600',
-  },
-  goalsCard: {
-    backgroundColor: COLORS.background.secondary,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.lg,
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
-  },
-  goalsTitle: {
-    ...TYPOGRAPHY.heading,
-    fontSize: FONTS.sizes.lg,
-    color: COLORS.text.primary,
-    marginBottom: SPACING.md,
-  },
-  goalsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  goalItem: {
-    width: '30%',
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-  },
-  goalIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.xs,
-  },
-  goalValue: {
-    ...TYPOGRAPHY.heading,
-    fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
-    marginBottom: 2,
-  },
-  goalLabel: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-  },
-  doneButton: {
-    backgroundColor: COLORS.primary.amber,
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
-    borderRadius: 25,
-    alignItems: 'center',
-    margin: SPACING.lg,
-  },
-  doneButtonText: {
-    ...TYPOGRAPHY.button,
-    color: '#000000',
-  },
-});
 
 export default ScientificGoalsScreen;

@@ -1,10 +1,17 @@
-import { useState, useCallback, useRef } from 'react';
-import { Audio } from 'expo-av';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import * as FileSystem from 'expo-file-system';
-import { Alert } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/SupabaseContext';
 import { useAuthStore } from '@/store';
+import { useMicrophonePermissions } from 'expo-camera';
+import { useAudioRecorder, RecordingOptions, RecordingPresets } from 'expo-audio';
 
 interface VoiceInputState {
   isRecording: boolean;
@@ -23,14 +30,12 @@ interface TaskQueue {
 }
 
 export function useVoiceInput() {
-  const [state, setState] = useState<VoiceInputState>({
-    isRecording: false,
-    isProcessing: false,
-    audioUri: null,
-    duration: 0,
-  });
-
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [permissionResponse, requestPermission] = useMicrophonePermissions();
+  // ✅ FIX #4: Ref para el intervalo de monitoreo — permite limpiarlo si el componente se desmonta
+  const monitorIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
 
@@ -64,7 +69,6 @@ export function useVoiceInput() {
 
       const fileName = `voice-input/${user.id}/${Date.now()}.m4a`;
       
-      // In React Native, fetch the blob from the local URI
       const response = await fetch(audioUri);
       const blob = await response.blob();
 
@@ -77,7 +81,6 @@ export function useVoiceInput() {
 
       if (error) throw error;
 
-      // Obtener URL pública
       const { data: { publicUrl } } = supabase.storage
         .from('audio-uploads')
         .getPublicUrl(fileName);
@@ -100,95 +103,51 @@ export function useVoiceInput() {
 
   const startRecording = useCallback(async () => {
     try {
-      // Solicitar permisos
-      const { status } = await Audio.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Error', 'Se requieren permisos de audio para usar esta función');
-        return;
+      if (permissionResponse?.status !== 'granted') {
+        const { status } = await requestPermission();
+        if (status !== 'granted') {
+          Alert.alert('Error', 'Se requieren permisos de audio para usar esta función');
+          return;
+        }
       }
 
-      // Configurar modo de audio
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
-      });
+      const { Audio } = require('expo-audio');
+      if (Audio && Audio.setAudioModeAsync) {
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: true });
+      }
 
-      // Crear nueva grabación con configuración optimizada para voz
-      const { recording } = await Audio.Recording.createAsync({
-        android: {
-          extension: '.m4a',
-          outputFormat: Audio.AndroidOutputFormat.MPEG_4,
-          audioEncoder: Audio.AndroidAudioEncoder.AAC,
-          sampleRate: 16000, // Optimizado para voz
-          numberOfChannels: 1, // Mono para voz
-          bitRate: 64000, // Calidad balanceada para transcripción
-        },
-        ios: {
-          extension: '.m4a',
-          outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
-          audioQuality: Audio.IOSAudioQuality.MEDIUM,
-          sampleRate: 16000,
-          numberOfChannels: 1,
-          bitRate: 64000,
-          linearPCMBitDepth: 16,
-          linearPCMIsBigEndian: false,
-          linearPCMIsFloat: false,
-        },
-        web: {
-          mimeType: 'audio/webm',
-          bitsPerSecond: 64000,
-        },
-      });
-
-      recordingRef.current = recording;
-
-      setState(prev => ({
-        ...prev,
-        isRecording: true,
-        audioUri: null,
-        duration: 0,
-      }));
-
-      // Iniciar grabación
-      await recording.startAsync();
+      await recorder.record();
 
     } catch (error) {
       console.error('Error starting recording:', error);
       Alert.alert('Error', 'No se pudo iniciar la grabación');
     }
-  }, []);
+  }, [permissionResponse, requestPermission, recorder]);
 
   const stopRecording = useCallback(async () => {
-    if (!recordingRef.current) return;
+    if (!recorder.isRecording) return;
 
     try {
-      setState(prev => ({ ...prev, isProcessing: true }));
+      setIsProcessing(true);
 
-      // Detener grabación
-      await recordingRef.current.stopAndUnloadAsync();
-      const uri = recordingRef.current.getURI();
-      recordingRef.current = null;
+      await recorder.stop();
+      const uri = recorder.uri;
 
       if (!uri) {
         throw new Error('No se pudo obtener el URI del audio');
       }
 
-      // Subir audio a Supabase Storage
       const audioUrl = await uploadAudioMutation.mutateAsync(uri);
-
-      // Crear entrada en task_queue
       const task = await createTaskMutation.mutateAsync(audioUrl);
 
-      // Monitorear procesamiento en background
-      const monitorProcessing = async () => {
+      const monitorProcessing = () => {
         let attempts = 0;
-        const maxAttempts = 30; // ~5 minutos
+        const maxAttempts = 30;
 
-        const checkInterval = setInterval(async () => {
+        // ✅ FIX #4: Guardar referencia del intervalo para poder cancelarlo
+        monitorIntervalRef.current = setInterval(async () => {
           attempts++;
-          
+
           try {
             const { data: status } = await supabase
               .from('task_queue')
@@ -199,31 +158,31 @@ export function useVoiceInput() {
             if (!status) return;
 
             if (status.status === 'completed') {
-              clearInterval(checkInterval);
-              setState(prev => ({ ...prev, isProcessing: false }));
-              
-              // Invalidar queries para actualizar UI
+              if (monitorIntervalRef.current) clearInterval(monitorIntervalRef.current);
+              monitorIntervalRef.current = null;
+              setIsProcessing(false);
               queryClient.invalidateQueries({ queryKey: ['meals'] });
-              queryClient.invalidateQueries({ queryKey: ['daily_totals'] });
-              
+
               Alert.alert(
                 '¡Listo!',
                 'Tu entrada de voz ha sido procesada correctamente',
                 [{ text: 'OK' }]
               );
-              
+
             } else if (status.status === 'error') {
-              clearInterval(checkInterval);
-              setState(prev => ({ ...prev, isProcessing: false }));
+              if (monitorIntervalRef.current) clearInterval(monitorIntervalRef.current);
+              monitorIntervalRef.current = null;
+              setIsProcessing(false);
               Alert.alert(
                 'Error',
                 'No se pudo procesar tu audio. Intenta nuevamente.',
                 [{ text: 'OK' }]
               );
-              
+
             } else if (attempts >= maxAttempts) {
-              clearInterval(checkInterval);
-              setState(prev => ({ ...prev, isProcessing: false }));
+              if (monitorIntervalRef.current) clearInterval(monitorIntervalRef.current);
+              monitorIntervalRef.current = null;
+              setIsProcessing(false);
               Alert.alert(
                 'Tiempo agotado',
                 'El procesamiento está tomando más tiempo de lo esperado. Revisa más tarde.',
@@ -233,48 +192,57 @@ export function useVoiceInput() {
           } catch (error) {
             console.error('Error checking task status:', error);
           }
-        }, 10000); // Verificar cada 10 segundos
+        }, 10000);
       };
 
       monitorProcessing();
 
     } catch (error) {
       console.error('Error stopping recording:', error);
-      setState(prev => ({
-        ...prev,
-        isRecording: false,
-        isProcessing: false,
-      }));
+      setIsProcessing(false);
       Alert.alert('Error', 'No se pudo procesar el audio');
     }
-  }, [uploadAudioMutation, createTaskMutation, processAudioMutation, queryClient]);
+  }, [recorder, uploadAudioMutation, createTaskMutation, queryClient]);
 
   const cancelRecording = useCallback(async () => {
-    if (!recordingRef.current) return;
+    if (!recorder.isRecording) return;
 
     try {
-      await recordingRef.current.stopAndUnloadAsync();
-      recordingRef.current = null;
-
-      setState(prev => ({
-        ...prev,
-        isRecording: false,
-        isProcessing: false,
-        audioUri: null,
-      }));
+      await recorder.stop();
+      // ✅ FIX #4: Limpiar el intervalo si se cancela durante el monitoreo
+      if (monitorIntervalRef.current) {
+        clearInterval(monitorIntervalRef.current);
+        monitorIntervalRef.current = null;
+      }
+      setIsProcessing(false);
 
     } catch (error) {
       console.error('Error canceling recording:', error);
     }
+  }, [recorder]);
+
+  // ✅ FIX #4: Cleanup al desmontar — evita setState sobre componente desmontado
+  useEffect(() => {
+    return () => {
+      if (monitorIntervalRef.current) {
+        clearInterval(monitorIntervalRef.current);
+        monitorIntervalRef.current = null;
+      }
+    };
   }, []);
 
   return {
-    ...state,
+    isRecording: recorder.isRecording,
+    isProcessing,
+    audioUri: recorder.uri,
+    duration: recorder.currentTime,
     startRecording,
     stopRecording,
     cancelRecording,
     isLoading: uploadAudioMutation.isPending || 
               createTaskMutation.isPending || 
-              processAudioMutation.isPending,
+              processAudioMutation.isPending ||
+              isProcessing,
   };
 }
+

@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,11 +7,14 @@ import { Info } from 'lucide-react-native';
 import { useWeeklyStats } from '@/hooks/useWeeklyStats';
 import { useProfile } from '@/hooks/useProfile';
 import { useBodyMetrics, useAddBodyMetric } from '@/hooks/useBodyMetrics';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
 
 const ProgressScreen = ({ navigation }: any) => {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const tabs = ['Esta semana', 'La semana pasada', 'Hace un mes'];
   const [activeTab, setActiveTab] = React.useState(0);
   const [showWeightModal, setShowWeightModal] = React.useState(false);
@@ -49,7 +53,7 @@ const ProgressScreen = ({ navigation }: any) => {
   if (statsLoading || profileLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color={COLORS.primary.amber} />
+        <ActivityIndicator size="large" color={colors.primary.amber} />
       </View>
     );
   }
@@ -68,9 +72,9 @@ const ProgressScreen = ({ navigation }: any) => {
   };
 
   const chartConfig = {
-    backgroundColor: COLORS.background.secondary,
-    backgroundGradientFrom: COLORS.background.secondary,
-    backgroundGradientTo: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
+    backgroundGradientFrom: colors.background.secondary,
+    backgroundGradientTo: colors.background.secondary,
     decimalPlaces: 0,
     color: (opacity = 1) => `rgba(252, 211, 77, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
@@ -78,7 +82,7 @@ const ProgressScreen = ({ navigation }: any) => {
     propsForDots: {
       r: '6',
       strokeWidth: '3',
-      stroke: COLORS.background.primary
+      stroke: colors.background.primary
     },
     propsForBackgroundLines: {
       strokeDasharray: '6',
@@ -223,7 +227,7 @@ const ProgressScreen = ({ navigation }: any) => {
             <TextInput
               style={styles.modalInput}
               placeholder="Ej. 74.8"
-              placeholderTextColor={COLORS.text.muted}
+              placeholderTextColor={colors.text.muted}
               keyboardType="decimal-pad"
               value={newWeight}
               onChangeText={setNewWeight}
@@ -275,10 +279,10 @@ const ProgressScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   center: {
     justifyContent: 'center',
@@ -297,20 +301,20 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.lg,
     borderRadius: BORDER_RADIUS.xl,
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     marginRight: SPACING.sm,
   },
   tabBtnActive: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
   },
   tabText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   tabTextActive: {
-    color: COLORS.background.primary,
+    color: colors.background.primary,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -320,17 +324,17 @@ const styles = StyleSheet.create({
   },
   statsCard: {
     flex: 1,
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS['2xl'],
     padding: SPACING.lg,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   cardTitle: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: SPACING.sm,
@@ -344,12 +348,12 @@ const styles = StyleSheet.create({
   cardValue: {
     fontSize: FONTS.sizes['2xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   cardUnit: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginLeft: SPACING.xs,
     fontWeight: FONTS.weights.bold,
     fontFamily: FONTS.primary,
@@ -363,12 +367,12 @@ const styles = StyleSheet.create({
   },
   progressInner: {
     height: '100%',
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     borderRadius: 4,
   },
   cardSubtitle: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontWeight: FONTS.weights.bold,
     textAlign: 'center',
     fontFamily: FONTS.primary,
@@ -379,7 +383,7 @@ const styles = StyleSheet.create({
   daysValue: {
     fontSize: FONTS.sizes['3xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   dotRow: {
@@ -394,15 +398,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
   dotActive: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
   },
   chartCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS['2xl'],
     padding: SPACING.lg,
     marginBottom: SPACING.xl,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   chartHeader: {
     flexDirection: 'row',
@@ -413,7 +417,7 @@ const styles = StyleSheet.create({
   chartTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   chartStyle: {
@@ -428,7 +432,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   chartFooterText: {
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.bold,
     fontFamily: FONTS.primary,
@@ -436,17 +440,17 @@ const styles = StyleSheet.create({
   goalLine: {
     width: 30,
     height: 2,
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     borderStyle: 'dashed',
     opacity: 0.5,
   },
   summaryCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS['2xl'],
     padding: SPACING.xl,
     marginBottom: SPACING.xl,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   summaryHeader: {
     flexDirection: 'row',
@@ -457,7 +461,7 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   addWeightBtn: {
@@ -472,7 +476,7 @@ const styles = StyleSheet.create({
   },
   addWeightText: {
     fontSize: FONTS.sizes.lg,
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontWeight: FONTS.weights.bold,
   },
   emptyWeightBox: {
@@ -485,40 +489,40 @@ const styles = StyleSheet.create({
     padding: SPACING.xl,
   },
   modalCard: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.xl,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   modalTitle: {
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   modalSubtitle: {
     marginTop: SPACING.xs,
     marginBottom: SPACING.lg,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   infoText: {
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
     lineHeight: 20,
     marginBottom: SPACING.sm,
   },
   modalInput: {
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   modalActions: {
     flexDirection: 'row',
@@ -531,10 +535,10 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
   },
   modalSecondaryText: {
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.semibold,
   },
@@ -543,10 +547,10 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.full,
     paddingVertical: SPACING.md,
     alignItems: 'center',
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
   },
   modalPrimaryText: {
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.semibold,
   },

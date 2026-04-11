@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
 import { analytics } from '@/services/analytics';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 // Sincronizado con Prisma: height_unit_enum
 const HEIGHT_UNITS = [
@@ -23,6 +24,9 @@ const WEIGHT_UNITS = [
 ];
 
 export default function OnboardingProfileScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
@@ -131,7 +135,7 @@ export default function OnboardingProfileScreen() {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.secondary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.secondary} />
           </TouchableOpacity>
           
           <View style={styles.progressContainer}>
@@ -154,27 +158,27 @@ export default function OnboardingProfileScreen() {
             
             <View style={styles.inputGroup}>
               <View style={styles.inputContainer}>
-                <Ionicons name="person" size={20} color={COLORS.text.muted} />
+                <Ionicons name="person" size={20} color={colors.text.muted} />
                 <Text style={styles.inputLabel}>Nombre</Text>
                 <TextInput
                   style={styles.input}
                   value={firstName}
                   onChangeText={setFirstName}
                   placeholder="Tu nombre"
-                  placeholderTextColor={COLORS.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   editable={!isLoading}
                 />
               </View>
 
               <View style={styles.inputContainer}>
-                <Ionicons name="person-outline" size={20} color={COLORS.text.muted} />
+                <Ionicons name="person-outline" size={20} color={colors.text.muted} />
                 <Text style={styles.inputLabel}>Apellido</Text>
                 <TextInput
                   style={styles.input}
                   value={lastName}
                   onChangeText={setLastName}
                   placeholder="Tu apellido"
-                  placeholderTextColor={COLORS.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   editable={!isLoading}
                 />
               </View>
@@ -187,13 +191,13 @@ export default function OnboardingProfileScreen() {
             
             <View style={styles.measurementContainer}>
               <View style={styles.measurementInput}>
-                <Ionicons name="resize" size={20} color={COLORS.text.muted} />
+                <Ionicons name="resize" size={20} color={colors.text.muted} />
                 <TextInput
                   style={styles.measurementValue}
                   value={heightValue}
                   onChangeText={setHeightValue}
                   placeholder="0"
-                  placeholderTextColor={COLORS.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   keyboardType="numeric"
                   editable={!isLoading}
                 />
@@ -228,13 +232,13 @@ export default function OnboardingProfileScreen() {
             
             <View style={styles.measurementContainer}>
               <View style={styles.measurementInput}>
-                <Ionicons name="fitness" size={20} color={COLORS.text.muted} />
+                <Ionicons name="fitness" size={20} color={colors.text.muted} />
                 <TextInput
                   style={styles.measurementValue}
                   value={weightValue}
                   onChangeText={setWeightValue}
                   placeholder="0"
-                  placeholderTextColor={COLORS.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   keyboardType="numeric"
                   editable={!isLoading}
                 />
@@ -265,7 +269,7 @@ export default function OnboardingProfileScreen() {
 
           {/* Privacy Note */}
           <View style={styles.privacyNote}>
-            <Ionicons name="shield-checkmark" size={16} color={COLORS.text.muted} />
+            <Ionicons name="shield-checkmark" size={16} color={colors.text.muted} />
             <Text style={styles.privacyText}>
               Tu información es privada y solo se usa para personalizar tu experiencia
             </Text>
@@ -284,7 +288,7 @@ export default function OnboardingProfileScreen() {
             disabled={!firstName || !lastName || !heightValue || !weightValue || isLoading}
           >
             <LinearGradient
-              colors={(firstName && lastName && heightValue && weightValue) ? [COLORS.primary.sky, '#0EA5E9'] : [COLORS.background.border, COLORS.background.border]}
+              colors={(firstName && lastName && heightValue && weightValue) ? [colors.primary.sky, '#0EA5E9'] : [colors.background.border, colors.background.border]}
               style={styles.continueButtonGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -294,7 +298,7 @@ export default function OnboardingProfileScreen() {
               ) : (
                 <>
                   <Text style={styles.continueButtonText}>Continuar</Text>
-                  <Ionicons name="arrow-forward" size={20} color={COLORS.text.primary} />
+                  <Ionicons name="arrow-forward" size={20} color={colors.text.primary} />
                 </>
               )}
             </LinearGradient>
@@ -305,10 +309,10 @@ export default function OnboardingProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   scrollView: {
     flex: 1,
@@ -325,22 +329,22 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   progressContainer: {
     flex: 1,
     height: 4,
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: 2,
     marginLeft: SPACING.md,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: COLORS.primary.sky,
+    backgroundColor: colors.primary.sky,
     borderRadius: 2,
   },
   content: {
@@ -353,13 +357,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONTS.sizes['3xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
   },
   subtitle: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     lineHeight: 24,
   },
@@ -369,7 +373,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.md,
   },
@@ -377,10 +381,10 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   inputContainer: {
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     padding: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -388,7 +392,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     position: 'absolute',
     top: SPACING.xs,
@@ -397,7 +401,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     paddingTop: SPACING.lg,
   },
@@ -408,10 +412,10 @@ const styles = StyleSheet.create({
   },
   measurementInput: {
     flex: 1,
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     padding: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -421,16 +425,16 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
   },
   unitSelector: {
     flexDirection: 'row',
-    backgroundColor: COLORS.background.card,
+    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
     padding: SPACING.xs,
   },
   unitButton: {
@@ -439,28 +443,28 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.sm,
   },
   unitButtonSelected: {
-    backgroundColor: COLORS.primary.sky,
+    backgroundColor: colors.primary.sky,
   },
   unitText: {
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   unitTextSelected: {
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   privacyNote: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.tertiary,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     marginTop: SPACING.md,
   },
   privacyText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     marginLeft: SPACING.sm,
     flex: 1,
@@ -493,7 +497,7 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.semibold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
 });

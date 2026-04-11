@@ -1,12 +1,16 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 export default function LoginScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const navigation = useNavigation();
   const { signIn, resetPassword, user, loading } = useAuthStore();
   
@@ -50,19 +54,27 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      await signIn(email.trim(), password);
-      // Navegamos a Main limpiando el historial de Auth
+      // ✅ FIX #10: Verificar el error retornado antes de navegar.
+      // signIn retorna { error } sin lanzar excepción en caso de credenciales incorrectas.
+      const result = await signIn(email.trim(), password);
+
+      if (result.error) {
+        let errorMessage = 'Error al iniciar sesión. Intenta nuevamente.';
+        if (result.error.message?.includes('Invalid login credentials')) {
+          errorMessage = 'Correo electrónico o contraseña incorrectos';
+        }
+        Alert.alert('Error', errorMessage);
+        return;
+      }
+
+      // Solo navegamos si el login fue exitoso
       navigation.reset({
         index: 0,
         routes: [{ name: 'Main' as never }],
       });
     } catch (error: any) {
-      console.error('Login error:', error);
-      let errorMessage = 'Error al iniciar sesión. Intenta nuevamente.';
-      if (error.message?.includes('Invalid login credentials')) {
-        errorMessage = 'Correo electrónico o contraseña incorrectos';
-      }
-      Alert.alert('Error', errorMessage);
+      console.error('Login error inesperado:', error);
+      Alert.alert('Error', 'Error al iniciar sesión. Intenta nuevamente.');
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +98,15 @@ export default function LoginScreen() {
     }
   };
 
-  if (user) return null;
+  // Redirección reactiva si el usuario ya está autenticado
+  React.useEffect(() => {
+    if (user && !loading) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Main' as never }],
+      });
+    }
+  }, [user, loading]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -105,7 +125,7 @@ export default function LoginScreen() {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
 
           {/* Header */}
@@ -128,7 +148,7 @@ export default function LoginScreen() {
                   value={email}
                   onChangeText={setEmail}
                   placeholder="tu_email@gmail.com"
-                  placeholderTextColor={COLORS.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -147,7 +167,7 @@ export default function LoginScreen() {
                   value={password}
                   onChangeText={setPassword}
                   placeholder="••••••••"
-                  placeholderTextColor={COLORS.text.muted}
+                  placeholderTextColor={colors.text.muted}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -158,7 +178,7 @@ export default function LoginScreen() {
                   onPress={() => setShowPassword(!showPassword)}
                   disabled={isLoading}
                 >
-                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={COLORS.text.muted} />
+                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.text.muted} />
                 </TouchableOpacity>
               </View>
               {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
@@ -172,7 +192,7 @@ export default function LoginScreen() {
                 activeOpacity={0.7}
               >
                 <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
-                  {rememberMe && <Ionicons name="checkmark" size={14} color={COLORS.background.primary} />}
+                  {rememberMe && <Ionicons name="checkmark" size={14} color={colors.background.primary} />}
                 </View>
                 <Text style={styles.rememberMeText}>Recordarme</Text>
               </TouchableOpacity>
@@ -190,7 +210,7 @@ export default function LoginScreen() {
               activeOpacity={0.8}
             >
               {isLoading ? (
-                <ActivityIndicator size="small" color={COLORS.background.primary} />
+                <ActivityIndicator size="small" color={colors.background.primary} />
               ) : (
                 <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
               )}
@@ -208,12 +228,12 @@ export default function LoginScreen() {
 
             <View style={styles.socialButtonsContainer}>
               <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                <Ionicons name="logo-google" size={20} color={COLORS.background.primary} />
+                <Ionicons name="logo-google" size={20} color={colors.background.primary} />
                 <Text style={styles.socialButtonText}>Continuar con Google</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                <Ionicons name="logo-apple" size={20} color={COLORS.background.primary} />
+                <Ionicons name="logo-apple" size={20} color={colors.background.primary} />
                 <Text style={styles.socialButtonText}>Continuar con Apple</Text>
               </TouchableOpacity>
             </View>
@@ -233,10 +253,10 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -254,7 +274,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.xl,
@@ -265,14 +285,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FONTS.sizes['3xl'],
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     lineHeight: 20,
     paddingRight: SPACING.lg,
@@ -285,7 +305,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     fontWeight: '600',
     marginBottom: SPACING.sm,
@@ -301,20 +321,20 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: '100%',
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.base,
   },
   inputError: {
     borderWidth: 1,
-    borderColor: COLORS.status.error,
+    borderColor: colors.status.error,
   },
   passwordToggle: {
     padding: SPACING.sm,
   },
   errorText: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.status.error,
+    color: colors.status.error,
     fontFamily: FONTS.primary,
     marginTop: SPACING.xs,
   },
@@ -333,28 +353,28 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: COLORS.text.muted,
+    borderColor: colors.text.muted,
     marginRight: SPACING.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxActive: {
-    backgroundColor: COLORS.primary.amber,
-    borderColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
+    borderColor: colors.primary.amber,
   },
   rememberMeText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   forgotPasswordText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.primary.amber, // Highlight color
+    color: colors.primary.amber, // Highlight color
     fontFamily: FONTS.primary,
     fontWeight: '600',
   },
   loginButton: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     borderRadius: BORDER_RADIUS.full,
     height: 56,
     justifyContent: 'center',
@@ -367,7 +387,7 @@ const styles = StyleSheet.create({
   loginButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: '700',
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontFamily: FONTS.primary,
   },
   socialSection: {
@@ -386,7 +406,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.muted,
+    color: colors.text.muted,
     fontFamily: FONTS.primary,
     marginHorizontal: SPACING.md,
   },
@@ -397,7 +417,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
     borderRadius: BORDER_RADIUS.full,
     height: 56,
     gap: SPACING.sm,
@@ -405,7 +425,7 @@ const styles = StyleSheet.create({
   socialButtonText: {
     fontSize: FONTS.sizes.base,
     fontWeight: '600',
-    color: COLORS.background.primary,
+    color: colors.background.primary,
     fontFamily: FONTS.primary,
   },
   registerSection: {
@@ -417,13 +437,13 @@ const styles = StyleSheet.create({
   },
   registerText: {
     fontSize: FONTS.sizes.sm,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
   },
   registerLink: {
     fontSize: FONTS.sizes.sm,
     fontWeight: '700',
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
     fontFamily: FONTS.primary,
   },
 });

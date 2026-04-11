@@ -10,27 +10,29 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
-import { COLORS, FONTS, SPACING } from '@/constants/theme';
+import { FONTS, SPACING } from '@/constants/theme';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { useStatsOverview } from '@/hooks/useStatsOverview';
 
 const { width } = Dimensions.get('window');
 
-const CHART_CONFIG = {
-  backgroundColor: COLORS.background.primary,
-  backgroundGradientFrom: COLORS.background.primary,
-  backgroundGradientTo: COLORS.background.primary,
+// Se generará estáticamente pero requiere colors
+const getChartConfig = (colors: any) => ({
+  backgroundColor: colors.background.primary,
+  backgroundGradientFrom: colors.background.primary,
+  backgroundGradientTo: colors.background.primary,
   decimalPlaces: 0,
   color: (opacity = 1) => `rgba(252, 211, 77, ${opacity})`,
-  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+  labelColor: (opacity = 1) => `rgba(156, 163, 175, ${opacity})`, // text.tertiary aprox
   style: {
     borderRadius: 16,
   },
   propsForDots: {
     r: '4',
     strokeWidth: '2',
-    stroke: COLORS.primary.amber,
+    stroke: colors.primary.amber,
   },
-};
+});
 
 const TIME_RANGES = [
   { label: '7 días', value: 7 },
@@ -39,14 +41,47 @@ const TIME_RANGES = [
 ];
 
 export default function StatsScreen() {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+  const CHART_CONFIG = React.useMemo(() => getChartConfig(colors), [colors]);
+
   const [selectedRange, setSelectedRange] = useState(7);
   const [activeTab, setActiveTab] = useState<'weight' | 'calories' | 'macros'>('weight');
-  const { data: stats, isLoading } = useStatsOverview(selectedRange as 7 | 30 | 90);
-  if (isLoading || !stats) {
+  const { data: stats, isLoading, isError, error, refetch } = useStatsOverview(selectedRange as 7 | 30 | 90);
+
+  if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ color: COLORS.text.secondary }}>Cargando estadísticas...</Text>
+          <Text style={{ color: colors.text.secondary }}>Cargando estadísticas...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isError || !stats) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Ionicons name="warning-outline" size={48} color={colors.status.error} />
+          <Text style={{ color: colors.text.primary, fontSize: 18, fontWeight: '700', marginTop: 16 }}>
+            Error al cargar
+          </Text>
+          <Text style={{ color: colors.text.secondary, textAlign: 'center', marginTop: 8 }}>
+            {(error as any)?.message || 'No se pudieron recuperar los datos de progreso.'}
+          </Text>
+          <TouchableOpacity 
+            style={{ 
+              marginTop: 24, 
+              backgroundColor: colors.primary.amber, 
+              paddingHorizontal: 24, 
+              paddingVertical: 12, 
+              borderRadius: 12 
+            }}
+            onPress={() => refetch()}
+          >
+            <Text style={{ color: '#000', fontWeight: '800' }}>Reintentar</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -221,7 +256,7 @@ export default function StatsScreen() {
             <Ionicons
               name={tab.icon as any}
               size={20}
-              color={activeTab === tab.key ? COLORS.primary.amber : COLORS.text.secondary}
+              color={activeTab === tab.key ? colors.primary.amber : colors.text.secondary}
             />
             <Text
               style={[
@@ -263,22 +298,22 @@ export default function StatsScreen() {
           <Text style={styles.summaryTitle}>Resumen Semanal</Text>
           <View style={styles.summaryGrid}>
             <View style={styles.summaryItem}>
-              <Ionicons name="flame-outline" size={24} color={COLORS.primary.amber} />
+              <Ionicons name="flame-outline" size={24} color={colors.primary.amber} />
               <Text style={styles.summaryValue}>{stats.summary.totalCalories.toLocaleString()}</Text>
               <Text style={styles.summaryLabel}>Calorías</Text>
             </View>
             <View style={styles.summaryItem}>
-              <Ionicons name="restaurant-outline" size={24} color={COLORS.primary.sky} />
+              <Ionicons name="restaurant-outline" size={24} color={colors.primary.sky} />
               <Text style={styles.summaryValue}>{stats.summary.totalMeals}</Text>
               <Text style={styles.summaryLabel}>Comidas</Text>
             </View>
             <View style={styles.summaryItem}>
-              <Ionicons name="water-outline" size={24} color="#38BDF8" />
+              <Ionicons name="water-outline" size={24} color={colors.primary.sky} />
               <Text style={styles.summaryValue}>{Math.round(stats.summary.totalWater / 250)}</Text>
               <Text style={styles.summaryLabel}>Vasos agua</Text>
             </View>
             <View style={styles.summaryItem}>
-              <Ionicons name="trending-down-outline" size={24} color="#34D399" />
+              <Ionicons name="trending-down-outline" size={24} color={colors.status.success} />
               <Text style={styles.summaryValue}>{stats.summary.weightChange >= 0 ? '+' : ''}{stats.summary.weightChange}</Text>
               <Text style={styles.summaryLabel}>kg perdidos</Text>
             </View>
@@ -289,10 +324,10 @@ export default function StatsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   header: {
     padding: SPACING.lg,
@@ -302,12 +337,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.xl,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   subtitle: {
     fontFamily: FONTS.primary,
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginTop: 4,
   },
   rangeSelector: {
@@ -320,19 +355,19 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 8,
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
   },
   rangeButtonActive: {
-    backgroundColor: COLORS.primary.amber,
+    backgroundColor: colors.primary.amber,
   },
   rangeButtonText: {
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.medium,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
   },
   rangeButtonTextActive: {
-    color: COLORS.background.primary,
+    color: colors.background.primary,
   },
   tabSelector: {
     flexDirection: 'row',
@@ -347,7 +382,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginHorizontal: 4,
     borderRadius: 12,
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
   },
   tabActive: {
     backgroundColor: 'rgba(252, 211, 77, 0.15)',
@@ -356,18 +391,18 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.sm,
     fontWeight: FONTS.weights.medium,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginLeft: 6,
   },
   tabTextActive: {
-    color: COLORS.primary.amber,
+    color: colors.primary.amber,
   },
   content: {
     flex: 1,
     padding: SPACING.lg,
   },
   chartContainer: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: 16,
     padding: SPACING.md,
     marginBottom: SPACING.lg,
@@ -376,7 +411,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginBottom: SPACING.md,
   },
   chart: {
@@ -395,12 +430,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.bold,
     fontSize: 20,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   statLabel: {
     fontFamily: FONTS.primary,
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginTop: 2,
   },
   macroLegend: {
@@ -424,10 +459,10 @@ const styles = StyleSheet.create({
   macroText: {
     fontFamily: FONTS.primary,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
   },
   summaryContainer: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: 16,
     padding: SPACING.lg,
     marginBottom: SPACING.xl,
@@ -436,7 +471,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginBottom: SPACING.md,
   },
   summaryGrid: {
@@ -446,7 +481,7 @@ const styles = StyleSheet.create({
   },
   summaryItem: {
     width: '48%',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
     borderRadius: 12,
     padding: SPACING.md,
     alignItems: 'center',
@@ -456,13 +491,13 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.bold,
     fontSize: 24,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     marginTop: 8,
   },
   summaryLabel: {
     fontFamily: FONTS.primary,
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     marginTop: 4,
   },
 });

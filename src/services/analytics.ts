@@ -64,13 +64,13 @@ class MixpanelAnalytics {
         api_host: ANALYTICS_CONFIG.mixpanel.apiHost,
         persistence: 'localStorage',
         loaded: (mixpanel: any) => {
-          console.log('Mixpanel initialized');
+          if (__DEV__) console.log('Mixpanel initialized');
           mixpanel.identify(this.distinctId);
           this.isInitialized = true;
         },
       });
     } catch (error) {
-      console.error('Failed to initialize Mixpanel:', error);
+      if (__DEV__) console.error('Failed to initialize Mixpanel:', error);
     }
   }
 
@@ -80,7 +80,7 @@ class MixpanelAnalytics {
 
   track(eventName: string, properties?: EventProperties) {
     if (!this.isInitialized) {
-      console.warn('Mixpanel not initialized');
+      if (__DEV__) console.warn('Mixpanel not initialized');
       return;
     }
 
@@ -94,13 +94,13 @@ class MixpanelAnalytics {
 
       this.mixpanel.track(eventName, enrichedProperties);
     } catch (error) {
-      console.error('Failed to track Mixpanel event:', error);
+      if (__DEV__) console.error('Failed to track Mixpanel event:', error);
     }
   }
 
   identify(userId: string) {
     if (!this.isInitialized) {
-      console.warn('Mixpanel not initialized');
+      if (__DEV__) console.warn('Mixpanel not initialized');
       return;
     }
 
@@ -109,39 +109,39 @@ class MixpanelAnalytics {
       this.mixpanel.identify(userId);
       AsyncStorage.setItem('mixpanel_distinct_id', userId);
     } catch (error) {
-      console.error('Failed to identify Mixpanel user:', error);
+      if (__DEV__) console.error('Failed to identify Mixpanel user:', error);
     }
   }
 
   setUserProperties(properties: Partial<UserProperties>) {
     if (!this.isInitialized) {
-      console.warn('Mixpanel not initialized');
+      if (__DEV__) console.warn('Mixpanel not initialized');
       return;
     }
 
     try {
       this.mixpanel.people.set(properties);
     } catch (error) {
-      console.error('Failed to set Mixpanel user properties:', error);
+      if (__DEV__) console.error('Failed to set Mixpanel user properties:', error);
     }
   }
 
   increment(property: string, value: number = 1) {
     if (!this.isInitialized) {
-      console.warn('Mixpanel not initialized');
+      if (__DEV__) console.warn('Mixpanel not initialized');
       return;
     }
 
     try {
       this.mixpanel.people.increment(property, value);
     } catch (error) {
-      console.error('Failed to increment Mixpanel property:', error);
+      if (__DEV__) console.error('Failed to increment Mixpanel property:', error);
     }
   }
 
   trackRevenue(amount: number, properties?: EventProperties) {
     if (!this.isInitialized) {
-      console.warn('Mixpanel not initialized');
+      if (__DEV__) console.warn('Mixpanel not initialized');
       return;
     }
 
@@ -152,7 +152,7 @@ class MixpanelAnalytics {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      console.error('Failed to track Mixpanel revenue:', error);
+      if (__DEV__) console.error('Failed to track Mixpanel revenue:', error);
     }
   }
 
@@ -197,16 +197,16 @@ class AmplitudeAnalytics {
         },
       }).promise;
 
-      console.log('Amplitude initialized');
+      if (__DEV__) console.log('Amplitude initialized');
       this.isInitialized = true;
     } catch (error) {
-      console.error('Failed to initialize Amplitude:', error);
+      if (__DEV__) console.error('Failed to initialize Amplitude:', error);
     }
   }
 
   track(eventName: string, properties?: EventProperties) {
     if (!this.isInitialized) {
-      console.warn('Amplitude not initialized');
+      if (__DEV__) console.warn('Amplitude not initialized');
       return;
     }
 
@@ -220,13 +220,13 @@ class AmplitudeAnalytics {
 
       this.amplitude.track(eventName, enrichedProperties);
     } catch (error) {
-      console.error('Failed to track Amplitude event:', error);
+      if (__DEV__) console.error('Failed to track Amplitude event:', error);
     }
   }
 
   identify(userId: string) {
     if (!this.isInitialized) {
-      console.warn('Amplitude not initialized');
+      if (__DEV__) console.warn('Amplitude not initialized');
       return;
     }
 
@@ -234,26 +234,26 @@ class AmplitudeAnalytics {
       this.userId = userId;
       this.amplitude.setUserId(userId);
     } catch (error) {
-      console.error('Failed to identify Amplitude user:', error);
+      if (__DEV__) console.error('Failed to identify Amplitude user:', error);
     }
   }
 
   setUserProperties(properties: Partial<UserProperties>) {
     if (!this.isInitialized) {
-      console.warn('Amplitude not initialized');
+      if (__DEV__) console.warn('Amplitude not initialized');
       return;
     }
 
     try {
       this.amplitude.setUserProperties(properties);
     } catch (error) {
-      console.error('Failed to set Amplitude user properties:', error);
+      if (__DEV__) console.error('Failed to set Amplitude user properties:', error);
     }
   }
 
   revenue(amount: number, productId: string, properties?: EventProperties) {
     if (!this.isInitialized) {
-      console.warn('Amplitude not initialized');
+      if (__DEV__) console.warn('Amplitude not initialized');
       return;
     }
 
@@ -266,7 +266,7 @@ class AmplitudeAnalytics {
         ...properties,
       });
     } catch (error) {
-      console.error('Failed to track Amplitude revenue:', error);
+      if (__DEV__) console.error('Failed to track Amplitude revenue:', error);
     }
   }
 

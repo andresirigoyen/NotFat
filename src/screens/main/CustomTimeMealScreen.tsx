@@ -1,12 +1,16 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import { Button } from '@/components/ui/Button';
 
 const CustomTimeMealScreen = ({ navigation }: any) => {
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+
   const [date, setDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(Platform.OS === 'ios');
   const [mode, setMode] = useState<'date' | 'time'>('date');
@@ -37,7 +41,7 @@ const CustomTimeMealScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+          <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <Text style={styles.title}>Hora personalizada</Text>
         <View style={{ width: 44 }} />
@@ -46,7 +50,7 @@ const CustomTimeMealScreen = ({ navigation }: any) => {
       <View style={styles.content}>
         <View style={styles.illustrationContainer}>
           <View style={styles.iconCircle}>
-            <Ionicons name="time" size={48} color={COLORS.primary.amber} />
+            <Ionicons name="time" size={48} color={colors.primary.amber} />
           </View>
         </View>
 
@@ -60,7 +64,7 @@ const CustomTimeMealScreen = ({ navigation }: any) => {
             <View style={styles.iosContainer}>
               <View style={styles.pickerRow}>
                 <View style={styles.pickerLabelGroup}>
-                  <Ionicons name="calendar-outline" size={20} color={COLORS.text.tertiary} />
+                  <Ionicons name="calendar-outline" size={20} color={colors.text.tertiary} />
                   <Text style={styles.pickerLabel}>Fecha</Text>
                 </View>
                 <DateTimePicker
@@ -77,7 +81,7 @@ const CustomTimeMealScreen = ({ navigation }: any) => {
               
               <View style={styles.pickerRow}>
                 <View style={styles.pickerLabelGroup}>
-                  <Ionicons name="time-outline" size={20} color={COLORS.text.tertiary} />
+                  <Ionicons name="time-outline" size={20} color={colors.text.tertiary} />
                   <Text style={styles.pickerLabel}>Hora</Text>
                 </View>
                 <DateTimePicker
@@ -95,28 +99,28 @@ const CustomTimeMealScreen = ({ navigation }: any) => {
                 style={styles.androidButton} 
                 onPress={() => showMode('date')}
               >
-                <Ionicons name="calendar-outline" size={24} color={COLORS.primary.amber} />
+                <Ionicons name="calendar-outline" size={24} color={colors.primary.amber} />
                 <View style={styles.androidButtonInfo}>
                   <Text style={styles.androidButtonLabel}>Fecha</Text>
                   <Text style={styles.androidButtonValue}>
                     {date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
+                <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
               </TouchableOpacity>
 
               <TouchableOpacity 
                 style={styles.androidButton} 
                 onPress={() => showMode('time')}
               >
-                <Ionicons name="time-outline" size={24} color={COLORS.primary.amber} />
+                <Ionicons name="time-outline" size={24} color={colors.primary.amber} />
                 <View style={styles.androidButtonInfo}>
                   <Text style={styles.androidButtonLabel}>Hora</Text>
                   <Text style={styles.androidButtonValue}>
                     {date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
+                <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
               </TouchableOpacity>
             </View>
           )}
@@ -146,10 +150,10 @@ const CustomTimeMealScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background.primary,
+    backgroundColor: colors.background.primary,
   },
   header: {
     flexDirection: 'row',
@@ -162,14 +166,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
     fontSize: FONTS.sizes.lg,
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
   content: {
@@ -194,14 +198,14 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: FONTS.sizes['2xl'],
     fontWeight: FONTS.weights.bold,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
     marginBottom: SPACING.sm,
   },
   description: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.secondary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
     textAlign: 'center',
     lineHeight: 24,
@@ -211,11 +215,11 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   iosContainer: {
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   pickerRow: {
     flexDirection: 'row',
@@ -230,13 +234,13 @@ const styles = StyleSheet.create({
   },
   pickerLabel: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.medium,
   },
   divider: {
     height: 1,
-    backgroundColor: COLORS.background.border,
+    backgroundColor: colors.background.border,
     marginVertical: SPACING.xs,
   },
   androidContainer: {
@@ -245,11 +249,11 @@ const styles = StyleSheet.create({
   androidButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.background.secondary,
+    backgroundColor: colors.background.secondary,
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.background.border,
+    borderColor: colors.background.border,
   },
   androidButtonInfo: {
     flex: 1,
@@ -257,7 +261,7 @@ const styles = StyleSheet.create({
   },
   androidButtonLabel: {
     fontSize: FONTS.sizes.xs,
-    color: COLORS.text.tertiary,
+    color: colors.text.tertiary,
     fontFamily: FONTS.primary,
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -265,7 +269,7 @@ const styles = StyleSheet.create({
   },
   androidButtonValue: {
     fontSize: FONTS.sizes.base,
-    color: COLORS.text.primary,
+    color: colors.text.primary,
     fontFamily: FONTS.primary,
     fontWeight: FONTS.weights.semibold,
   },

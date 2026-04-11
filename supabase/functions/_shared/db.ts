@@ -1,21 +1,20 @@
-import { PrismaClient } from 'https://esm.sh/@prisma/client@5.7.1/edge'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-let prisma: PrismaClient;
+let supabaseAdmin: any;
 
-export function getPrismaClient() {
-  if (!prisma) {
-    const databaseUrl = Deno.env.get('DATABASE_URL');
-    if (!databaseUrl) {
-      throw new Error('DATABASE_URL is not set');
+export function getSupabaseAdmin() {
+  if (!supabaseAdmin) {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not set');
     }
 
-    prisma = new PrismaClient({
-      datasources: {
-        db: {
-          url: databaseUrl,
-        },
-      },
-    });
+    supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
   }
-  return prisma;
+  return supabaseAdmin;
 }
+
+// Alias for backwards compatibility
+export const getPrismaClient = getSupabaseAdmin;

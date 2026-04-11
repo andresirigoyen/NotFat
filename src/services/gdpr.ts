@@ -261,14 +261,15 @@ export class GDPRService {
     }
   }
 
-  // Generate confirmation token for data operations
+  // ✅ FIX #13: Token generado con crypto.getRandomValues() (criptográficamente seguro)
+  // Math.random() es predecible y no debe usarse para tokens de seguridad.
   private generateConfirmationToken(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let token = '';
-    for (let i = 0; i < 32; i++) {
-      token += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return token;
+    const randomValues = new Uint8Array(32);
+    crypto.getRandomValues(randomValues);
+    return Array.from(randomValues)
+      .map((val) => chars[val % chars.length])
+      .join('');
   }
 
   // Log data access (for audit trail)
