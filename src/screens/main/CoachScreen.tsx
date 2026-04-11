@@ -44,10 +44,12 @@ export default function CoachScreen({ route }: any) {
 
   // Clear chat history when screen loads (fresh session)
   useEffect(() => {
-    // Only clear on mount, not on every re-render
-    if (profile?.id && !messagesLoading) {
+    // Only clear on mount once
+    const userId = profile?.id;
+    if (userId) {
       clearChatHistory();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getDynamicRecommendation = () => {
@@ -208,7 +210,7 @@ export default function CoachScreen({ route }: any) {
 
         <TouchableOpacity 
           style={styles.actionButton}
-          onPress={() => navigation.navigate('RecipeDetail' as never, { recipe } as never)}
+          onPress={() => (navigation as any).navigate('RecipeDetail', { recipe })}
         >
           <Text style={styles.actionButtonText}>Ver receta completa</Text>
           <Ionicons name="arrow-forward" size={16} color="#000" />
