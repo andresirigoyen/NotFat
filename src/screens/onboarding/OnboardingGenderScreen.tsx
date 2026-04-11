@@ -6,69 +6,63 @@ import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { 
-  FadeIn, FadeInDown, FadeInUp, FadeInRight, FadeOut, 
-  useSharedValue, useAnimatedStyle, withSpring, withTiming
+  FadeInDown, FadeInUp
 } from 'react-native-reanimated';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
 import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 import { analytics } from '@/services/analytics';
 
-// Se define dentro del componente
-
-// Animacion Individual para Boton
-const AnimatedOptionCard = ({ 
+// Componente de Tarjeta Simplificado
+const OptionCard = ({ 
   option, selectedId, onPress, disabled, colors, styles
 }: { 
   option: any, selectedId: string, onPress: () => void, disabled: boolean, colors: any, styles: any
 }) => {
   const isSelected = selectedId === option.id;
-  const scale = useSharedValue(1);
   
-  const animatedCardStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    borderColor: withTiming(isSelected ? option.color : colors.background.border, { duration: 200 }),
-    backgroundColor: withTiming(isSelected ? 'rgba(255,255,255,0.03)' : colors.background.card, { duration: 200 })
-  }));
-
-  const animatedIconBgStyle = useAnimatedStyle(() => ({
-    backgroundColor: withTiming(isSelected ? option.color : colors.background.tertiary, { duration: 300 })
-  }));
-
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      onPressIn={() => { scale.value = withSpring(0.97, { damping: 10, stiffness: 200 }) }}
-      onPressOut={() => { scale.value = withSpring(1, { damping: 10, stiffness: 200 }) }}
+      style={({ pressed }) => [
+        styles.optionCard,
+        isSelected && { borderColor: option.color, backgroundColor: `${option.color}15`, borderWidth: 2 },
+        pressed && !disabled && { opacity: 0.9 }
+      ]}
     >
-      <Animated.View style={[styles.optionCard, isSelected && styles.optionCardSelected, animatedCardStyle]}>
-        <View style={styles.optionContent}>
-          
-          <Animated.View style={[styles.iconContainer, animatedIconBgStyle]}>
-            <Ionicons 
-              name={option.icon} 
-              size={32} 
-              color={isSelected ? colors.background.primary : colors.text.secondary} 
-            />
-          </Animated.View>
-          
-          <View style={styles.optionText}>
-            <Text style={[styles.optionLabel, isSelected && { color: option.color }]}>
-              {option.label}
-            </Text>
-            <Text style={styles.optionDescription}>
-              {option.description}
-            </Text>
-          </View>
-          
-          {isSelected && (
-            <Animated.View entering={FadeInRight.duration(300).springify()} exiting={FadeOut} style={styles.checkContainer}>
-              <Ionicons name="checkmark-circle" size={28} color={option.color} />
-            </Animated.View>
-          )}
+      <View style={styles.optionContent}>
+        <View style={[
+          styles.iconContainer, 
+          { backgroundColor: isSelected ? option.color : colors.background.tertiary }
+        ]}>
+          <Ionicons 
+            name={option.icon} 
+            size={28} 
+            color={isSelected ? '#FFFFFF' : colors.text.tertiary} 
+          />
         </View>
-      </Animated.View>
+        
+        <View style={styles.optionText}>
+          <Text style={[styles.optionLabel, isSelected && { color: colors.text.primary }]}>
+            {option.label}
+          </Text>
+          <Text style={styles.optionDescription}>
+            {option.description}
+          </Text>
+        </View>
+        
+        <View style={styles.selectorContainer}>
+          <View style={[
+            styles.selectorOuter, 
+            isSelected && { borderColor: option.color }
+          ]}>
+            {isSelected && (
+              <View style={[styles.selectorInner, { backgroundColor: option.color }]} />
+            )}
+          </View>
+        </View>
+      </View>
     </Pressable>
   );
 };
@@ -82,29 +76,29 @@ export default function OnboardingGenderScreen() {
       id: 'male',
       label: 'Masculino',
       icon: 'man' as keyof typeof Ionicons.glyphMap,
-      description: 'Hombre',
-      color: colors.primary.sky,
+      description: 'Metabolismo base masculino',
+      color: '#38BDF8',
     },
     {
       id: 'female',
       label: 'Femenino',
       icon: 'woman' as keyof typeof Ionicons.glyphMap,
-      description: 'Mujer',
-      color: '#EC4899', // Pink
+      description: 'Metabolismo base femenino',
+      color: '#F472B6',
     },
     {
       id: 'non_binary',
       label: 'No Binario',
       icon: 'person' as keyof typeof Ionicons.glyphMap,
-      description: 'No binario',
-      color: colors.primary.amber,
+      description: 'Identidad no binarie',
+      color: '#A78BFA',
     },
     {
       id: 'other',
-      label: 'Otro',
-      icon: 'help-circle' as keyof typeof Ionicons.glyphMap,
-      description: 'Otro / Prefiero no decir',
-      color: colors.text.secondary,
+      label: 'Otro / Prefiero no decir',
+      icon: 'ellipsis-horizontal-circle' as keyof typeof Ionicons.glyphMap,
+      description: 'Otras identidades',
+      color: colors.text.muted,
     },
   ], [colors]);
 
@@ -113,33 +107,20 @@ export default function OnboardingGenderScreen() {
   const { updateProfile } = useProfile();
   const [selectedGender, setSelectedGender] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  // Progreso Animado
-  const progressWidth = useSharedValue(0);
-
-  // useEffect para analytics
+  
   useEffect(() => {
     analytics.trackScreenView('OnboardingGender');
-    progressWidth.value = withSpring(25, { damping: 12, stiffness: 90 });
   }, []);
-
-  const progressStyle = useAnimatedStyle(() => ({
-    width: `${progressWidth.value}%`
-  }));
 
   const handleGenderSelect = (genderId: string) => {
     setSelectedGender(genderId);
-    progressWidth.value = withSpring(35, { damping: 12, stiffness: 90 });
   };
 
   const handleContinue = async () => {
     if (!selectedGender) return;
     
     if (!user) {
-      Alert.alert(
-        'Sesión Requerida',
-        'Tu sesión ha expirado o no se ha cargado correctamente. Por favor intenta reiniciar la aplicación.',
-        [{ text: 'Entendido' }]
-      );
+      Alert.alert('Sesión Requerida', 'Tu sesión ha expirado.');
       return;
     }
 
@@ -155,11 +136,7 @@ export default function OnboardingGenderScreen() {
       navigation.navigate('OnboardingBirthDate' as never);
     } catch (error: any) {
       console.error('Error updating gender:', error);
-      Alert.alert(
-        'Error',
-        'No pudimos guardar tu preferencia. Por favor verifica tu conexión e intenta nuevamente.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Error', 'No pudimos guardar tu preferencia.');
     } finally {
       setIsLoading(false);
     }
@@ -167,96 +144,100 @@ export default function OnboardingGenderScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} bounces={false}>
-        
-        {/* Header Animado */}
-        <Animated.View entering={FadeInDown.duration(600)} style={styles.header}>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header Sin Animación de Progreso Compleja */}
+        <View style={styles.header}>
           <Pressable 
             style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.7 }]}
-            onPress={() => {
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                // Force return to Welcome by resetting the stack
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'Welcome' as never }],
-                });
-              }
-            }}
+            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.reset({ index: 0, routes: [{ name: 'Welcome' as never }] })}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
+            <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
           </Pressable>
           
-          <View style={styles.progressContainer}>
-            <Animated.View style={[styles.progressBar, progressStyle]} />
+          <View style={styles.progressWrapper}>
+            <View style={styles.progressBackground}>
+              <View style={[styles.progressBar, { width: '20%' }]} />
+            </View>
+            <Text style={styles.progressLabel}>PASO 1 DE 8</Text>
           </View>
-        </Animated.View>
+        </View>
 
         {/* Contenido Principal */}
         <View style={styles.content}>
-          <Animated.View entering={FadeInDown.duration(800).delay(200)} style={styles.titleSection}>
+          <View style={styles.titleContainer}>
             <Text style={styles.title}>¿Cuál es tu sexo?</Text>
             <Text style={styles.subtitle}>
-              Esta información nos ayuda a medir de manera precisa tu consumo metabólico (TMB).
+              Establece tu sexo biológico para cálculos metabólicos precisos.
             </Text>
-          </Animated.View>
+          </View>
 
-          {/* Opciones de Género Escaladas e Interactivas */}
-          <View style={styles.optionsContainer}>
-            {GENDER_OPTIONS.map((option, index) => (
-              <Animated.View key={option.id} entering={FadeInDown.duration(600).delay(400 + (index * 150))}>
-                <AnimatedOptionCard 
-                  option={option} 
-                  selectedId={selectedGender} 
-                  onPress={() => handleGenderSelect(option.id)} 
-                  disabled={isLoading}
-                  colors={colors}
-                  styles={styles}
-                />
-              </Animated.View>
+          {/* Opciones */}
+          <View style={styles.optionsGrid}>
+            {GENDER_OPTIONS.map((option) => (
+              <OptionCard 
+                key={option.id}
+                option={option} 
+                selectedId={selectedGender} 
+                onPress={() => handleGenderSelect(option.id)} 
+                disabled={isLoading}
+                colors={colors}
+                styles={styles}
+              />
             ))}
           </View>
 
-          {/* Nota de Privacidad */}
-          <Animated.View entering={FadeIn.duration(800).delay(1000)} style={styles.privacyNote}>
-            <Ionicons name="shield-checkmark" size={20} color={colors.primary.sky} />
+          {/* Privacidad */}
+          <View style={styles.privacyCard}>
+            <View style={styles.privacyIconBg}>
+              <Ionicons name="lock-closed" size={16} color={colors.primary.sky} />
+            </View>
             <Text style={styles.privacyText}>
-              Protegemos tu privacidad y solo usamos esto para calcular tu perfil nutricional real.
+              Tus datos son privados y seguros.
             </Text>
-          </Animated.View>
+          </View>
         </View>
 
-        {/* Footer con Boton de Acción Fluido */}
-        <Animated.View entering={FadeInUp.duration(800).delay(1200)} style={styles.footer}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.continueButton,
-              !selectedGender && styles.continueButtonDisabled,
-              isLoading && styles.continueButtonLoading,
-              pressed && selectedGender && { transform: [{ scale: 0.98 }] }
-            ]}
-            onPress={handleContinue}
-            disabled={!selectedGender || isLoading}
-          >
-            <LinearGradient
-              colors={selectedGender ? [colors.primary.sky, '#0284C7'] : [colors.background.border, colors.background.border]}
-              style={styles.continueButtonGradient}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-            >
-              {isLoading ? (
-                <Text style={styles.continueButtonText}>Guardando...</Text>
-              ) : (
-                <View style={styles.continueButtonContent}>
-                  <Text style={[styles.continueButtonText, !selectedGender && { color: colors.text.muted }]}>Continuar</Text>
-                  <Ionicons name="arrow-forward" size={24} color={selectedGender ? colors.background.primary : colors.text.muted} />
-                </View>
-              )}
-            </LinearGradient>
-          </Pressable>
-        </Animated.View>
-        
+        <View style={{ height: SPACING.xl }} />
       </ScrollView>
+
+      {/* Footer */}
+      <View style={styles.footer}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.continueButton,
+            !selectedGender && styles.continueButtonDisabled,
+            isLoading && styles.continueButtonLoading,
+            pressed && selectedGender && { opacity: 0.9 }
+          ]}
+          onPress={handleContinue}
+          disabled={!selectedGender || isLoading}
+        >
+          <LinearGradient
+            colors={selectedGender ? ['#0EA5E9', '#0284C7'] : [colors.background.tertiary, colors.background.tertiary]}
+            style={styles.continueButtonGradient}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          >
+            {isLoading ? (
+              <Text style={styles.continueButtonText}>Cargando...</Text>
+            ) : (
+              <View style={styles.buttonLayout}>
+                <Text style={[styles.continueButtonText, !selectedGender && { color: colors.text.muted }]}>
+                  Siguiente
+                </Text>
+                <Ionicons 
+                  name="arrow-forward" 
+                  size={20} 
+                  color={selectedGender ? '#FFFFFF' : colors.text.muted} 
+                />
+              </View>
+            )}
+          </LinearGradient>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
@@ -269,157 +250,180 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: SPACING['2xl'],
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.md,
-    paddingBottom: SPACING.lg,
+    height: 60,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.background.card,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.background.border,
   },
-  progressContainer: {
+  progressWrapper: {
     flex: 1,
-    height: 6,
-    backgroundColor: colors.background.tertiary,
-    borderRadius: 3,
-    marginLeft: SPACING.xl,
+    marginLeft: SPACING.lg,
+  },
+  progressBackground: {
+    height: 4,
+    backgroundColor: isDark ? '#1E293B' : '#E2E8F0',
+    borderRadius: 2,
     overflow: 'hidden',
+    marginBottom: 4,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: colors.primary.sky,
-    borderRadius: 3,
+    backgroundColor: '#0EA5E9',
+    borderRadius: 2,
+  },
+  progressLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.text.muted,
+    letterSpacing: 1,
   },
   content: {
     flex: 1,
     paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xl,
   },
-  titleSection: {
-    marginBottom: SPACING['2xl'],
-    paddingTop: SPACING.lg,
+  titleContainer: {
+    marginBottom: SPACING.xl,
   },
   title: {
-    fontSize: FONTS.sizes['4xl'],
-    fontWeight: '700',
+    fontSize: FONTS.sizes['3xl'],
+    fontWeight: '800',
     color: colors.text.primary,
     fontFamily: FONTS.primary,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: FONTS.sizes.lg,
+    fontSize: FONTS.sizes.base,
     color: colors.text.secondary,
     fontFamily: FONTS.primary,
-    lineHeight: 26,
+    lineHeight: 22,
   },
-  optionsContainer: {
-    marginBottom: SPACING.xl,
+  optionsGrid: {
     gap: SPACING.md,
   },
   optionCard: {
-    backgroundColor: colors.background.card,
     borderRadius: BORDER_RADIUS.xl,
-    borderWidth: 2,
+    padding: SPACING.md,
+    backgroundColor: colors.background.card,
+    borderWidth: 1.5,
     borderColor: colors.background.border,
-    padding: SPACING.lg,
     ...SHADOWS.sm,
-  },
-  optionCardSelected: {
-    ...SHADOWS.lg,
   },
   optionContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 50,
+    height: 50,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: SPACING.lg,
+    marginRight: SPACING.md,
   },
   optionText: {
     flex: 1,
   },
   optionLabel: {
-    fontSize: FONTS.sizes.xl,
+    fontSize: FONTS.sizes.lg,
     fontWeight: '700',
-    color: colors.text.primary,
+    color: colors.text.secondary,
     fontFamily: FONTS.primary,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   optionDescription: {
-    fontSize: FONTS.sizes.sm,
+    fontSize: FONTS.sizes.xs,
     color: colors.text.muted,
     fontFamily: FONTS.primary,
   },
-  checkContainer: {
-    marginLeft: SPACING.sm,
+  selectorContainer: {
+    paddingLeft: SPACING.sm,
   },
-  privacyNote: {
+  selectorOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: colors.background.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectorInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  privacyCard: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(56, 189, 248, 0.05)',
+    alignItems: 'center',
+    backgroundColor: isDark ? 'rgba(30, 41, 59, 0.4)' : '#F8FAFC',
     borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.lg,
-    marginTop: SPACING.md,
+    padding: SPACING.md,
+    marginTop: SPACING.xl,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.15)',
+    borderColor: colors.background.border,
+  },
+  privacyIconBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.md,
   },
   privacyText: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
-    marginLeft: SPACING.md,
+    fontSize: 12,
+    color: colors.text.muted,
     flex: 1,
-    lineHeight: 20,
   },
   footer: {
     paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING['2xl'],
-    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.xl,
+    paddingTop: SPACING.md,
   },
   continueButton: {
-    borderRadius: BORDER_RADIUS.full,
+    borderRadius: BORDER_RADIUS.xl,
     overflow: 'hidden',
-    ...SHADOWS.lg,
+    ...SHADOWS.md,
   },
   continueButtonDisabled: {
-    opacity: 0.7,
+    opacity: 0.5,
   },
   continueButtonLoading: {
     opacity: 0.8,
   },
   continueButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    height: 56,
     justifyContent: 'center',
-    paddingVertical: SPACING.lg,
-    paddingHorizontal: SPACING.xl,
-    gap: SPACING.sm,
+    alignItems: 'center',
   },
-  continueButtonContent: {
-    flex: 1,
+  buttonLayout: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: SPACING.sm,
   },
   continueButtonText: {
-    fontSize: FONTS.sizes.lg,
+    fontSize: FONTS.sizes.base,
     fontWeight: '700',
-    color: colors.background.primary,
+    color: '#FFFFFF',
     fontFamily: FONTS.primary,
   },
 });

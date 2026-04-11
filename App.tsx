@@ -82,6 +82,41 @@ export default function App() {
 
     initApp();
 
+    // 🌐 GLOBAL WEB FIX: Bloquear zoom automático y mejorar interactividad
+    if (Platform.OS === 'web') {
+      try {
+        const style = document.createElement('style');
+        style.textContent = `
+          * {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+          }
+          input, textarea, select {
+            font-size: 16px !important;
+          }
+          body {
+            overscroll-behavior-y: none;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+          }
+          #root, #__next {
+            height: 100%;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+        `;
+        document.head.append(style);
+        
+        // Bloquear gestos de zoom (pinch-to-zoom)
+        document.addEventListener('gesturestart', (e) => e.preventDefault());
+        document.addEventListener('dblclick', (e) => e.preventDefault());
+      } catch (e) {
+        console.warn("No se pudo inyectar estilos globales web:", e);
+      }
+    }
+
     // ✅ FIX #6: Cancelar el listener global de auth al desmontar App
     // Evita acumulación de suscripciones en Hot Module Replacement
     return () => {
