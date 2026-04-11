@@ -40,18 +40,30 @@ export default function Navigation() {
   const { user, loading } = useAuthStore();
   const { profile } = useProfile();
 
-  // Watch for Auth state changes to handle logout or login transitions
+  // Watch for Auth state changes to handle transitions (Login or Logout)
   React.useEffect(() => {
-    console.log('[Navigation] Auth effect - loading:', loading, 'user:', user ? 'exists' : 'null');
-    if (!loading && !user && navigationRef.current) {
-      // Ensure we are not on Splash or Welcome already to avoid loops
-      const currentRoute = navigationRef.current.getCurrentRoute()?.name;
-      console.log('[Navigation] Current route:', currentRoute);
-      if (currentRoute !== 'Welcome' && currentRoute !== 'Splash' && currentRoute !== 'Login' && currentRoute !== 'SignUp') {
-        console.log('[Navigation] User logged out, redirecting to Welcome');
-        navigationRef.current.reset({
+    console.log('[Navigation] Auth state changed - loading:', loading, 'user:', user?.id ? 'LOGGED_IN' : 'LOGGED_OUT');
+    
+    if (loading) return;
+
+    if (!user) {
+      // HANDLE LOGOUT: Redirect to Welcome only if not already on Splash/Welcome/Login/SignUp
+      const currentRoute = navigationRef.current?.getCurrentRoute()?.name;
+      if (currentRoute && !['Welcome', 'Splash', 'Login', 'SignUp'].includes(currentRoute)) {
+        console.log('[Navigation] Redirecting to Welcome on logout');
+        (navigationRef.current as any).reset({
           index: 0,
           routes: [{ name: 'Welcome' }],
+        });
+      }
+    } else {
+      // HANDLE LOGIN: Redirect to Splash to determine next onboarding step or Main Dashboard
+      const currentRoute = navigationRef.current?.getCurrentRoute()?.name;
+      if (currentRoute && ['Welcome', 'Login', 'SignUp'].includes(currentRoute)) {
+        console.log('[Navigation] New session detected, redirecting to Splash for routing');
+        (navigationRef.current as any).reset({
+          index: 0,
+          routes: [{ name: 'Splash' }],
         });
       }
     }
