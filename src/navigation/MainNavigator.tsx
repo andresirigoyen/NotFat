@@ -180,8 +180,25 @@ export default function MainNavigator() {
             name="Dashboard"
             component={MainStackNavigator}
             options={{
-              tabBarIcon: ({ color, size }) => <Ionicons name="journal-outline" size={size} color={color} />,
-              tabBarLabel: 'Diary',
+              tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
+              tabBarLabel: 'Inicio',
+            }}
+          />
+          <Tab.Screen
+            name="Coach"
+            component={CoachScreen}
+            options={{
+              tabBarIcon: ({ color, size }) => <Ionicons name="sparkles-outline" size={size} color={color} />,
+              tabBarLabel: 'NotFat',
+            }}
+          />
+          <Tab.Screen
+            name="Add"
+            component={AddPlaceholder}
+            options={{
+              tabBarLabel: () => null,
+              tabBarIcon: () => null,
+              tabBarButton: () => <TabBarAddButton onPress={() => setHubVisible(true)} />,
             }}
           />
           <Tab.Screen
@@ -189,15 +206,7 @@ export default function MainNavigator() {
             component={RecipesScreen}
             options={{
               tabBarIcon: ({ color, size }) => <Ionicons name="restaurant-outline" size={size} color={color} />,
-              tabBarLabel: 'Recipes',
-            }}
-          />
-          <Tab.Screen
-            name="Fasting"
-            component={WorkoutsScreen} // Placeholder
-            options={{
-              tabBarIcon: ({ color, size }) => <Ionicons name="stopwatch-outline" size={size} color={color} />,
-              tabBarLabel: 'Fasting',
+              tabBarLabel: 'Recetas',
             }}
           />
           <Tab.Screen
@@ -205,14 +214,14 @@ export default function MainNavigator() {
             component={ProfileScreen}
             options={{
               tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
-              tabBarLabel: 'Profile',
+              tabBarLabel: 'Mi Perfil',
             }}
           />
           <Tab.Screen
             name="Pro"
             component={SubscriptionCenterScreen}
             options={{
-              tabBarIcon: ({ color, size }) => <Ionicons name="rocket-outline" size={size} color={color} />,
+              tabBarIcon: ({ color, size }) => <Ionicons name="star-outline" size={size} color={color} />,
               tabBarLabel: 'Pro',
             }}
           />
