@@ -7,8 +7,10 @@ import { Ghost, Sparkles, Send, Utensils, Zap, ChefHat, Salad, Coffee, ChefHat a
 import { useAIChat } from '@/hooks/useAIChat';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '@/store';
 import { useScanStore } from '@/store/scans';
+import { useTierPermissions } from '@/hooks/useTierPermissions';
 import { PremiumGuard } from '@/components/ui/PremiumGuard';
 
 const { width } = Dimensions.get('window');
@@ -16,17 +18,18 @@ const { width } = Dimensions.get('window');
 const NoFatScreen = () => {
   const { colors, isDark } = useThemeColors();
   const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+  const navigation = useNavigation<any>();
 
   const [chatInput, setChatInput] = React.useState('');
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [chatHistory, setChatHistory] = React.useState<Array<{role: 'user' | 'ai', message: string}>>([]);
   const [generatedRecipe, setGeneratedRecipe] = React.useState<any>(null);
   const { processPrompt, loading, error } = useAIChat();
-  const { isPro } = useAuthStore();
+  const { isPro, maxDailyMessages, maxAiSuggestionsOnLoad, canRefreshAiSuggestions } = useTierPermissions();
   const { getTodayMessages, incrementMessage } = useScanStore();
 
   const todayMessages = getTodayMessages();
-  const isMessageLimitReached = !isPro && todayMessages >= 5;
+  const isMessageLimitReached = todayMessages >= maxDailyMessages;
 
   // Manejo de errores con Alert
   React.useEffect(() => {
@@ -44,23 +47,107 @@ const NoFatScreen = () => {
     { label: 'Snacks', icon: <Salad size={20} color="#7c2d12" />, color: '#e0f2fe', prompt: 'Snacks saludables y nutritivos para romper el ayuno' },
   ];
 
-  const RECIPE_POOL = [
-    { name: 'Bowl de Avena y Chía', kcal: 320, time: '10 min', tag: 'Desayuno', prompt: 'Bowl de avena y chía saludable' },
-    { name: 'Salmón con Espárragos', kcal: 450, time: '20 min', tag: 'Almuerzo', prompt: 'Salmón a la plancha con espárragos' },
-    { name: 'Tacos de Lechuga con Pollo', kcal: 280, time: '15 min', tag: 'Cena', prompt: 'Tacos de lechuga con pollo y aguacate' },
-    { name: 'Ensalada de Quinoa', kcal: 350, time: '12 min', tag: 'Almuerzo', prompt: 'Ensalada de quinoa con vegetales' },
-    { name: 'Smoothie Verde Detox', kcal: 180, time: '5 min', tag: 'Desayuno', prompt: 'Smoothie verde con espinaca y piña' },
-    { name: 'Pechuga Cítrica', kcal: 400, time: '25 min', tag: 'Cena', prompt: 'Pechuga de pollo al limón con brócoli' },
-    { name: 'Aguacate Relleno', kcal: 310, time: '8 min', tag: 'Snack', prompt: 'Aguacate relleno de atún' },
-    { name: 'Pasta de Calabacín', kcal: 220, time: '15 min', tag: 'Cena', prompt: 'Zoodles (pasta de calabacín) al pesto' },
+  // --- DYNAMIC AI SUGGESTIONS ---
+  interface AISuggestedRecipe {
+    name: string;
+    kcal: number;
+    time: string;
+    tag: string;
+    prompt: string;
+    emoji: string;
+  }
+
+  // Pool of random ingredient combos to ensure variety
+  const PROMPT_SEEDS = [
+    'pollo y verduras de temporada', 'salmón y espárragos', 'lentejas y espinacas',
+    'atún y aguacate', 'tofu y brócoli', 'huevo y champiñones', 'garbanzos y pimiento',
+    'pavo y batata', 'quinoa y pepino', 'camarones y limón', 'berenjenas y tomate',
+    'avena y frutas rojas', 'requesón y nueces', 'sardinas y alcaparras',
+    'carne magra y zanahorias', 'res magra y arroz integral',
   ];
 
-  const [suggestedRecipes, setSuggestedRecipes] = useState<typeof RECIPE_POOL>([]);
+  const MEAL_EMOJIS: Record<string, string> = {
+    Desayuno: '🌅', Almuerzo: '🍽️', Cena: '🌙', Snack: '🥗',
+  };
 
-  // Barajar y seleccionar sugerencias al montar la pantalla
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestedRecipe[]>([]);
+  const [loadingAI, setLoadingAI] = useState(false);
+
+  const generateAISuggestions = async (isRefresh = false) => {
+    // Check tier capabilities for refresh
+    if (isRefresh && !canRefreshAiSuggestions) {
+      Alert.alert(
+        '🔒 Función Pro',
+        'Regenerar sugerencias ilimitadas con el plan Pro. Las sugerencias frescas de IA son exclusivas de Pro.',
+        [
+          { text: 'Ver planes', onPress: () => navigation.navigate('SubscriptionCenter') },
+          { text: 'Cancelar', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+
+    // Check daily limit before calling AI
+    const currentMessages = getTodayMessages();
+    const remaining = isPro ? Infinity : Math.max(0, maxDailyMessages - currentMessages);
+
+    if (remaining === 0) {
+      Alert.alert(
+        'Límite diario alcanzado',
+        `Has agotado tus ${maxDailyMessages} mensajes de IA por hoy. Vuelve mañana o pásate a Pro.`,
+      );
+      return;
+    }
+
+    // Cap calls at what the user has remaining or what the tier allows per load
+    const seedCount = isPro ? maxAiSuggestionsOnLoad : Math.min(maxAiSuggestionsOnLoad, remaining);
+
+    setLoadingAI(true);
+    setAiSuggestions([]);
+    try {
+      const shuffledSeeds = [...PROMPT_SEEDS].sort(() => Math.random() - 0.5).slice(0, seedCount);
+      const tags = ['Desayuno', 'Almuerzo', 'Cena', 'Snack'];
+      const randomTag = () => tags[Math.floor(Math.random() * tags.length)];
+
+      const results = await Promise.allSettled(
+        shuffledSeeds.map(async (seed) => {
+          const tag = randomTag();
+          const prompt = `Dame UNA receta saludable y deliciosa de ${tag.toLowerCase()} con ${seed}. Varía el estilo de cocina (mediterránea, asiática, latinoamericana, etc.).`;
+          const result = await processPrompt(prompt);
+          if (result?.recipeData) {
+            // ✅ Count each AI call toward daily limit
+            incrementMessage();
+            const kcalValue = result.recipeData.nutrition?.calories ?? Math.floor(Math.random() * 300 + 200);
+            const timeValue = result.recipeData.time ? `${result.recipeData.time} min` : `${Math.floor(Math.random() * 20 + 5)} min`;
+            return {
+              name: result.recipeData.name || `Plato de ${seed}`,
+              kcal: typeof kcalValue === 'number' ? kcalValue : parseInt(kcalValue) || 350,
+              time: timeValue,
+              tag,
+              prompt,
+              emoji: MEAL_EMOJIS[tag] || '🍴',
+            } as AISuggestedRecipe;
+          }
+          return null;
+        })
+      );
+
+      const valid = results
+        .filter((r): r is PromiseFulfilledResult<AISuggestedRecipe | null> => r.status === 'fulfilled')
+        .map(r => r.value)
+        .filter((v): v is AISuggestedRecipe => v !== null);
+
+      setAiSuggestions(valid);
+    } catch (err) {
+      console.error('Error generating AI suggestions:', err);
+    } finally {
+      setLoadingAI(false);
+    }
+  };
+
+  // Generate on mount
   React.useEffect(() => {
-    const shuffled = [...RECIPE_POOL].sort(() => 0.5 - Math.random());
-    setSuggestedRecipes(shuffled.slice(0, 2));
+    generateAISuggestions(false);
   }, []);
 
   const handleCategoryPress = async (category: typeof categories[0]) => {
@@ -96,14 +183,14 @@ const NoFatScreen = () => {
     }
   };
 
-  const handleRecipePress = async (recipe: typeof suggestedRecipes[0]) => {
+  const handleRecipePress = async (recipe: AISuggestedRecipe) => {
     if (isMessageLimitReached) {
       Alert.alert("Límite de Chef IA", "Has agotado tus 5 mensajes diarios. Pásate al plan Pro para chatear sin límites con el Chef.");
       return;
     }
 
     setIsGenerating(true);
-    setChatHistory(prev => [...prev, { role: 'user', message: `Quiero la receta de ${recipe.name}` }]);
+    setChatHistory(prev => [...prev, { role: 'user', message: `Quiero la receta completa de ${recipe.name}` }]);
     
     try {
       const result = await processPrompt(recipe.prompt);
@@ -345,21 +432,54 @@ const NoFatScreen = () => {
           ))}
         </ScrollView>
 
-        {/* Suggested Recipes */}
+        {/* Suggested Recipes - AI Dynamic */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Sugerencias para ti</Text>
-          <TouchableOpacity><Text style={styles.seeAll}>Ver todas</Text></TouchableOpacity>
+          <View>
+            <Text style={styles.sectionTitle}>Sugerencias para ti</Text>
+            <View style={styles.aiPoweredBadge}>
+              <Zap size={10} color="#FBBF24" fill="#FBBF24" />
+              <Text style={styles.aiPoweredText}>Generado por IA · cambia cada vez</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[styles.refreshBtn, !isPro && styles.refreshBtnLocked]}
+            onPress={() => generateAISuggestions(true)}
+            disabled={loadingAI || isGenerating}
+          >
+            {loadingAI
+              ? <ActivityIndicator size="small" color="#FBBF24" />
+              : <>
+                  {!isPro && <Text style={{ fontSize: 10, marginRight: 3 }}>🔒</Text>}
+                  <Text style={styles.refreshBtnText}>{isPro ? '↻ Nuevas' : 'Pro'}</Text>
+                </>
+            }
+          </TouchableOpacity>
         </View>
 
-        {suggestedRecipes.map((recipe, idx) => (
-          <TouchableOpacity 
-            key={idx} 
+        {/* Skeleton while loading */}
+        {loadingAI && (
+          [0, 1, 2].map((i) => (
+            <View key={i} style={[styles.recipeCard, styles.skeleton]}>
+              <View style={styles.skeletonIcon} />
+              <View style={styles.recipeInfo}>
+                <View style={[styles.skeletonLine, { width: '40%', marginBottom: 8 }]} />
+                <View style={[styles.skeletonLine, { width: '70%', marginBottom: 6 }]} />
+                <View style={[styles.skeletonLine, { width: '50%' }]} />
+              </View>
+            </View>
+          ))
+        )}
+
+        {/* AI Generated Cards */}
+        {!loadingAI && aiSuggestions.map((recipe, idx) => (
+          <TouchableOpacity
+            key={idx}
             style={styles.recipeCard}
             onPress={() => handleRecipePress(recipe)}
             disabled={isGenerating}
           >
             <View style={styles.recipeImagePlaceholder}>
-              <ChefHat color="#cbd5e1" size={40} />
+              <Text style={{ fontSize: 28 }}>{recipe.emoji}</Text>
             </View>
             <View style={styles.recipeInfo}>
               <View style={styles.tagRow}>
@@ -370,10 +490,21 @@ const NoFatScreen = () => {
               <Text style={styles.recipeStats}>{recipe.kcal} kcal • {recipe.time}</Text>
             </View>
             <TouchableOpacity style={styles.favBtn}>
-              <Sparkles color="#94a3b8" size={20} />
+              <Sparkles color="#FBBF24" size={20} />
             </TouchableOpacity>
           </TouchableOpacity>
         ))}
+
+        {/* Empty state */}
+        {!loadingAI && aiSuggestions.length === 0 && (
+          <View style={styles.emptyState}>
+            <Text style={{ fontSize: 32, marginBottom: 8 }}>🍽️</Text>
+            <Text style={styles.emptyStateText}>No pudimos generar sugerencias.</Text>
+            <TouchableOpacity onPress={() => generateAISuggestions(false)} style={styles.retryBtn}>
+              <Text style={styles.retryBtnText}>Intentar de nuevo</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -530,6 +661,75 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: '#000',
   },
   seeAll: {
+    color: '#FBBF24',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  aiPoweredBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  aiPoweredText: {
+    fontSize: 10,
+    color: isDark ? 'rgba(255,255,255,0.35)' : '#9CA3AF',
+    fontWeight: '600',
+  },
+  refreshBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: isDark ? 'rgba(251,191,36,0.12)' : 'rgba(251,191,36,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(251,191,36,0.3)',
+    minWidth: 80,
+  },
+  refreshBtnLocked: {
+    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+  },
+  refreshBtnText: {
+    color: '#FBBF24',
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  skeleton: {
+    opacity: 0.5,
+  },
+  skeletonIcon: {
+    width: 70,
+    height: 70,
+    borderRadius: 18,
+    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB',
+  },
+  skeletonLine: {
+    height: 11,
+    borderRadius: 6,
+    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptyStateText: {
+    color: isDark ? 'rgba(255,255,255,0.4)' : '#9CA3AF',
+    fontWeight: '600',
+    fontSize: 14,
+    marginBottom: 16,
+  },
+  retryBtn: {
+    backgroundColor: 'rgba(251,191,36,0.15)',
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(251,191,36,0.3)',
+  },
+  retryBtnText: {
     color: '#FBBF24',
     fontWeight: '800',
     fontSize: 13,

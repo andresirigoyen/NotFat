@@ -17,6 +17,9 @@ import { FONTS, SPACING, BORDER_RADIUS, COLORS } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useProfile } from '@/hooks/useProfile';
 import { useDailyTotals } from '@/hooks/useDailyTotals';
+import { useRecipes } from '@/hooks/useRecipes';
+import { useTierPermissions } from '@/hooks/useTierPermissions';
+import { useAuthStore } from '@/store';
 
 const { width } = Dimensions.get('window');
 
@@ -81,19 +84,25 @@ const RecipesScreen = () => {
   const styles = getStyles(colors, isDark);
   const navigation = useNavigation<any>();
   const [activeTab, setActiveTab] = useState('Discover');
-  const [recipes, setRecipes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuthStore();
+  const { isPro, mealHistoryCutoffDate } = useTierPermissions();
 
   const { profile } = useProfile();
   const { data: totals } = useDailyTotals();
 
+  // "Discover" recipes (static pool for now, or could be another hook)
+  const [discoverRecipes, setDiscoverRecipes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // "My Favorites" recipes (synced with DB, filtered by tier)
+  const { data: savedRecipes, isLoading: loadingSaved } = useRecipes(user?.id || '', mealHistoryCutoffDate);
+
   const coachMode = profile?.coach_mode || 'soft';
-  const calorieTarget = profile?.daily_calorie_target || 2000;
-  const remainingCalories = calorieTarget - (totals?.calories || 0);
+  const remainingCalories = (profile?.daily_calorie_target || 2000) - (totals?.calories || 0);
 
   useEffect(() => {
     fetchRecipes().then(data => {
-      setRecipes(data);
+      setDiscoverRecipes(data);
       setLoading(false);
     });
   }, []);
@@ -184,46 +193,92 @@ const RecipesScreen = () => {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Popular Categories */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Popular Categories</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-            {CATEGORIES.map((cat) => (
-              <TouchableOpacity key={cat.id} style={styles.categoryCard}>
-                <View style={styles.categoryIconBg}>
-                  <Text style={{ fontSize: 24 }}>{cat.icon}</Text>
+        {activeTab === 'Discover' ? (
+          <>
+            {/* Popular Categories */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Popular Categories</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                {CATEGORIES.map((cat) => (
+                  <TouchableOpacity key={cat.id} style={styles.categoryCard}>
+                    <View style={styles.categoryIconBg}>
+                      <Text style={{ fontSize: 24 }}>{cat.icon}</Text>
+                    </View>
+                    <Text style={styles.categoryName}>{cat.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Dynamic Recipes Grid */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>For You ({coachMode} mode)</Text>
+              <View style={styles.recipeGrid}>
+                {discoverRecipes.map((recipe, index) => (
+                  index < 2 ? renderRecipeCard(recipe) : (
+                    <PremiumGuard key={recipe.id} style={{ marginHorizontal: 4, marginBottom: 12 }}>
+                      {renderRecipeCard(recipe)}
+                    </PremiumGuard>
+                  )
+                ))}
+              </View>
+            </View>
+
+            {/* Special Occasions - Wide Cards */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Featured Collections (Pro)</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                {discoverRecipes.slice(0, 2).map(recipe => (
+                  <PremiumGuard key={recipe.id + '_featured'} style={{ marginRight: 12 }}>
+                    {renderRecipeCard(recipe, true)}
+                  </PremiumGuard>
+                ))}
+              </ScrollView>
+            </View>
+          </>
+        ) : (
+          <View style={styles.section}>
+            <View style={styles.tabHeader}>
+              <Text style={styles.sectionTitle}>Mis Guardados</Text>
+              {!isPro && (
+                <View style={styles.limitBadge}>
+                  <Text style={styles.limitBadgeText}>Últimos 7 días</Text>
                 </View>
-                <Text style={styles.categoryName}>{cat.name}</Text>
+              )}
+            </View>
+            
+            {loadingSaved ? (
+              <ActivityIndicator color={colors.primary.amber} style={{ marginTop: 20 }} />
+            ) : savedRecipes?.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="heart-outline" size={48} color={isDark ? '#333' : '#EEE'} />
+                <Text style={styles.emptyText}>No tienes recetas guardadas aún.</Text>
+              </View>
+            ) : (
+              <View style={styles.recipeGrid}>
+                {savedRecipes?.map((recipe: any) => renderRecipeCard(recipe))}
+              </View>
+            )}
+
+            {!isPro && (savedRecipes?.length || 0) >= 1 && (
+              <TouchableOpacity 
+                style={styles.proBanner}
+                onPress={() => navigation.navigate('SubscriptionCenter')}
+              >
+                <LinearGradient
+                  colors={[colors.primary.sky, colors.primary.amber]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.proBannerGradient}
+                >
+                  <Ionicons name="star" size={18} color="#FFF" />
+                  <Text style={styles.proBannerText}>Desbloquea todo tu historial con Pro</Text>
+                  <Ionicons name="chevron-forward" size={18} color="#FFF" />
+                </LinearGradient>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Dynamic Recipes Grid */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>For You ({coachMode} mode)</Text>
-          <View style={styles.recipeGrid}>
-            {recipes.map((recipe, index) => (
-               index < 2 ? renderRecipeCard(recipe) : (
-                 <PremiumGuard key={recipe.id} style={{ marginHorizontal: 4, marginBottom: 12 }}>
-                    {renderRecipeCard(recipe)}
-                 </PremiumGuard>
-               )
-            ))}
+            )}
           </View>
-        </View>
-
-        {/* Special Occasions - Wide Cards */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Featured Collections (Pro)</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-            {recipes.slice(0, 2).map(recipe => (
-              <PremiumGuard key={recipe.id + '_featured'} style={{ marginRight: 12 }}>
-                {renderRecipeCard(recipe, true)}
-              </PremiumGuard>
-            ))}
-          </ScrollView>
-        </View>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -407,6 +462,57 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: '#FFF',
     fontSize: 10,
     fontWeight: '800',
+  },
+  tabHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: SPACING.lg,
+  },
+  limitBadge: {
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+  },
+  limitBadgeText: {
+    color: '#38BDF8',
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  emptyState: {
+    padding: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  emptyText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+    fontFamily: FONTS.primary,
+  },
+  proBanner: {
+    margin: SPACING.lg,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  proBannerGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  proBannerText: {
+    flex: 1,
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '800',
+    fontFamily: FONTS.primary,
   },
 });
 

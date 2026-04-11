@@ -12,6 +12,7 @@ import { useHealthSettings } from '@/hooks/useHealthSettings';
 import { usePreferencesStore } from '@/store/usePreferencesStore';
 import { useAuthStore } from '@/store';
 import { supabase } from '@/services/SupabaseContext';
+import { useTierPermissions } from '@/hooks/useTierPermissions';
 import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 const { width, height } = Dimensions.get('window');
@@ -32,6 +33,8 @@ const ProfileScreen = ({ navigation }: any) => {
     generateAutomaticHydrationGoal,
     signOut
   } = useProfile();
+  
+  const { isPro, canUseAggressiveCoach } = useTierPermissions();
   
   const { healthSettings } = useHealthSettings();
   const { coachMode, setCoachMode } = usePreferencesStore();
@@ -406,7 +409,14 @@ const ProfileScreen = ({ navigation }: any) => {
         <View style={styles.sectionContainer}>
           <View style={styles.toggleRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.toggleLabel}>Modo Coach Disruptivo</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.toggleLabel}>Modo Coach Disruptivo</Text>
+                {!canUseAggressiveCoach && (
+                  <View style={styles.miniProBadge}>
+                    <Text style={styles.miniProBadgeText}>PRO</Text>
+                  </View>
+                )}
+              </View>
               <Text style={styles.toggleSub}>
                 {coachMode === 'high' ? 'Modo AGRESIVO activado 🚀' : 'Modo amigable activado'}
               </Text>
@@ -414,6 +424,18 @@ const ProfileScreen = ({ navigation }: any) => {
             <Switch 
               value={coachMode === 'high'} 
               onValueChange={async (val) => {
+                if (!canUseAggressiveCoach && val) {
+                  Alert.alert(
+                    '🔒 Función Pro',
+                    'El Modo Coach Disruptivo (Agresivo) es una función exclusiva de Pro. El coach te dirá las cosas sin filtros para obligarte a cumplir tus metas.',
+                    [
+                      { text: 'Ver planes', onPress: () => navigation.navigate('SubscriptionCenter') },
+                      { text: 'Cancelar', style: 'cancel' }
+                    ]
+                  );
+                  return;
+                }
+
                 const newMode = val ? 'high' : 'low';
                 setCoachMode(newMode);
                 
@@ -869,6 +891,20 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
+  },
+  miniProBadge: {
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.3)',
+  },
+  miniProBadgeText: {
+    color: '#FBBF24',
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
 });
 

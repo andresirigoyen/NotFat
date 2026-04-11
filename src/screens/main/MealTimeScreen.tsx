@@ -1,267 +1,389 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  ScrollView, Dimensions, Animated
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button } from '@/components/ui/Button';
-import { Clock, Calendar, ChevronRight, ArrowLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { Clock, CalendarDays, ChevronRight, ArrowLeft, Zap } from 'lucide-react-native';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+
+const { width } = Dimensions.get('window');
+
+const MEAL_OPTIONS = [
+  {
+    id: 'breakfast',
+    name: 'Desayuno',
+    timeRange: '7:00 – 10:00',
+    description: 'Primera comida del día',
+    icon: '🌅',
+    accent: '#FBBF24',
+    gradient: ['rgba(251,191,36,0.18)', 'rgba(251,191,36,0.04)'] as [string, string],
+  },
+  {
+    id: 'snack_morning',
+    name: 'Snack Mañana',
+    timeRange: '10:00 – 11:00',
+    description: 'Energía entre horas',
+    icon: '🥐',
+    accent: '#A78BFA',
+    gradient: ['rgba(167,139,250,0.18)', 'rgba(167,139,250,0.04)'] as [string, string],
+  },
+  {
+    id: 'lunch',
+    name: 'Almuerzo',
+    timeRange: '12:00 – 14:00',
+    description: 'La comida principal',
+    icon: '🍽️',
+    accent: '#34D399',
+    gradient: ['rgba(52,211,153,0.18)', 'rgba(52,211,153,0.04)'] as [string, string],
+  },
+  {
+    id: 'snack_afternoon',
+    name: 'Snack Tarde',
+    timeRange: '16:00 – 17:00',
+    description: 'Recarga de energía',
+    icon: '🍎',
+    accent: '#FB923C',
+    gradient: ['rgba(251,146,60,0.18)', 'rgba(251,146,60,0.04)'] as [string, string],
+  },
+  {
+    id: 'dinner',
+    name: 'Cena',
+    timeRange: '19:00 – 21:00',
+    description: 'Última comida del día',
+    icon: '🌙',
+    accent: '#60A5FA',
+    gradient: ['rgba(96,165,250,0.18)', 'rgba(96,165,250,0.04)'] as [string, string],
+  },
+  {
+    id: 'snack_night',
+    name: 'Snack Noche',
+    timeRange: '21:00 – 22:00',
+    description: 'Algo ligero antes de dormir',
+    icon: '🍵',
+    accent: '#F472B6',
+    gradient: ['rgba(244,114,182,0.18)', 'rgba(244,114,182,0.04)'] as [string, string],
+  },
+];
 
 const MealTimeScreen = ({ navigation }: any) => {
   const { colors, isDark } = useThemeColors();
+  const [selected, setSelected] = useState<string | null>(null);
   const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
-  const mealTimes = [
-    {
-      id: 'breakfast',
-      name: 'Desayuno',
-      time: '7:00 - 10:00',
-      description: 'Tu primera comida del día',
-      icon: '🌅',
-      color: '#f59e0b'
-    },
-    {
-      id: 'snack_morning',
-      name: 'Snack Mañana',
-      time: '10:00 - 11:00',
-      description: 'Un pequeño tentempié',
-      icon: '🥐',
-      color: '#8b5cf6'
-    },
-    {
-      id: 'lunch',
-      name: 'Almuerzo',
-      time: '12:00 - 14:00',
-      description: 'Tu comida principal del día',
-      icon: '🍽️',
-      color: '#22c55e'
-    },
-    {
-      id: 'snack_afternoon',
-      name: 'Snack Tarde',
-      time: '16:00 - 17:00',
-      description: 'Recarga de energía',
-      icon: '🍿',
-      color: '#f97316'
-    },
-    {
-      id: 'dinner',
-      name: 'Cena',
-      time: '19:00 - 21:00',
-      description: 'Tu última comida del día',
-      icon: '🌙',
-      color: '#3b82f6'
-    },
-    {
-      id: 'snack_night',
-      name: 'Snack Noche',
-      time: '21:00 - 22:00',
-      description: 'Algo ligero antes de dormir',
-      icon: '🍵',
-      color: '#8b5cf6'
-    }
-  ];
-
-  const handleMealTimeSelect = (mealType: string) => {
-    // Navigate to the appropriate meal logger screen with the selected meal type
-    navigation.navigate('MealLogger', { mealType });
+  const handleSelect = (id: string) => {
+    setSelected(id);
+    setTimeout(() => {
+      navigation.navigate('MealLogger', { mealType: id });
+    }, 150);
   };
 
-  const handleCustomTime = () => {
-    // Navigate to a custom time selection screen
-    navigation.navigate('CustomTimeMeal');
+  const handleCustomTime = () => navigation.navigate('CustomTimeMeal');
+
+  const handleYesterday = () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    navigation.navigate('MealLogger', { mealDate: yesterday.toISOString(), mealType: 'custom' });
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.topNav}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ArrowLeft color="#1e293b" size={24} />
+      {/* Header */}
+      <View style={styles.navRow}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <ArrowLeft size={20} color={isDark ? '#fff' : '#111'} />
         </TouchableOpacity>
+        <View style={styles.headerBadge}>
+          <Clock size={13} color="#FBBF24" />
+          <Text style={styles.headerBadgeText}>Registro de Comida</Text>
+        </View>
+        <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+      >
+        {/* Title */}
+        <View style={styles.titleSection}>
           <Text style={styles.title}>¿Cuándo comiste?</Text>
-          <Text style={styles.subtitle}>Selecciona el momento de tu comida</Text>
+          <Text style={styles.subtitle}>Selecciona el momento más cercano a tu comida</Text>
         </View>
 
-        <View style={styles.mealTimesList}>
-          {mealTimes.map((meal) => (
-            <TouchableOpacity
-              key={meal.id}
-              style={styles.mealTimeCard}
-              onPress={() => handleMealTimeSelect(meal.id)}
-            >
-              <View style={styles.mealTimeHeader}>
-                <View style={[styles.iconCircle, { backgroundColor: '#f59e0b20' }]}>
-                  <Text style={styles.iconText}>{meal.icon}</Text>
-                </View>
-                <View style={styles.mealTimeInfo}>
-                  <Text style={styles.mealName}>{meal.name}</Text>
-                  <Text style={styles.mealTime}>{meal.time}</Text>
-                  <Text style={styles.mealDescription}>{meal.description}</Text>
-                </View>
-                <ChevronRight color="#94a3b8" size={20} />
-              </View>
-            </TouchableOpacity>
-          ))}
+        {/* Meal time cards */}
+        <View style={styles.grid}>
+          {MEAL_OPTIONS.map((meal) => {
+            const isSelected = selected === meal.id;
+            return (
+              <TouchableOpacity
+                key={meal.id}
+                activeOpacity={0.85}
+                style={[styles.card, isSelected && { borderColor: meal.accent, borderWidth: 1.5 }]}
+                onPress={() => handleSelect(meal.id)}
+              >
+                <LinearGradient
+                  colors={meal.gradient}
+                  style={styles.cardGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  {/* Icon */}
+                  <View style={[styles.iconBox, { backgroundColor: `${meal.accent}20` }]}>
+                    <Text style={styles.iconEmoji}>{meal.icon}</Text>
+                  </View>
+
+                  <Text style={styles.cardName}>{meal.name}</Text>
+                  <Text style={[styles.cardTime, { color: meal.accent }]}>{meal.timeRange}</Text>
+                  <Text style={styles.cardDesc}>{meal.description}</Text>
+
+                  {/* Chevron */}
+                  <View style={styles.cardChevron}>
+                    <ChevronRight size={14} color={meal.accent} />
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
-        <View style={styles.customSection}>
-          <Text style={styles.customTitle}>¿No fue ahora mismo?</Text>
-          <TouchableOpacity style={styles.customButton} onPress={handleCustomTime}>
-            <Calendar color="#64748b" size={20} />
-            <Text style={styles.customButtonText}>Elegir hora personalizada</Text>
-            <ChevronRight color="#64748b" size={16} />
-          </TouchableOpacity>
+        {/* Divider */}
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerLabel}>Otras opciones</Text>
+          <View style={styles.dividerLine} />
         </View>
 
-        <View style={styles.quickActions}>
-          <Button
-            title="Registrar para Ayer"
-            variant="secondary"
-            onPress={() => {
-              const yesterday = new Date();
-              yesterday.setDate(yesterday.getDate() - 1);
-              navigation.navigate('MealLogger', { 
-                mealDate: yesterday.toISOString(),
-                mealType: 'custom'
-              });
-            }}
-            style={{ marginBottom: 12 }}
-          />
-          <Button
-            title="Registrar para Antes"
-            variant="secondary"
-            onPress={() => navigation.navigate('MealLogger', { 
-              mealDate: 'before',
-              mealType: 'custom'
-            })}
-          />
+        {/* Custom time */}
+        <TouchableOpacity style={styles.altCard} onPress={handleCustomTime} activeOpacity={0.85}>
+          <BlurView intensity={isDark ? 20 : 40} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+          <View style={[styles.altIcon, { backgroundColor: 'rgba(251,191,36,0.12)' }]}>
+            <Clock size={18} color="#FBBF24" />
+          </View>
+          <View style={styles.altInfo}>
+            <Text style={styles.altTitle}>Hora personalizada</Text>
+            <Text style={styles.altDesc}>Elige exactamente cuándo fue</Text>
+          </View>
+          <ChevronRight size={18} color="#FBBF24" />
+        </TouchableOpacity>
+
+        {/* Yesterday */}
+        <TouchableOpacity style={styles.altCard} onPress={handleYesterday} activeOpacity={0.85}>
+          <BlurView intensity={isDark ? 20 : 40} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+          <View style={[styles.altIcon, { backgroundColor: 'rgba(96,165,250,0.12)' }]}>
+            <CalendarDays size={18} color="#60A5FA" />
+          </View>
+          <View style={styles.altInfo}>
+            <Text style={styles.altTitle}>Registrar de ayer</Text>
+            <Text style={styles.altDesc}>Log de comida del día anterior</Text>
+          </View>
+          <ChevronRight size={18} color="#60A5FA" />
+        </TouchableOpacity>
+
+        {/* Quick tip */}
+        <View style={styles.tipCard}>
+          <Zap size={14} color="#FBBF24" fill="#FBBF24" />
+          <Text style={styles.tipText}>
+            Registrar al momento es más preciso. Tu cuerpo lo agradece.
+          </Text>
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 48 }} />
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  topNav: {
-    paddingHorizontal: 24,
-    paddingTop: 12,
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#f8fafc',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scrollContent: {
-    padding: 24,
-  },
-  header: {
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#1e293b',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#64748b',
-    fontWeight: '500',
-  },
-  mealTimesList: {
-    marginBottom: 32,
-  },
-  mealTimeCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8e0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  mealTimeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  iconText: {
-    fontSize: 24,
-  },
-  mealTimeInfo: {
-    flex: 1,
-  },
-  mealName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: 4,
-  },
-  mealTime: {
-    fontSize: 14,
-    color: '#64748b',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  mealDescription: {
-    fontSize: 14,
-    color: '#94a3b8',
-  },
-  customSection: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 32,
-  },
-  customTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: 16,
-  },
-  customButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8e0',
-  },
-  customButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-    flex: 1,
-    marginLeft: 12,
-  },
-  quickActions: {
-    marginBottom: 32,
-  },
-});
+const getStyles = (colors: any, isDark: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: isDark ? '#000' : '#F9FAFB',
+    },
+    navRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: SPACING.md,
+      paddingTop: SPACING.sm,
+      paddingBottom: SPACING.sm,
+    },
+    backBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    headerBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: isDark ? 'rgba(251,191,36,0.1)' : 'rgba(251,191,36,0.12)',
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(251,191,36,0.25)',
+    },
+    headerBadgeText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: '#FBBF24',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    scroll: {
+      paddingHorizontal: SPACING.md,
+      paddingTop: SPACING.md,
+    },
+    titleSection: {
+      marginBottom: SPACING.lg,
+    },
+    title: {
+      fontSize: 32,
+      fontWeight: '900',
+      color: isDark ? '#FFFFFF' : '#111827',
+      letterSpacing: -0.8,
+      marginBottom: 6,
+      fontFamily: FONTS.primary,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: isDark ? 'rgba(255,255,255,0.45)' : '#6B7280',
+      fontWeight: '500',
+      fontFamily: FONTS.primary,
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginBottom: SPACING.lg,
+    },
+    card: {
+      width: (width - SPACING.md * 2 - 10) / 2,
+      borderRadius: BORDER_RADIUS['2xl'],
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+    },
+    cardGradient: {
+      padding: 18,
+      paddingBottom: 14,
+      position: 'relative',
+    },
+    iconBox: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 12,
+    },
+    iconEmoji: {
+      fontSize: 22,
+    },
+    cardName: {
+      fontSize: 15,
+      fontWeight: '900',
+      color: isDark ? '#FFF' : '#111827',
+      marginBottom: 3,
+      fontFamily: FONTS.primary,
+    },
+    cardTime: {
+      fontSize: 11,
+      fontWeight: '800',
+      marginBottom: 4,
+      letterSpacing: 0.2,
+      fontFamily: FONTS.primary,
+    },
+    cardDesc: {
+      fontSize: 11,
+      color: isDark ? 'rgba(255,255,255,0.4)' : '#9CA3AF',
+      fontWeight: '500',
+      fontFamily: FONTS.primary,
+    },
+    cardChevron: {
+      position: 'absolute',
+      top: 14,
+      right: 14,
+      opacity: 0.7,
+    },
+    dividerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: SPACING.md,
+      gap: 10,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+    },
+    dividerLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF',
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    altCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: BORDER_RADIUS.xl,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
+      padding: 16,
+      marginBottom: 10,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#FFFFFF',
+      gap: 14,
+    },
+    altIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    altInfo: {
+      flex: 1,
+    },
+    altTitle: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: isDark ? '#FFF' : '#111827',
+      marginBottom: 2,
+      fontFamily: FONTS.primary,
+    },
+    altDesc: {
+      fontSize: 12,
+      color: isDark ? 'rgba(255,255,255,0.4)' : '#9CA3AF',
+      fontWeight: '500',
+      fontFamily: FONTS.primary,
+    },
+    tipCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: isDark ? 'rgba(251,191,36,0.07)' : 'rgba(251,191,36,0.08)',
+      borderRadius: BORDER_RADIUS.lg,
+      padding: 14,
+      marginTop: SPACING.sm,
+      borderWidth: 1,
+      borderColor: 'rgba(251,191,36,0.15)',
+    },
+    tipText: {
+      flex: 1,
+      fontSize: 12,
+      color: isDark ? 'rgba(255,255,255,0.55)' : '#6B7280',
+      fontWeight: '600',
+      lineHeight: 18,
+      fontFamily: FONTS.primary,
+    },
+  });
 
 export default MealTimeScreen;

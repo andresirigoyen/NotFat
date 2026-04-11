@@ -101,6 +101,37 @@ export const useAuthStore = create<AuthState>()(
           });
 
           if (error) throw error;
+
+          // 🛡️ FALLBACK: Si hay sesión, intentamos guardar el perfil manualmente por si el trigger falla o es lento
+          if (data.session?.user) {
+            try {
+              console.log('[AuthStore] Manual profile sync fallback...');
+              await supabase.from('profiles').upsert({
+                id: data.session.user.id,
+                email: email,
+                full_name: fullName,
+                first_name: firstName,
+                last_name: lastName,
+                gender: 'other',
+                role: 'user',
+                subscription_tier: 'free',
+                subscription_status: 'inactive',
+                onboarding_completed: false,
+                onboarding_step: 'welcome',
+                show_calories: true,
+                show_hydration: true,
+                preferred_bottle_size: 500,
+                preferred_bottle_unit: 'ml',
+                steps_goal: 10000,
+                height_unit: 'cm',
+                weight_unit: 'kg',
+                updated_at: new Date().toISOString()
+              } as any, { onConflict: 'id' });
+            } catch (syncError) {
+              console.warn('[AuthStore] Manual sync failed (non-critical):', syncError);
+            }
+          }
+
           set({ user: data.user, session: data.session, loading: false });
           return { error: null, user: data.user, session: data.session };
         } catch (error) {

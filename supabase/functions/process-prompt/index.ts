@@ -62,13 +62,16 @@ serve(async (req) => {
 
     // Determinar el tono según coach_style
     type CoachStyle = 'apoyo' | 'reto' | 'directo';
-    const coachStyle = (userProfile?.coach_style || 'reto') as CoachStyle;
+    // 🔒 SERVER-SIDE ENFORCEMENT: Free users are capped to 'apoyo' style only.
+    // Even if the profile DB has 'directo', we override here for Free tier.
+    const rawStyle = (userProfile?.coach_style || 'apoyo') as CoachStyle;
+    const coachStyle: CoachStyle = isPro ? rawStyle : 'apoyo';
     const tono: Record<CoachStyle, string> = {
-      apoyo: 'Siempre positivo y motivador.',
-      reto: 'Directo y retador, pero justo.',
-      directo: 'Sin filtro. Si fallas, se dice claro.'
+      apoyo: 'Siempre positivo y motivador. Celebra los logros, usa emojis amigables, nunca critique al usuario.',
+      reto: 'Directo y retador, pero justo. Exige esfuerzo, no acepta excusas pero tampoco humilla.',
+      directo: 'Sin filtro. Si fallas, se dice claro. Tono duro pero con el objetivo de hacer mejorar.',
     };
-    const tonoStr = tono[coachStyle] ?? 'Directo y retador, pero justo.';
+    const tonoStr = tono[coachStyle];
 
     // Fetch conversation history (limited to last 3 messages to save tokens)
     let conversationHistory = "";
