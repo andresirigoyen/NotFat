@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
 import { useCreateNotificationPreference } from '@/hooks/useNotifications';
+import { supabase } from '@/services/SupabaseContext';
 import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 import { analytics } from '@/services/analytics';
 
@@ -117,14 +118,16 @@ export default function OnboardingPreferencesScreen() {
     try {
       // Sincronizado con Prisma: profiles
       await updateProfile.mutateAsync({
-        preferred_bottle_size: preferredBottleSize, // Int @default(1000)
-        preferred_bottle_unit: preferredBottleUnit, // water_unit_enum
-        show_calories: showCalories, // Boolean @default(true)
-        show_hydration: showHydration, // Boolean @default(true)
-        coach_style: coachStyle,
+        preferred_bottle_size: preferredBottleSize,
+        preferred_bottle_unit: preferredBottleUnit,
+        show_calories: showCalories,
+        show_hydration: showHydration,
         onboarding_step: 'completed',
-        onboarding_completed: true, // Boolean?
-      });
+        onboarding_completed: true,
+      } as any);
+
+      // Update coach_style separately
+      await supabase.from('profiles').update({ coach_style: coachStyle }).eq('id', user.id);
 
       analytics.trackOnboardingStep('preferences', {
         preferred_bottle_size: preferredBottleSize,
@@ -512,7 +515,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   coachStyleTitle: {
-    fontSize: FONTS.sizes.md,
+    fontSize: FONTS.sizes.base,
     fontWeight: FONTS.weights.bold,
     marginBottom: 2,
   },
@@ -521,7 +524,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     textAlign: 'center',
   },
   preferenceCard: {
-    backgroundColor: colors.background.card,
+    backgroundColor: colors.background.tertiary,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     marginBottom: SPACING.md,

@@ -6,6 +6,8 @@ import { ChevronLeft, Camera, User, Mail, Calendar, ChevronRight } from 'lucide-
 import { Button } from '@/components/ui/Button';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useProfile } from '@/hooks/useProfile';
+import { useAuthStore } from '@/store';
+import { supabase } from '@/services/SupabaseContext';
 import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -14,6 +16,7 @@ const EditProfileScreen = ({ navigation }: any) => {
   const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
   const { profile, isLoading, updateProfile, uploadAvatar } = useProfile();
+  const { user } = useAuthStore();
   
   const [firstName, setFirstName] = React.useState('');
   const [lastName, setLastName] = React.useState('');
@@ -124,11 +127,13 @@ const EditProfileScreen = ({ navigation }: any) => {
         last_name: lastName,
         birth_date: birthDate.toISOString(),
         diet_type: dietType || null,
-        coach_style: coachStyle as any,
         workout_frequency: workoutFrequency || null,
         height_value: heightValue ? Number(heightValue) : null,
         weight_value: weightValue ? Number(weightValue) : null,
-      });
+      } as any);
+      
+      // Update coach_style separately
+      await supabase.from('profiles').update({ coach_style: coachStyle }).eq('id', user?.id);
       Alert.alert('Éxito', 'Tu perfil ha sido actualizado correctamente.');
       navigation.goBack();
     } catch (error) {
@@ -249,7 +254,7 @@ const EditProfileScreen = ({ navigation }: any) => {
                     style={[
                       styles.optionButton,
                       coachStyle === 'apoyo' && styles.optionButtonActive,
-                      { backgroundColor: coachStyle === 'apoyo' ? '#10B981' : colors.card, borderColor: '#10B981' }
+                      { backgroundColor: coachStyle === 'apoyo' ? '#10B981' : colors.background.tertiary, borderColor: '#10B981' }
                     ]}
                     onPress={() => setCoachStyle('apoyo')}
                   >
@@ -262,7 +267,7 @@ const EditProfileScreen = ({ navigation }: any) => {
                     style={[
                       styles.optionButton,
                       coachStyle === 'reto' && styles.optionButtonActive,
-                      { backgroundColor: coachStyle === 'reto' ? '#F59E0B' : colors.card, borderColor: '#F59E0B' }
+                      { backgroundColor: coachStyle === 'reto' ? '#F59E0B' : colors.background.tertiary, borderColor: '#F59E0B' }
                     ]}
                     onPress={() => setCoachStyle('reto')}
                   >
@@ -275,7 +280,7 @@ const EditProfileScreen = ({ navigation }: any) => {
                     style={[
                       styles.optionButton,
                       coachStyle === 'directo' && styles.optionButtonActive,
-                      { backgroundColor: coachStyle === 'directo' ? '#EF4444' : colors.card, borderColor: '#EF4444' }
+                      { backgroundColor: coachStyle === 'directo' ? '#EF4444' : colors.background.tertiary, borderColor: '#EF4444' }
                     ]}
                     onPress={() => setCoachStyle('directo')}
                   >
