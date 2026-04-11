@@ -33,7 +33,7 @@ const EditProfileScreen = ({ navigation }: any) => {
     if (profile) {
       setFirstName(profile.first_name || '');
       setLastName(profile.last_name || '');
-      setEmail(profile.email || '');
+      setEmail(user?.email || profile.email || '');
       if (profile.birth_date) {
         setBirthDate(new Date(profile.birth_date));
       }
@@ -42,8 +42,10 @@ const EditProfileScreen = ({ navigation }: any) => {
       setWorkoutFrequency(profile.workout_frequency || '');
       setHeightValue(profile.height_value ? String(profile.height_value) : '');
       setWeightValue(profile.weight_value ? String(profile.weight_value) : '');
+    } else if (user?.email) {
+      setEmail(user.email);
     }
-  }, [profile]);
+  }, [profile, user]);
 
   const getInitials = () => {
     const a = (firstName || '').trim().charAt(0);
@@ -95,10 +97,12 @@ const EditProfileScreen = ({ navigation }: any) => {
             try {
               const uri = await takeAvatarPhoto();
               if (!uri) return;
+              console.log('Foto tomada, URI:', uri);
               await uploadAvatar.mutateAsync(uri);
               Alert.alert('Éxito', 'Tu foto de perfil fue actualizada.');
-            } catch (e) {
-              Alert.alert('Error', 'No se pudo actualizar la foto.');
+            } catch (e: any) {
+              console.error('Error uploading avatar:', e);
+              Alert.alert('Error', `No se pudo actualizar la foto: ${e.message || 'Error desconocido'}`);
             }
           },
         },
@@ -108,10 +112,12 @@ const EditProfileScreen = ({ navigation }: any) => {
             try {
               const uri = await pickAvatarFromLibrary();
               if (!uri) return;
+              console.log('Imagen seleccionada, URI:', uri);
               await uploadAvatar.mutateAsync(uri);
               Alert.alert('Éxito', 'Tu foto de perfil fue actualizada.');
-            } catch (e) {
-              Alert.alert('Error', 'No se pudo actualizar la foto.');
+            } catch (e: any) {
+              console.error('Error uploading avatar:', e);
+              Alert.alert('Error', `No se pudo actualizar la foto: ${e.message || 'Error desconocido'}`);
             }
           },
         },

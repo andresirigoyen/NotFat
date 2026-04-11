@@ -37,6 +37,7 @@ export const useProfile = () => {
         .from('nutrition_goals')
         .select('*')
         .eq('user_id', user.id)
+        .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(1);
       
@@ -44,6 +45,7 @@ export const useProfile = () => {
       return data?.[0] || null;
     },
     enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5,
   });
 
   const { data: hydrationGoals } = useQuery({
@@ -107,11 +109,16 @@ export const useProfile = () => {
     mutationFn: async (imageUri: string) => {
       if (!user?.id) throw new Error('User not authenticated');
 
+      console.log('Starting avatar upload for user:', user.id);
+      console.log('Image URI:', imageUri);
+
       const fileName = `${user.id}/${Date.now()}.jpg`;
       
       const response = await fetch(imageUri);
       const blob = await response.blob();
+      console.log('Blob size:', blob.size, 'type:', blob.type);
 
+      console.log('Uploading to Supabase storage...');
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, blob, {
@@ -119,14 +126,21 @@ export const useProfile = () => {
           upsert: true,
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw uploadError;
+      }
 
-      const { data: { publicUrl } } = supabase.storage
+      console.log('Upload successful, getting public URL...');
+      const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
+      console.log('Public URL:', urlData.publicUrl);
+
       // Update profile with new avatar URL
-      return await updateProfile.mutateAsync({ avatar_url: publicUrl });
+      console.log('Updating profile with avatar URL...');
+      return await updateProfile.mutateAsync({ avatar_url: urlData.publicUrl });
     },
   });
 

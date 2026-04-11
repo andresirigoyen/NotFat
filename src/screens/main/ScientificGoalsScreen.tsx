@@ -184,15 +184,15 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
 
   if (profileLoading) {
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
+      <SafeAreaView style={[styles.container, styles.loadingContainer, { backgroundColor: colors.background.primary }]}>
         <ActivityIndicator size="large" color={colors.primary.amber} />
         <Text style={styles.loadingText}>Analizando perfil...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background.primary }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>

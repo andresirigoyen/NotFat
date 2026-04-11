@@ -229,9 +229,7 @@ export default function CoachScreen({ route }: any) {
             <Ionicons name="chevron-back" size={24} color="#FFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>NotFat AI Coach</Text>
-          <View style={styles.profileCircle}>
-            <Image source={require('../../../assets/icon.png')} style={{ width: 44, height: 44, borderRadius: 22 }} resizeMode="contain" />
-          </View>
+          <View style={{ width: 44 }} />
         </View>
 
         <ScrollView
