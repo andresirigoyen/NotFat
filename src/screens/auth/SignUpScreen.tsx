@@ -107,9 +107,11 @@ export default function SignUpScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 12 : 0}
       >
         <ScrollView
-          contentContainerStyle={styles.contentContainer}
+          style={{ flex: 1 }}
+          contentContainerStyle={[styles.contentContainer, { flexGrow: 1 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          bounces={true}
         >
           {/* Top bar */}
           <View style={styles.topBar}>

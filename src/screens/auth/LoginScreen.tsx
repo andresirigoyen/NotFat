@@ -115,10 +115,11 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          style={{ flex: 1 }}
+          contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          bounces={true}
         >
           {/* Back Button */}
           <TouchableOpacity 
