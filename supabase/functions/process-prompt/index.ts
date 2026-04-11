@@ -23,7 +23,7 @@ serve(async (req) => {
     }
 
     const { message, userId, userProfile: providedProfile } = body || {};
-    console.log('📥 Request body:', { message, userId: userId?.substring(0, 8) + '...' });
+    console.log('Request body:', { message, userId: userId?.substring(0, 8) + '...' });
 
     if (!message || !userId) {
       return new Response(JSON.stringify({ error: 'Message and userId are required' }), { 
@@ -34,7 +34,7 @@ serve(async (req) => {
 
     const supabase = getSupabaseAdmin()
 
-    // 1. Fetch user profile
+    // Fetch user profile
     let userProfile = providedProfile;
     if (!userProfile) {
       try {
@@ -50,20 +50,40 @@ serve(async (req) => {
       }
     }
 
-    // 3. Prepare AI Prompt
+    // Fetch conversation history
+    let conversationHistory = "";
+    try {
+      const { data: messages } = await supabase
+        .from('coach_messages')
+        .select('role, content')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true })
+        .limit(20);
+      
+      if (messages && messages.length > 0) {
+        conversationHistory = "\n\nHistorial de conversación:\n";
+        for (const msg of messages) {
+          const role = msg.role === 'user' ? 'Usuario' : 'Asistente';
+          conversationHistory += `- ${role}: ${msg.content}\n`;
+        }
+        console.log('Conversation history loaded:', messages.length, 'messages');
+      }
+    } catch (e) {
+      console.log('No conversation history found');
+    }
+
     const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY') || Deno.env.get('GOOGLE_AI_API_KEY')
-    console.log('🔑 API Key exists:', !!apiKey)
+    console.log('API Key exists:', !!apiKey)
     if (!apiKey) {
-      console.error('❌ No API key found!');
+      console.error('No API key found!');
       throw new Error('GOOGLE_GEMINI_API_KEY is not configured. Please set the secret.')
     }
 
-    const model = 'gemini-2.0-flash'
-    console.log(`Using model: ${model}`)
+    const model = 'gemini-2.5-flash'
+    console.log('Using model:', model)
     
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
-    // Build user context
     let userContextStr = ""
     if (userProfile) {
       const parts = []
@@ -73,39 +93,41 @@ serve(async (req) => {
       userContextStr = "\n\nContexto del usuario:\n- " + parts.join("\n- ")
     }
 
-    const prompt = `Eres NotFat AI, un experto coach nutricional.${userContextStr}
+    const prompt = `Eres NotFat AI, un experto coach nutricional.${userContextStr}${conversationHistory}
     
-    Mensaje del usuario: "${message}"
+    Mensaje actual del usuario: "${message}"
     
-    Responde ÚNICAMENTE con este JSON exacto:
+    Responde UNICAMENTE con este JSON exacto:
     {
       "type": "chat" o "recipe",
       "response": "tu respuesta natural en español",
       "recipeData": {
         "name": "nombre del plato",
-        "description": "breve descripción",
+        "description": "breve descripcion",
         "ingredients": ["ing 1", "ing 2"],
         "instructions": ["paso 1", "paso 2"],
         "nutrition": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 },
         "time": 20,
-        "difficulty": "Fácil"
+        "difficulty": "Facil"
       }
     }
     Si es solo chat, recipeData debe ser null.`
 
+    let responseText = '';
+    let aiResponse;
     try {
-      console.log('🌐 Calling Gemini API...');
-      const aiResponse = await fetch(apiUrl, {
+      console.log('Calling Gemini API...');
+      aiResponse = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
       })
 
-      console.log('🤖 Gemini response status:', aiResponse.status);
+      console.log('Gemini response status:', aiResponse.status);
 
       if (!aiResponse.ok) {
         const errorText = await aiResponse.text()
-        console.error(`❌ Gemini Error (${aiResponse.status}):`, errorText)
+        console.error('Gemini Error:', aiResponse.status, errorText)
         return new Response(JSON.stringify({ 
           error: `Gemini API error: ${aiResponse.status}`, 
           details: errorText 
@@ -115,30 +137,30 @@ serve(async (req) => {
         });
       }
 
-      const body = await aiResponse.json()
-      console.log('📦 Gemini response body:', JSON.stringify(body).substring(0, 200));
+      const responseBody = await aiResponse.json()
+      console.log('Gemini response:', JSON.stringify(responseBody).substring(0, 200));
       
-      const responseText = body.candidates?.[0]?.content?.parts?.[0]?.text
+      responseText = responseBody.candidates?.[0]?.content?.parts?.[0]?.text || ''
       
       if (!responseText) {
-        console.error('❌ Empty response from Gemini');
+        console.error('Empty response from Gemini');
         return new Response(JSON.stringify({ 
           error: 'Empty response from Gemini',
-          body: body
+          body: responseBody
         }), { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500
         });
       }
       
-      console.log('📝 Response text:', responseText.substring(0, 100));
+      console.log('Response text:', responseText.substring(0, 100));
     } catch (fetchError: any) {
-      console.error('❌ Fetch error:', fetchError);
+      console.error('Fetch error:', fetchError);
       return new Response(JSON.stringify({ 
         error: `Fetch failed: ${fetchError.message}` 
       }), { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        status: 500 
       });
     }
     
@@ -151,7 +173,6 @@ serve(async (req) => {
       parsed = { type: 'chat', response: responseText.trim(), recipeData: null }
     }
 
-    // 4. Save conversation to database
     try {
       await supabase.from('coach_messages').insert({
         user_id: userId,
@@ -165,9 +186,9 @@ serve(async (req) => {
         content: parsed.response,
         metadata: parsed.recipeData ? { recipe: parsed.recipeData } : null
       });
-      console.log('💾 Messages saved to DB');
+      console.log('Messages saved to DB');
     } catch (dbError: any) {
-      console.warn('⚠️ Failed to save messages:', dbError.message);
+      console.warn('Failed to save messages:', dbError.message);
     }
 
     return new Response(JSON.stringify(parsed), {
@@ -175,8 +196,8 @@ serve(async (req) => {
       status: 200,
     })
   } catch (error: any) {
-    console.error('❌ Error in process-prompt:', error)
-    return new Response(JSON.stringify({ error: error.message, stack: error.stack }), { 
+    console.error('Error in process-prompt:', error)
+    return new Response(JSON.stringify({ error: error.message }), { 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
       status: 500 
     })

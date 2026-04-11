@@ -81,10 +81,10 @@ export const useStatsOverview = (range: RangeDays) => {
       const [mealsRes, waterRes, bodyMetricsRes] = await Promise.all([
         supabase
           .from('meals')
-          .select('id, meal_date, total_calories, total_protein, total_carbs, total_fat')
+          .select('id, meal_at, total_calories, total_protein, total_carbs, total_fat')
           .eq('user_id', user.id)
-          .gte('meal_date', startDate.toISOString().split('T')[0])
-          .lte('meal_date', tomorrow.toISOString().split('T')[0])
+          .gte('meal_at', startDate.toISOString())
+          .lte('meal_at', tomorrow.toISOString())
           .eq('status', 'complete'),
         supabase
           .from('water_logs')
@@ -145,8 +145,8 @@ export const useStatsOverview = (range: RangeDays) => {
       );
 
       meals.forEach((meal: any) => {
-        // meal_date is usually 'YYYY-MM-DD' and dayKey results in that same format
-        const mealDayKey = meal.meal_date;
+        // meal_at is usually 'YYYY-MM-DD' and dayKey results in that same format
+        const mealDayKey = new Date(meal.meal_at).toISOString().split('T')[0];
         const bucket = dailyMap.get(mealDayKey);
         if (!bucket) return;
 

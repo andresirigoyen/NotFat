@@ -61,7 +61,8 @@ export function useHealthScore(date?: string) {
         .from('meals')
         .select('id, total_calories, total_protein, total_carbs, total_fat, total_fiber, total_sugar, total_sodium')
         .eq('user_id', user.id)
-        .eq('meal_date', targetDate)
+        .gte('meal_at', targetDate + 'T00:00:00.000Z')
+        .lt('meal_at', new Date(new Date(targetDate).getTime() + 24*60*60*1000).toISOString())
         .eq('status', 'complete');
 
       if (mealsError) throw mealsError;
