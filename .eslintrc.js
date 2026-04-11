@@ -9,7 +9,7 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
   ],
   parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint'],
+  plugins: ['@typescript-eslint', 'react-hooks'],
   ignorePatterns: [
     'node_modules/**',
     '.expo/**',
@@ -28,5 +28,6 @@ module.exports = {
     '@typescript-eslint/no-var-requires': 'off',
     '@typescript-eslint/ban-types': 'off',
     '@typescript-eslint/no-empty-function': 'off',
+    'react-hooks/exhaustive-deps': 'warn',
   }
 };
