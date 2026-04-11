@@ -25,6 +25,11 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
   const [showPermissionPopover, setShowPermissionPopover] = React.useState(false);
   const [permissionType, setPermissionType] = React.useState<'camera' | 'microphone' | 'mediaLibrary'>('camera');
   const [analyzing, setAnalyzing] = React.useState(false);
+  const [manualCalories, setManualCalories] = React.useState('');
+  const [manualProtein, setManualProtein] = React.useState('');
+  const [manualCarbs, setManualCarbs] = React.useState('');
+  const [manualFat, setManualFat] = React.useState('');
+  const [showManualDetails, setShowManualDetails] = React.useState(false);
   
   const { takePhoto, analyzeMealImage, pickImage } = useAIAnalysis();
   const { user } = useAuthStore();
@@ -154,16 +159,15 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
     }
 
     try {
-      // Basic nutritional estimation based on meal name (simplified)
-      const estimatedCalories = Math.max(200, mealName.length * 15); // Basic estimation
-      const estimatedProtein = Math.round(estimatedCalories * 0.2 / 4); // 20% protein
-      const estimatedCarbs = Math.round(estimatedCalories * 0.5 / 4); // 50% carbs
-      const estimatedFat = Math.round(estimatedCalories * 0.3 / 9); // 30% fat
+      // Use manual values if provided, otherwise fallback to estimation
+      const kcal = manualCalories ? parseInt(manualCalories) : Math.max(200, mealName.length * 15);
+      const prot = manualProtein ? parseInt(manualProtein) : Math.round(kcal * 0.2 / 4);
+      const carb = manualCarbs ? parseInt(manualCarbs) : Math.round(kcal * 0.5 / 4);
+      const fat = manualFat ? parseInt(manualFat) : Math.round(kcal * 0.3 / 9);
 
-      // Run the creation in background (don't await)
-      createMeal({
+      await createMeal({
         meal: {
-          name: mealName,
+          name: mealName.trim(),
           meal_type: selectedType as any,
           source_type: 'text',
           status: 'complete',
@@ -171,7 +175,7 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
           image_url: null,
           recorded_timezone: null,
           llm_used: null,
-          modified: false,
+          modified: manualCalories ? true : false,
           is_from_favorite: false,
           image_url_aux: null,
           feedback: null,
@@ -181,13 +185,13 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
           prompt_version: null,
         },
         items: [{
-          name: mealName,
+          name: mealName.trim(),
           quantity: 1,
-          unit: 'unit',
-          calories: estimatedCalories,
-          protein: estimatedProtein,
-          carbs: estimatedCarbs,
-          fat: estimatedFat,
+          unit: 'ración',
+          calories: kcal,
+          protein: prot,
+          carbs: carb,
+          fat: fat,
           barcode_number: null,
           scanned: false,
           servings: 1,
@@ -202,15 +206,13 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
           is_alcoholic: false,
           has_ingredients_data: false,
         }],
-      }).catch(err => {
-        console.error('Background save failed:', err);
-        // Optional: show a notification if it fails
       });
 
-      // Navigate back immediately for a snappy feel
+      Alert.alert('¡Hecho!', 'Comida guardada correctamente.');
       navigationHook.goBack();
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo guardar la comida. Por favor intenta nuevamente.');
+    } catch (error: any) {
+      console.error('Manual save error:', error);
+      Alert.alert('Error', 'No se pudo guardar la comida. Intenta nuevamente.');
     }
   };
 
@@ -310,9 +312,72 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
               style={styles.textInput}
               value={mealName}
               onChangeText={setMealName}
-              placeholder="Nombre de la comida..."
+              placeholder="¿Qué comiste?"
               placeholderTextColor={colors.text.muted}
             />
+
+            <TouchableOpacity 
+              style={styles.toggleManualBtn} 
+              onPress={() => setShowManualDetails(!showManualDetails)}
+            >
+              <Text style={styles.toggleManualText}>
+                {showManualDetails ? 'Ocultar detalles nutricionales' : 'Añadir calorías y macros (opcional)'}
+              </Text>
+              <Ionicons 
+                name={showManualDetails ? 'chevron-up' : 'chevron-down'} 
+                size={16} 
+                color={colors.primary.amber} 
+              />
+            </TouchableOpacity>
+
+            {showManualDetails && (
+              <View style={styles.manualMacrosGrid}>
+                <View style={styles.macroInputCol}>
+                  <Text style={styles.macroInputLabel}>Calorías</Text>
+                  <TextInput
+                    style={styles.macroInput}
+                    value={manualCalories}
+                    onChangeText={setManualCalories}
+                    placeholder="0"
+                    placeholderTextColor={colors.text.muted}
+                    keyboardType="numeric"
+                  />
+                </View>
+                <View style={styles.macroInputCol}>
+                  <Text style={styles.macroInputLabel}>Prot. (g)</Text>
+                  <TextInput
+                    style={styles.macroInput}
+                    value={manualProtein}
+                    onChangeText={setManualProtein}
+                    placeholder="0"
+                    placeholderTextColor={colors.text.muted}
+                    keyboardType="numeric"
+                  />
+                </View>
+                <View style={styles.macroInputCol}>
+                  <Text style={styles.macroInputLabel}>Carb. (g)</Text>
+                  <TextInput
+                    style={styles.macroInput}
+                    value={manualCarbs}
+                    onChangeText={setManualCarbs}
+                    placeholder="0"
+                    placeholderTextColor={colors.text.muted}
+                    keyboardType="numeric"
+                  />
+                </View>
+                <View style={styles.macroInputCol}>
+                  <Text style={styles.macroInputLabel}>Gras. (g)</Text>
+                  <TextInput
+                    style={styles.macroInput}
+                    value={manualFat}
+                    onChangeText={setManualFat}
+                    placeholder="0"
+                    placeholderTextColor={colors.text.muted}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+            )}
             
             <TouchableOpacity 
               style={[styles.saveButton, !mealName.trim() && styles.saveButtonDisabled]}
@@ -320,9 +385,9 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
               disabled={!mealName.trim() || saving}
             >
               {saving ? (
-                <ActivityIndicator size="small" color={colors.text.primary} />
+                <ActivityIndicator size="small" color={colors.background.primary} />
               ) : (
-                <Text style={styles.saveButtonText}>Guardar</Text>
+                <Text style={styles.saveButtonText}>Guardar Comida</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -518,9 +583,50 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   saveButtonText: {
     fontSize: FONTS.sizes.base,
-    fontWeight: FONTS.weights.semibold,
+    fontWeight: '800',
     color: colors.background.primary,
     fontFamily: FONTS.primary,
+  },
+  toggleManualBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.md,
+    gap: 4,
+  },
+  toggleManualText: {
+    fontSize: 12,
+    color: colors.primary.amber,
+    fontFamily: FONTS.primary,
+    fontWeight: '600',
+  },
+  manualMacrosGrid: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    marginBottom: SPACING.lg,
+  },
+  macroInputCol: {
+    flex: 1,
+    gap: 4,
+  },
+  macroInputLabel: {
+    fontSize: 10,
+    color: colors.text.muted,
+    fontFamily: FONTS.primary,
+    textAlign: 'center',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  macroInput: {
+    backgroundColor: colors.background.tertiary,
+    borderRadius: BORDER_RADIUS.md,
+    height: 40,
+    textAlign: 'center',
+    color: colors.text.primary,
+    fontSize: 14,
+    fontFamily: FONTS.primary,
+    borderWidth: 1,
+    borderColor: colors.background.border,
   },
   timeRow: {
     flexDirection: 'row',

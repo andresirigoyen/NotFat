@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useScientificGoals } from '@/hooks/useScientificGoals';
 import { useProfile } from '@/hooks/useProfile';
 import { getStyles } from './ScientificGoalsScreen.styles';
+import { calculateAge } from '@/utils/nutrition';
 
 interface ScientificGoalsScreenProps {
   navigation: any;
@@ -94,7 +95,7 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
     if (!profile) return null;
 
     const age = profile.birth_date 
-      ? new Date().getFullYear() - new Date(profile.birth_date).getFullYear()
+      ? calculateAge(profile.birth_date)
       : 'N/A';
 
     return (

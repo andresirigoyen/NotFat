@@ -37,6 +37,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNotes } from '@/hooks/useNotes';
 import { useScannedCaloriesAnalytics } from '@/hooks/useScannedCaloriesAnalytics';
 import MarkdownText from '@/components/MarkdownText';
+import { PermissionPopover } from '@/components/ui/PermissionPopover';
 
 const DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const TODAY_INDEX = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
@@ -70,9 +71,13 @@ export default function DashboardScreen() {
   const [showNoteModal, setShowNoteModal] = useState(false);
   const { note, saveNote } = useNotes(selectedDate);
   const [tempNote, setTempNote] = useState('');
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [selectedMacro, setSelectedMacro] = useState<{ label: string; current: number; goal: number; color: string; desc: string } | null>(null);
   const [weight, setWeight] = useState(profile?.weight_value || 70.0);
   const { data: scannedAnalytics } = useScannedCaloriesAnalytics(user?.id, selectedDate);
   const { message: coachMessage, refresh: refreshCoachMessage } = useCoachMessage('general');
+  const [showPermissionPopover, setShowPermissionPopover] = useState(false);
+  const [permissionType, setPermissionType] = useState<'camera' | 'microphone' | 'gallery'>('camera');
 
   // Water feedback animation
   const waterFeedbackAnim = useRef(new Animated.Value(0)).current;
@@ -257,6 +262,13 @@ export default function DashboardScreen() {
           </Text>
         </View>
         <View style={s.topIcons}>
+          <TouchableOpacity 
+            onPress={() => setShowNotifications(true)}
+            style={s.notificationBtn}
+          >
+            <Ionicons name="notifications-outline" size={24} color={colors.text.secondary} />
+            {(totalConsumed > 0 || waterMl > 0) && <View style={s.notificationDot} />}
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => setShowCalendar(!showCalendar)}>
             <Ionicons name="calendar-outline" size={24} color={colors.text.secondary} />
           </TouchableOpacity>
@@ -398,13 +410,38 @@ export default function DashboardScreen() {
               {/* Macros Breakdown - Row Bottom */}
               <View style={s.macrosCirclesRow}>
                 {[
-                  { label: 'Prot.', current: totals?.protein || 0, goal: nutritionGoals?.protein || 180, color: '#FBBF24' },
-                  { label: 'Carbs', current: totals?.carbs || 0, goal: nutritionGoals?.carbs || 300, color: colors.primary.sky },
-                  { label: 'Grasas', current: totals?.fat || 0, goal: nutritionGoals?.fat || 70, color: '#F97316' },
+                  { 
+                    label: 'Prot.', 
+                    fullName: 'Proteínas',
+                    current: totals?.protein || 0, 
+                    goal: nutritionGoals?.protein || 180, 
+                    color: '#FBBF24',
+                    desc: 'Las proteínas son esenciales para la reparación de tejidos, el crecimiento muscular y el sistema inmunológico.'
+                  },
+                  { 
+                    label: 'Carbs', 
+                    fullName: 'Carbohidratos',
+                    current: totals?.carbs || 0, 
+                    goal: nutritionGoals?.carbs || 300, 
+                    color: colors.primary.sky,
+                    desc: 'Los carbohidratos son la fuente primaria de energía para tu cerebro y músculos durante el día.'
+                  },
+                  { 
+                    label: 'Grasas', 
+                    fullName: 'Grasas',
+                    current: totals?.fat || 0, 
+                    goal: nutritionGoals?.fat || 70, 
+                    color: '#F97316',
+                    desc: 'Las grasas son vitales para la absorción de vitaminas, salud hormonal y energía de larga duración.'
+                  },
                 ].map((m) => {
                   const pct = m.goal > 0 ? Math.min((m.current / m.goal), 1) : 0;
                   return (
-                    <View key={m.label} style={s.macroCircleContainer}>
+                    <TouchableOpacity 
+                      key={m.label} 
+                      style={s.macroCircleContainer}
+                      onPress={() => setSelectedMacro({ ...m, label: m.fullName })}
+                    >
                       <View style={[s.macroCircleOuter, { borderColor: 'rgba(255,255,255,0.1)' }]}>
                         <View style={[s.macroCircleInner, {
                           borderColor: m.color,
@@ -418,7 +455,7 @@ export default function DashboardScreen() {
                         <Text style={s.macroPctText}>{Math.round(pct * 100)}%</Text>
                       </View>
                       <Text style={s.macroCircleLabel}>{m.label}</Text>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })}
               </View>
@@ -718,6 +755,176 @@ export default function DashboardScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
+      {/* ── Daily Summary Notifications Modal ───── */}
+      <Modal
+        visible={showNotifications}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowNotifications(false)}
+      >
+        <TouchableOpacity 
+          style={s.notifOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowNotifications(false)}
+        >
+          <View style={s.notifContainer}>
+            <View style={s.notifHeader}>
+              <Text style={s.notifTitle}>Resumen Diario</Text>
+              <TouchableOpacity onPress={() => setShowNotifications(false)}>
+                <Ionicons name="close-circle" size={28} color={colors.text.tertiary} />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView showsVerticalScrollIndicator={false} style={s.notifList}>
+              {/* Calorías */}
+              <View style={s.notifItem}>
+                <View style={[s.notifIcon, { backgroundColor: `${colors.primary.amber}20` }]}>
+                  <Ionicons name="flame" size={20} color={colors.primary.amber} />
+                </View>
+                <View style={s.notifContent}>
+                  <Text style={s.notifItemTitle}>Calorías</Text>
+                  <Text style={s.notifItemDesc}>
+                    {totalConsumed >= calGoal 
+                      ? "Has alcanzado tu meta diaria." 
+                      : `Te quedan ${totalRemaining} kcal para tu objetivo.`}
+                  </Text>
+                  <View style={s.notifBarBase}>
+                    <View style={[s.notifBarFill, { 
+                      width: `${Math.min((totalConsumed / calGoal) * 100, 100)}%`,
+                      backgroundColor: colors.primary.amber 
+                    }]} />
+                  </View>
+                </View>
+              </View>
+
+              {/* Agua */}
+              <View style={s.notifItem}>
+                <View style={[s.notifIcon, { backgroundColor: `${colors.primary.sky}20` }]}>
+                  <Ionicons name="water" size={20} color={colors.primary.sky} />
+                </View>
+                <View style={s.notifContent}>
+                  <Text style={s.notifItemTitle}>Hidratación</Text>
+                  <Text style={s.notifItemDesc}>
+                    {waterMl >= waterGoal 
+                      ? "¡Hidratación completada!" 
+                      : `Llevas ${(waterMl / 1000).toFixed(1)}L de ${(waterGoal / 1000).toFixed(1)}L.`}
+                  </Text>
+                  <View style={s.notifBarBase}>
+                    <View style={[s.notifBarFill, { 
+                      width: `${Math.min((waterMl / waterGoal) * 100, 100)}%`,
+                      backgroundColor: colors.primary.sky 
+                    }]} />
+                  </View>
+                </View>
+              </View>
+
+              {/* Macros Check */}
+              <View style={s.notifItem}>
+                <View style={[s.notifIcon, { backgroundColor: '#10B98120' }]}>
+                  <Ionicons name="fitness" size={20} color="#10B981" />
+                </View>
+                <View style={s.notifContent}>
+                  <Text style={s.notifItemTitle}>Proteína</Text>
+                  <Text style={s.notifItemDesc}>
+                    Has consumido {totals?.protein || 0}g de {nutritionGoals?.protein || 180}g.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={s.notifItem}>
+                <View style={[s.notifIcon, { backgroundColor: '#F59E0B20' }]}>
+                  <Ionicons name="nutrition" size={20} color="#F59E0B" />
+                </View>
+                <View style={s.notifContent}>
+                  <Text style={s.notifItemTitle}>Carbohidratos</Text>
+                  <Text style={s.notifItemDesc}>
+                    Has consumido {totals?.carbs || 0}g de {nutritionGoals?.carbs || 300}g.
+                  </Text>
+                </View>
+              </View>
+            </ScrollView>
+            
+            <TouchableOpacity 
+              style={s.notifCloseBtn} 
+              onPress={() => setShowNotifications(false)}
+            >
+              <Text style={s.notifCloseText}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <PermissionPopover
+        visible={showPermissionPopover}
+        onClose={() => setShowPermissionPopover(false)}
+        title={`Permiso de ${permissionType === 'camera' ? 'Cámara' : permissionType === 'microphone' ? 'Micrófono' : 'Galería'}`}
+        description={`Necesitamos acceso a tu ${permissionType === 'camera' ? 'cámara' : permissionType === 'microphone' ? 'micrófono' : 'galería'} para que puedas registrar tus comidas de forma fácil y rápida.`}
+        icon={permissionType === 'camera' ? 'camera' : permissionType === 'microphone' ? 'mic' : 'images'}
+        onAllow={() => {
+          setShowPermissionPopover(false);
+          // Handle permission granted
+        }}
+        onDeny={() => setShowPermissionPopover(false)}
+        primaryColor={colors.primary.amber}
+      />
+
+      {/* ── Macro Detail Popover ───── */}
+      <Modal
+        visible={!!selectedMacro}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedMacro(null)}
+      >
+        <TouchableOpacity 
+          style={s.macroOverlay} 
+          activeOpacity={1} 
+          onPress={() => setSelectedMacro(null)}
+        >
+          <View style={[s.macroPopover, { borderTopColor: selectedMacro?.color || colors.primary.amber }]}>
+            <View style={s.macroPopHeader}>
+              <View style={[s.macroPopIcon, { backgroundColor: `${selectedMacro?.color}20` }]}>
+                <Ionicons 
+                  name={selectedMacro?.label === 'Proteínas' ? 'fitness' : selectedMacro?.label === 'Carbohidratos' ? 'nutrition' : 'water'} 
+                  size={24} 
+                  color={selectedMacro?.color} 
+                />
+              </View>
+              <Text style={s.macroPopTitle}>{selectedMacro?.label}</Text>
+              <TouchableOpacity onPress={() => setSelectedMacro(null)}>
+                <Ionicons name="close-circle" size={28} color={colors.text.tertiary} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={s.macroPopDesc}>{selectedMacro?.desc}</Text>
+
+            <View style={s.macroPopProgressContainer}>
+              <View style={s.macroPopStats}>
+                <Text style={s.macroPopCurrent}>{selectedMacro?.current}g</Text>
+                <Text style={s.macroPopGoal}>meta: {selectedMacro?.goal}g</Text>
+              </View>
+              
+              <View style={s.macroPopBarBase}>
+                <View style={[s.macroPopBarFill, { 
+                  width: `${Math.min(((selectedMacro?.current || 0) / (selectedMacro?.goal || 1)) * 100, 100)}%`,
+                  backgroundColor: selectedMacro?.color 
+                }]} />
+              </View>
+              
+              <Text style={s.macroPopPct}>
+                {Math.round(((selectedMacro?.current || 0) / (selectedMacro?.goal || 1)) * 100)}% del objetivo diario
+              </Text>
+            </View>
+
+            <TouchableOpacity 
+              style={[s.macroPopCloseBtn, { backgroundColor: selectedMacro?.color }]} 
+              onPress={() => setSelectedMacro(null)}
+            >
+              <Text style={s.macroPopCloseText}>Entendido</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       <HydrationModal
         visible={hydrationVisible}
         onClose={() => setHydrationVisible(false)}
@@ -759,7 +966,19 @@ const getStyles = (colors: any, isDark: boolean, shadows: any) => StyleSheet.cre
   },
   todayTitle: { fontSize: FONTS.sizes['4xl'], fontWeight: '900', color: colors.text.primary, fontFamily: FONTS.primary },
   weekLabel: { fontSize: FONTS.sizes.sm, color: colors.text.secondary, fontFamily: FONTS.primary, marginTop: 2 },
-  topIcons: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, marginTop: SPACING.sm },
+  topIcons: { flexDirection: 'row', alignItems: 'center', gap: SPACING.lg, marginTop: SPACING.xs },
+  notificationBtn: { position: 'relative' },
+  notificationDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+    borderWidth: 1.5,
+    borderColor: colors.background.primary,
+  },
   iconBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   badgeNum: { color: colors.text.primary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.sm, fontWeight: '700' },
 
@@ -1255,6 +1474,183 @@ const getStyles = (colors: any, isDark: boolean, shadows: any) => StyleSheet.cre
   scanDetail: {
     fontSize: FONTS.sizes.xs,
     color: colors.text.secondary,
+    fontFamily: FONTS.primary,
+  },
+  
+  // Notification Modal Styles
+  notifOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.xl,
+  },
+  notifContainer: {
+    width: '100%',
+    backgroundColor: colors.background.secondary,
+    borderRadius: BORDER_RADIUS['3xl'],
+    padding: SPACING.xl,
+    ...shadows.xl,
+    maxHeight: '80%',
+  },
+  notifHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.xl,
+  },
+  notifTitle: {
+    fontSize: FONTS.sizes['2xl'],
+    fontWeight: '800',
+    color: colors.text.primary,
+    fontFamily: FONTS.primary,
+  },
+  notifList: {
+    marginBottom: SPACING.xl,
+  },
+  notifItem: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  notifIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notifContent: {
+    flex: 1,
+  },
+  notifItemTitle: {
+    fontSize: FONTS.sizes.base,
+    fontWeight: '700',
+    color: colors.text.primary,
+    fontFamily: FONTS.primary,
+    marginBottom: 2,
+  },
+  notifItemDesc: {
+    fontSize: FONTS.sizes.sm,
+    color: colors.text.secondary,
+    fontFamily: FONTS.primary,
+    lineHeight: 18,
+    marginBottom: SPACING.sm,
+  },
+  notifBarBase: {
+    height: 6,
+    backgroundColor: colors.background.tertiary,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  notifBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  notifCloseBtn: {
+    backgroundColor: colors.primary.amber,
+    height: 56,
+    borderRadius: BORDER_RADIUS.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notifCloseText: {
+    color: colors.background.primary,
+    fontWeight: '800',
+    fontSize: FONTS.sizes.base,
+    fontFamily: FONTS.primary,
+  },
+  
+  // Macro Popover Styles
+  macroOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    padding: SPACING.xl,
+  },
+  macroPopover: {
+    backgroundColor: colors.background.secondary,
+    borderRadius: BORDER_RADIUS['3xl'],
+    padding: SPACING.xl,
+    borderTopWidth: 4,
+    ...shadows.xl,
+  },
+  macroPopHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+    gap: SPACING.md,
+  },
+  macroPopIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  macroPopTitle: {
+    flex: 1,
+    fontSize: FONTS.sizes['2xl'],
+    fontWeight: '800',
+    color: colors.text.primary,
+    fontFamily: FONTS.primary,
+  },
+  macroPopDesc: {
+    fontSize: FONTS.sizes.base,
+    color: colors.text.secondary,
+    fontFamily: FONTS.primary,
+    lineHeight: 22,
+    marginBottom: SPACING.xl,
+  },
+  macroPopProgressContainer: {
+    marginBottom: SPACING.xl,
+  },
+  macroPopStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: SPACING.sm,
+  },
+  macroPopCurrent: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: colors.text.primary,
+    fontFamily: FONTS.primary,
+  },
+  macroPopGoal: {
+    fontSize: 14,
+    color: colors.text.muted,
+    fontFamily: FONTS.primary,
+    fontWeight: '600',
+  },
+  macroPopBarBase: {
+    height: 12,
+    backgroundColor: colors.background.tertiary,
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginBottom: SPACING.sm,
+  },
+  macroPopBarFill: {
+    height: '100%',
+    borderRadius: 6,
+  },
+  macroPopPct: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.text.muted,
+    fontFamily: FONTS.primary,
+    textAlign: 'center',
+  },
+  macroPopCloseBtn: {
+    height: 56,
+    borderRadius: BORDER_RADIUS.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  macroPopCloseText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: FONTS.sizes.base,
     fontFamily: FONTS.primary,
   },
 });

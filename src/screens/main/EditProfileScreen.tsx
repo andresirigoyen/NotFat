@@ -3,13 +3,23 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Camera, User, Mail, Calendar, ChevronRight } from 'lucide-react-native';
-import { Button } from '@/components/ui/Button';
+import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuthStore } from '@/store';
 import { supabase } from '@/services/SupabaseContext';
-import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
+
+const DIET_TYPES = [
+  { id: 'balanced', label: 'Balanceada', icon: 'restaurant' },
+  { id: 'vegetarian', label: 'Vegetariana', icon: 'leaf' },
+  { id: 'vegan', label: 'Vegana', icon: 'flower' },
+  { id: 'keto', label: 'Keto', icon: 'flame' },
+  { id: 'paleo', label: 'Paleo', icon: 'nutrition' },
+  { id: 'mediterranean', label: 'Mediterránea', icon: 'sunny' },
+];
 
 const EditProfileScreen = ({ navigation }: any) => {
   const { colors, isDark } = useThemeColors();
@@ -24,7 +34,6 @@ const EditProfileScreen = ({ navigation }: any) => {
   const [birthDate, setBirthDate] = React.useState(new Date());
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [dietType, setDietType] = React.useState('');
-  const [coachStyle, setCoachStyle] = React.useState('reto');
   const [workoutFrequency, setWorkoutFrequency] = React.useState('');
   const [heightValue, setHeightValue] = React.useState('');
   const [weightValue, setWeightValue] = React.useState('');
@@ -38,7 +47,6 @@ const EditProfileScreen = ({ navigation }: any) => {
         setBirthDate(new Date(profile.birth_date));
       }
       setDietType(profile.diet_type || '');
-      setCoachStyle(profile.coach_style || 'reto');
       setWorkoutFrequency(profile.workout_frequency || '');
       setHeightValue(profile.height_value ? String(profile.height_value) : '');
       setWeightValue(profile.weight_value ? String(profile.weight_value) : '');
@@ -138,8 +146,6 @@ const EditProfileScreen = ({ navigation }: any) => {
         weight_value: weightValue ? Number(weightValue) : null,
       } as any);
       
-      // Update coach_style separately
-      await supabase.from('profiles').update({ coach_style: coachStyle }).eq('id', user?.id);
       Alert.alert('Éxito', 'Tu perfil ha sido actualizado correctamente.');
       navigation.goBack();
     } catch (error) {
@@ -240,63 +246,30 @@ const EditProfileScreen = ({ navigation }: any) => {
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Tipo de dieta</Text>
-                <View style={styles.inputContainer}>
-                  <User size={20} color={colors.text.secondary} />
-                  <TextInput
-                    style={styles.input}
-                    value={dietType}
-                    onChangeText={setDietType}
-                    placeholder="Ej: Balanced"
-                    placeholderTextColor={colors.text.secondary}
-                  />
+                <View style={styles.dietGrid}>
+                  {DIET_TYPES.map((diet) => (
+                    <TouchableOpacity
+                      key={diet.id}
+                      style={[
+                        styles.dietCard,
+                        dietType === diet.id && styles.dietCardSelected
+                      ]}
+                      onPress={() => setDietType(diet.id)}
+                    >
+                      <Text style={[
+                        styles.dietLabel,
+                        dietType === diet.id && styles.dietLabelSelected
+                      ]}>
+                        {diet.label}
+                      </Text>
+                      {dietType === diet.id && (
+                        <View style={styles.selectedDot} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
                 </View>
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Estilo del Coach IA</Text>
-                <Text style={[styles.sublabel, { color: colors.text.secondary }]}>Cómo quieres que te trate la IA</Text>
-                <View style={styles.optionsContainer}>
-                  <TouchableOpacity 
-                    style={[
-                      styles.optionButton,
-                      coachStyle === 'apoyo' && styles.optionButtonActive,
-                      { backgroundColor: coachStyle === 'apoyo' ? '#10B981' : colors.background.tertiary, borderColor: '#10B981' }
-                    ]}
-                    onPress={() => setCoachStyle('apoyo')}
-                  >
-                    <Text style={[
-                      styles.optionText,
-                      { color: coachStyle === 'apoyo' ? '#FFF' : '#10B981' }
-                    ]}>✨ Apoyo</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[
-                      styles.optionButton,
-                      coachStyle === 'reto' && styles.optionButtonActive,
-                      { backgroundColor: coachStyle === 'reto' ? '#F59E0B' : colors.background.tertiary, borderColor: '#F59E0B' }
-                    ]}
-                    onPress={() => setCoachStyle('reto')}
-                  >
-                    <Text style={[
-                      styles.optionText,
-                      { color: coachStyle === 'reto' ? '#FFF' : '#F59E0B' }
-                    ]}>🔥 Reto</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[
-                      styles.optionButton,
-                      coachStyle === 'directo' && styles.optionButtonActive,
-                      { backgroundColor: coachStyle === 'directo' ? '#EF4444' : colors.background.tertiary, borderColor: '#EF4444' }
-                    ]}
-                    onPress={() => setCoachStyle('directo')}
-                  >
-                    <Text style={[
-                      styles.optionText,
-                      { color: coachStyle === 'directo' ? '#FFF' : '#EF4444' }
-                    ]}>💀 Directo</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Frecuencia de entrenamiento</Text>
@@ -395,12 +368,27 @@ const EditProfileScreen = ({ navigation }: any) => {
           {/* Actions Section */}
           <View style={styles.sectionContainer}>
             <View style={styles.footer}>
-              <Button
-                title={updateProfile.isPending ? "Guardando..." : "Guardar Cambios"}
+              <TouchableOpacity
+                style={[
+                  styles.saveBtn,
+                  (updateProfile.isPending || uploadAvatar.isPending) && { opacity: 0.7 }
+                ]}
                 onPress={handleSave}
-                style={styles.saveBtn}
                 disabled={updateProfile.isPending || uploadAvatar.isPending}
-              />
+              >
+                <LinearGradient
+                  colors={['#0EA5E9', '#0284C7']}
+                  style={styles.saveBtnGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  {updateProfile.isPending ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.saveBtnText}>Guardar Cambios</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.cancelLink}
                 onPress={() => navigation.goBack()}
@@ -466,18 +454,14 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     position: 'relative',
   },
   avatarCircle: {
-    width: '30%',
-    aspectRatio: 1,
-    maxWidth: 120,
+    width: 120,
+    height: 120,
     borderRadius: 60,
-    backgroundColor: colors.primary.amber,
+    backgroundColor: '#1E293B30',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.primary.amber,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    borderWidth: 2,
+    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
   },
   avatarImage: {
     width: '100%',
@@ -485,30 +469,32 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderRadius: 60,
   },
   avatarInitials: {
-    color: colors.background.primary,
-    fontSize: 48,
-    fontWeight: FONTS.weights.bold,
+    color: colors.text.secondary,
+    fontSize: 42,
+    fontWeight: '700',
     fontFamily: FONTS.primary,
   },
   cameraBtn: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: colors.primary.amber,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    backgroundColor: '#0EA5E9',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: colors.background.secondary,
+    ...SHADOWS.md,
   },
   changePhotoText: {
-    marginTop: SPACING.md,
-    color: colors.primary.amber,
-    fontSize: FONTS.sizes.sm,
-    fontWeight: FONTS.weights.bold,
+    marginTop: SPACING.lg,
+    color: '#0EA5E9',
+    fontSize: 14,
+    fontWeight: '700',
     fontFamily: FONTS.primary,
+    opacity: 0.9,
   },
   form: {
     gap: SPACING.lg,
@@ -573,12 +559,62 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: colors.text.primary,
     fontFamily: FONTS.primary,
   },
+  dietGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.md,
+    marginTop: SPACING.xs,
+  },
+  dietCard: {
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+    backgroundColor: 'transparent',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '47%',
+  },
+  dietCardSelected: {
+    borderColor: isDark ? '#FFFFFF' : '#000000',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+  },
+  dietLabel: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    fontFamily: FONTS.primary,
+    fontWeight: '500',
+  },
+  dietLabelSelected: {
+    color: colors.text.primary,
+    fontWeight: '700',
+  },
+  selectedDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary.sky,
+  },
   footer: {
     gap: SPACING.md,
   },
   saveBtn: {
-    height: 64,
     borderRadius: BORDER_RADIUS['2xl'],
+    overflow: 'hidden',
+    ...SHADOWS.md,
+  },
+  saveBtnGradient: {
+    height: 64,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  saveBtnText: {
+    fontSize: FONTS.sizes.base,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    fontFamily: FONTS.primary,
   },
   cancelLink: {
     alignItems: 'center',

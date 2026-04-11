@@ -1,5 +1,5 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,125 +7,213 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Dimensions,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useRecipes, useCreateRecipe, useRecommendationSession } from '@/hooks/useRecipes';
+import { FONTS, SPACING, BORDER_RADIUS, COLORS } from '@/constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useProfile } from '@/hooks/useProfile';
-import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { useDailyTotals } from '@/hooks/useDailyTotals';
+
+const { width } = Dimensions.get('window');
+
+// Simulate API call
+const fetchRecipes = async () => {
+  return [
+    { 
+      id: '1', 
+      title: 'Mexican Bowl Healthy', 
+      calories: 450, 
+      protein: 30, 
+      carbs: 45, 
+      fats: 15, 
+      imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/mexican_healthy_recipe_1775939184820.png',
+      desc: 'Packed with flavor, Mexican food is a favorite for many.'
+    },
+    { 
+      id: '2', 
+      title: 'Grilled Salmon Quinoa', 
+      calories: 650, 
+      protein: 45, 
+      carbs: 30, 
+      fats: 25, 
+      imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/lunch_healthy_recipe_1775939172765.png',
+      desc: 'High protein meal for muscle recovery.'
+    },
+    { 
+      id: '3', 
+      title: 'Asparagus Dream Soup', 
+      calories: 200, 
+      protein: 5, 
+      carbs: 20, 
+      fats: 8, 
+      imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/asparagus_soup_recipe_1775939210459.png',
+      desc: 'Light and nutritious seasonal soup.'
+    },
+    { 
+      id: '4', 
+      title: 'Asian Fusion Bowl', 
+      calories: 550, 
+      protein: 35, 
+      carbs: 50, 
+      fats: 18, 
+      imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/asian_flavors_recipe_1775939198893.png',
+      desc: 'Umami flavors with high nutritional value.'
+    },
+  ];
+};
+
+const CATEGORIES = [
+  { id: '1', name: 'Breakfast', icon: '☕' },
+  { id: '2', name: 'Lunch', icon: '🍱' },
+  { id: '3', name: 'Dinner', icon: '🍽️' },
+  { id: '4', name: 'High Protein', icon: '🍳' },
+  { id: '5', name: 'Low Carb', icon: '🥜' },
+];
 
 const RecipesScreen = () => {
   const { colors, isDark } = useThemeColors();
-  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+  const styles = getStyles(colors, isDark);
+  const navigation = useNavigation<any>();
+  const [activeTab, setActiveTab] = useState('Discover');
+  const [recipes, setRecipes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const navigation = useNavigation();
   const { profile } = useProfile();
-  const { data: recipes, isLoading } = useRecipes(profile?.id || '');
-  const { mutate: createRecipe, isPending: creating } = useCreateRecipe();
-  const { mutate: createRecommendation } = useRecommendationSession();
-  
-  const [showRecommendation, setShowRecommendation] = useState(false);
+  const { data: totals } = useDailyTotals();
 
-  const handleGetRecommendations = async () => {
-    try {
-      // Create recommendation session
-      await createRecommendation({
-        meal_type: 'lunch',
-        remaining_calories: 600,
-        remaining_protein: 25,
-        remaining_carbs: 60,
-        remaining_fat: 20,
-      });
-      
-      Alert.alert('Éxito', 'Recomendaciones generadas');
-      setShowRecommendation(true);
-    } catch (error) {
-      Alert.alert('Error', 'No se pudieron generar recomendaciones');
-    }
-  };
+  const coachMode = profile?.coach_mode || 'soft';
+  const calorieTarget = profile?.daily_calorie_target || 2000;
+  const remainingCalories = calorieTarget - (totals?.calories || 0);
 
-  const renderRecipeCard = (recipe: any) => (
-    <TouchableOpacity key={recipe.id} style={styles.recipeCard}>
-      {recipe.image_url && (
-        <Image source={{ uri: recipe.image_url }} style={styles.recipeImage} />
-      )}
-      <View style={styles.recipeContent}>
-        <Text style={styles.recipeTitle}>{recipe.name}</Text>
-        <Text style={styles.recipeType}>{recipe.meal_type}</Text>
-        <View style={styles.recipeMeta}>
-          <Text style={styles.recipeTime}>{recipe.estimated_time}</Text>
-          <Text style={styles.recipeDifficulty}>{recipe.difficulty}</Text>
-        </View>
-        {recipe.recipe_items && (
-          <View style={styles.ingredientsPreview}>
-            <Text style={styles.ingredientsTitle}>
-              {recipe.recipe_items.length} ingredientes
-            </Text>
+  useEffect(() => {
+    fetchRecipes().then(data => {
+      setRecipes(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const renderRecipeCard = (item: any, isWide = false) => {
+    const isHighCalorie = item.calories > 600;
+    const fitsMacros = item.calories <= remainingCalories;
+
+    return (
+      <TouchableOpacity 
+        key={item.id} 
+        style={[styles.recipeCard, isWide && styles.wideCard]}
+        onPress={() => navigation.navigate('RecipeDetail', { recipe: item })}
+      >
+        <Image source={{ uri: item.imageURL }} style={styles.recipeImage} />
+        
+        {/* Coach Mode Interventions */}
+        {coachMode === 'hard' && isHighCalorie && (
+          <View style={styles.hardWarning}>
+            <Ionicons name="warning" size={14} color="#FFF" />
+            <Text style={styles.hardWarningText}>Nivel de Peligro: Alto. Solo si has entrenado hoy.</Text>
           </View>
         )}
-      </View>
-      <TouchableOpacity style={styles.favoriteButton}>
-        <Ionicons 
-          name={recipe.is_favorite ? 'heart' : 'heart-outline'} 
-          size={20} 
-          color={recipe.is_favorite ? colors.primary.amber : colors.text.secondary} 
-        />
+
+        {coachMode === 'soft' && fitsMacros && (
+          <View style={styles.softRecommendation}>
+            <Ionicons name="checkmark-circle" size={14} color="#FFF" />
+            <Text style={styles.softRecommendationText}>Recomendado para ti</Text>
+          </View>
+        )}
+
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.9)']}
+          style={styles.recipeOverlay}
+        >
+          <View style={styles.recipeInfo}>
+            <Text style={styles.recipeTitle}>{item.title}</Text>
+            <View style={styles.recipeMeta}>
+              <Text style={styles.recipeDetailText}>{item.calories} kcal</Text>
+              <Text style={styles.dot}>•</Text>
+              <Text style={styles.recipeDetailText}>{item.protein}g P</Text>
+            </View>
+          </View>
+        </LinearGradient>
       </TouchableOpacity>
-    </TouchableOpacity>
-  );
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator color={colors.primary.amber} size="large" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/* Search Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary.amber} />
+        <TouchableOpacity style={styles.headerIcon}>
+          <Ionicons name="basket-outline" size={24} color={colors.primary.sky} />
         </TouchableOpacity>
-        <Text style={styles.title}>Recetas</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => setShowRecommendation(true)}>
-          <Ionicons name="add-circle" size={24} color={colors.primary.amber} />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* AI Recommendations Section */}
-        <View style={styles.recommendationSection}>
-          <View style={styles.recommendationHeader}>
-            <Ionicons name="sparkles" size={24} color={colors.primary.amber} />
-            <Text style={styles.recommendationTitle}>Recomendaciones IA</Text>
-          </View>
-          <Text style={styles.recommendationSub}>
-            Obtén recetas personalizadas basadas en tus ingredientes y metas
-          </Text>
-          <TouchableOpacity 
-            style={styles.recommendationButton}
-            onPress={handleGetRecommendations}
-          >
-            <Ionicons name="sparkles" size={20} color={colors.background.primary} />
-            <Text style={styles.recommendationButtonText}>Generar Recomendaciones</Text>
+        <Text style={styles.headerTitle}>Recipes</Text>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.headerIcon}>
+            <Ionicons name="search-outline" size={24} color={colors.primary.sky} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerIcon}>
+            <Ionicons name="options-outline" size={24} color={colors.primary.sky} />
           </TouchableOpacity>
         </View>
+      </View>
 
-        {/* Recipes List */}
+      {/* Tabs */}
+      <View style={styles.tabContainer}>
+        {['Discover', 'My Favorites'].map((tab) => (
+          <TouchableOpacity 
+            key={tab} 
+            style={[styles.tab, activeTab === tab && styles.activeTab]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+              {tab}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Popular Categories */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mis Recetas</Text>
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary.amber} />
-            </View>
-          ) : recipes && recipes.length > 0 ? (
-            recipes.map(renderRecipeCard)
-          ) : (
-            <View style={styles.emptyState}>
-              <Ionicons name="restaurant" size={48} color={colors.text.muted} />
-              <Text style={styles.emptyText}>No tienes recetas guardadas</Text>
-              <Text style={styles.emptySub}>Usa el generador de IA para crear recetas</Text>
-            </View>
-          )}
+          <Text style={styles.sectionTitle}>Popular Categories</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+            {CATEGORIES.map((cat) => (
+              <TouchableOpacity key={cat.id} style={styles.categoryCard}>
+                <View style={styles.categoryIconBg}>
+                  <Text style={{ fontSize: 24 }}>{cat.icon}</Text>
+                </View>
+                <Text style={styles.categoryName}>{cat.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
+
+        {/* Dynamic Recipes Grid */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>For You ({coachMode} mode)</Text>
+          <View style={styles.recipeGrid}>
+            {recipes.map(recipe => renderRecipeCard(recipe))}
+          </View>
+        </View>
+
+        {/* Special Occasions - Wide Cards */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Featured Collections</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+            {recipes.slice(0, 2).map(recipe => renderRecipeCard(recipe, true))}
+          </ScrollView>
+        </View>
+
+        <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -134,7 +222,7 @@ const RecipesScreen = () => {
 const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#0A0A0B',
   },
   header: {
     flexDirection: 'row',
@@ -142,162 +230,171 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    fontFamily: FONTS.primary,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+  },
+  headerIcon: {
+    padding: 4,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: SPACING.lg,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.1)',
   },
-  backBtn: {
-    padding: SPACING.sm,
-  },
-  title: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.bold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
-  },
-  addButton: {
-    padding: SPACING.sm,
-  },
-  content: {
-    padding: SPACING.lg,
-    paddingBottom: 100,
-  },
-  recommendationSection: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING.lg,
-    marginBottom: SPACING.xl,
-    borderWidth: 1,
-    borderColor: 'rgba(252,211,77,0.2)',
-  },
-  recommendationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    marginBottom: SPACING.sm,
-  },
-  recommendationTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.bold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
-  },
-  recommendationSub: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
-    marginBottom: SPACING.lg,
-    lineHeight: 22,
-  },
-  recommendationButton: {
-    backgroundColor: colors.primary.amber,
-    borderRadius: BORDER_RADIUS.lg,
+  tab: {
     paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.sm,
+    marginRight: SPACING.xl,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
-  recommendationButtonText: {
-    fontSize: FONTS.sizes.base,
-    fontWeight: FONTS.weights.bold,
-    color: colors.background.primary,
-    fontFamily: FONTS.primary,
+  activeTab: {
+    borderBottomColor: colors.primary.sky,
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.muted,
+  },
+  activeTabText: {
+    color: colors.primary.sky,
+  },
+  scrollView: {
+    flex: 1,
   },
   section: {
-    marginBottom: SPACING.xl,
+    marginTop: SPACING.xl,
   },
   sectionTitle: {
-    fontSize: FONTS.sizes.xl,
-    fontWeight: FONTS.weights.bold,
-    color: colors.text.primary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    paddingHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
     fontFamily: FONTS.primary,
-    marginBottom: SPACING.lg,
+  },
+  horizontalScroll: {
+    paddingLeft: SPACING.lg,
+    paddingRight: SPACING.lg,
+  },
+  categoryCard: {
+    alignItems: 'center',
+    marginRight: SPACING.md,
+    width: 80,
+  },
+  categoryIconBg: {
+    width: 70,
+    height: 70,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  categoryName: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  recipeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: SPACING.lg / 2,
   },
   recipeCard: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: BORDER_RADIUS.xl,
-    marginBottom: SPACING.md,
+    width: (width - SPACING.lg * 2) / 2 - 8,
+    height: 220,
+    marginHorizontal: 4,
+    marginBottom: 12,
+    borderRadius: 20,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
+    backgroundColor: '#151517',
+  },
+  wideCard: {
+    width: 280,
+    height: 180,
+    marginRight: 12,
   },
   recipeImage: {
     width: '100%',
-    height: 150,
-    backgroundColor: colors.background.tertiary,
+    height: '100%',
   },
-  recipeContent: {
-    padding: SPACING.lg,
+  recipeOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: SPACING.md,
+    height: '60%',
+    justifyContent: 'flex-end',
+  },
+  recipeInfo: {
+    gap: 4,
   },
   recipeTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.bold,
-    color: colors.text.primary,
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '800',
     fontFamily: FONTS.primary,
-    marginBottom: SPACING.xs,
-  },
-  recipeType: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.primary.amber,
-    fontFamily: FONTS.primary,
-    marginBottom: SPACING.sm,
   },
   recipeMeta: {
     flexDirection: 'row',
-    gap: SPACING.md,
-    marginBottom: SPACING.sm,
+    alignItems: 'center',
+    gap: 6,
   },
-  recipeTime: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
+  recipeDetailText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    fontWeight: '600',
   },
-  recipeDifficulty: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
+  dot: {
+    color: 'rgba(255,255,255,0.3)',
   },
-  ingredientsPreview: {
-    paddingTop: SPACING.sm,
-    borderTopWidth: 1,
-    borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
-  },
-  ingredientsTitle: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
-  },
-  favoriteButton: {
+  hardWarning: {
     position: 'absolute',
-    top: SPACING.lg,
-    right: SPACING.lg,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 20,
-    padding: SPACING.sm,
+    top: 10,
+    left: 10,
+    right: 10,
+    backgroundColor: 'rgba(255, 0, 0, 0.85)',
+    padding: 8,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    zIndex: 10,
   },
-  loadingContainer: {
+  hardWarningText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '900',
     flex: 1,
-    justifyContent: 'center',
+  },
+  softRecommendation: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(34, 197, 94, 0.9)',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: SPACING.lg * 2,
+    gap: 4,
+    zIndex: 10,
   },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: SPACING.lg * 2,
-  },
-  emptyText: {
-    fontSize: FONTS.sizes.lg,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
-    marginTop: SPACING.md,
-    marginBottom: SPACING.sm,
-  },
-  emptySub: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.muted,
-    fontFamily: FONTS.primary,
-    textAlign: 'center',
+  softRecommendationText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '800',
   },
 });
 

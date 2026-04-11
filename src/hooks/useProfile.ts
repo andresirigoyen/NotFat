@@ -109,38 +109,29 @@ export const useProfile = () => {
     mutationFn: async (imageUri: string) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      console.log('Starting avatar upload for user:', user.id);
-      console.log('Image URI:', imageUri);
+      try {
+        const fileName = `${user.id}/${Date.now()}.jpg`;
+        const response = await fetch(imageUri);
+        const blob = await response.blob();
+        
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, blob, {
+            contentType: 'image/jpeg',
+            upsert: true,
+          });
 
-      const fileName = `${user.id}/${Date.now()}.jpg`;
-      
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
-      console.log('Blob size:', blob.size, 'type:', blob.type);
+        if (uploadError) throw uploadError;
 
-      console.log('Uploading to Supabase storage...');
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, blob, {
-          contentType: 'image/jpeg',
-          upsert: true,
-        });
+        const { data: urlData } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
 
-      if (uploadError) {
-        console.error('Storage upload error:', uploadError);
-        throw uploadError;
+        return await updateProfile.mutateAsync({ avatar_url: urlData.publicUrl });
+      } catch (error) {
+        console.error('Avatar upload error:', error);
+        throw error;
       }
-
-      console.log('Upload successful, getting public URL...');
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-
-      console.log('Public URL:', urlData.publicUrl);
-
-      // Update profile with new avatar URL
-      console.log('Updating profile with avatar URL...');
-      return await updateProfile.mutateAsync({ avatar_url: urlData.publicUrl });
     },
   });
 
