@@ -85,7 +85,7 @@ const tono = {
       throw new Error('GOOGLE_GEMINI_API_KEY is not configured. Please set the secret.')
     }
 
-    const model = 'gemini-1.5-flash'
+    const model = 'gemini-2.0-flash'
     console.log('Using model:', model)
     
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
@@ -142,16 +142,20 @@ const tono = {
         ${coachStyle === 'apoyo' ? 
           'Eres el compañero más alentador. SIEMPRE eres positivo, motivador y empático. Celebras cada progreso. NUNCA eres rudo, ni agresivo, ni criticas negativamente. Tu lenguaje es suave y reconfortante.' : 
           coachStyle === 'reto' ?
-          'Eres un coach exigente pero justo. Empujas al usuario fuera de su zona de confort con retos directos y honestidad brutal pero constructiva.' :
-          'Eres un sargento nutricional. 100% directo, sin rodeos ni adornos. Si el usuario falla, se lo dices claro y sin filtros.'
+          'Eres un coach exigente pero justo. Das feedback directo y honesto, pero SIEMPRE eres ÚTIL y construtivo. Ayudas al usuario a alcanzar sus metas con retos realistas y accionables. NUNCA seas sarcástico o despreciativo. SIEMPRE proporciona información práctica y aplicable.' :
+          'Eres directo y práctico. Das información clara y útil sin rodeos. Te enfocas en lo que funciona.'
         }
         
-        REGLAS OPERATIVAS:
-        1. Responde SIEMPRE en formato JSON con los campos "type" ("chat" o "recipe") y "response" (el texto de tu respuesta).
-        2. Si el usuario sugiere o pregunta por comida/recetas, usa "type": "recipe" e incluye el objeto "recipeData".
-        3. Enfoque: 100% Nutricional (macros, hidratación, metabolismo).
-        4. Tono: ${tono}
-        5. REGLA DE ORO: ${coachStyle === 'apoyo' ? 'PROHIBIDO SER AGRESIVO. SÉ AMABLE.' : 'SÉ DIRECTO Y EXIGENTE.'}`
+        REGLAS OPERATIVAS CRÍTICAS:
+        1. Cuando el usuario pida UNA RECETA, suggestions de comida, o qué cocinar:
+           - IMMEDIATAMENTE genera una receta útil y específica
+           - Usa "type": "recipe" e incluye recipeData completo
+           - NO respondas con preguntas ni seas sarcástico
+        2. Responde SIEMPRE en formato JSON con los campos "type" ("chat" o "recipe") y "response" (el texto de tu respuesta).
+        3. Si el usuario sugiere o pregunta por comida/recetas, USA "type": "recipe" e incluye el objeto "recipeData".
+        4. Enfoque: 100% Nutricional (macros, hidratación, metabolismo).
+        5. Tono: ${tono}
+        6. RECUERDA: ${coachStyle === 'apoyo' ? 'SÉ AMABLE Y APOYANTE.' : 'SÉ DIRECTO PERO ÚTIL. NUNCA SEA SARCÁSTICO.'}`
       }]
     };
 
@@ -221,16 +225,37 @@ const tono = {
     let parsed;
     try {
       let cleanJson = responseText.replace(/```json|```/g, '').trim();
+      
+      // Find the first { and last } to extract just the JSON object
       const startIdx = cleanJson.indexOf('{');
       const endIdx = cleanJson.lastIndexOf('}');
       if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
         cleanJson = cleanJson.substring(startIdx, endIdx + 1);
       }
+      
       parsed = JSON.parse(cleanJson);
       
-      // Asegurarse de que la respuesta no sea un JSON crudo accidentalmente
-      if (parsed.response && (parsed.response.startsWith('{') || parsed.response.includes('"type":'))) {
-        parsed.response = "Aquí tienes una sugerencia personalizada para tu objetivo nutricional.";
+      // Handle nested JSON in response field - extract if needed
+      if (parsed.response) {
+        // If response is a JSON string, try to parse it
+        const responseStr = typeof parsed.response === 'string' ? parsed.response : JSON.stringify(parsed.response);
+        
+        // Check if response contains nested JSON and extract just the text
+        if (responseStr.startsWith('{') || responseStr.startsWith('[')) {
+          try {
+            const nested = JSON.parse(responseStr);
+            // If it's a nested recipe object, merge it
+            if (nested.name || nested.ingredients) {
+              parsed.recipeData = nested;
+              parsed.response = `Aquí tienes: ${nested.name || 'esta receta'}`;
+            } else {
+              parsed.response = "Aquí tienes una sugerencia personalizada para tu objetivo nutricional.";
+            }
+          } catch {
+            // Not valid JSON, keep as is but clean
+            parsed.response = responseStr.replace(/[{}\[\]]/g, '').trim().substring(0, 200);
+          }
+        }
       }
     } catch (e) {
       console.warn('Failed to parse AI JSON, falling back to chat');
@@ -254,6 +279,20 @@ const tono = {
         response: safeResponse || 'Lo siento, tuve un problema al procesar la respuesta. ¿Puedes intentarlo de nuevo?',
         recipeData: null
       };
+    }
+
+    // Final validation - ensure we always return valid JSON with required fields
+    if (!parsed.type || !parsed.response) {
+      parsed = { 
+        type: 'chat', 
+        response: 'Lo siento, no pude procesar tu solicitud correctamente. ¿Puedes intentarlo de nuevo?',
+        recipeData: null 
+      };
+    }
+
+    // Ensure recipeData is null if type is not recipe
+    if (parsed.type !== 'recipe') {
+      parsed.recipeData = null;
     }
 
     // Message persistence is handled by the frontend useSendMessage hook
