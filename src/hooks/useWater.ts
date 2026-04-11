@@ -82,10 +82,23 @@ export function useWater() {
   // Delete water log mutation
   const deleteWaterMutation = useMutation({
     mutationFn: async (waterLogId: string) => {
+      if (!user) throw new Error('No autenticado');
+      
+      // Verify ownership before deleting
+      const { data: log, error: fetchError } = await supabase
+        .from('water_logs')
+        .select('user_id')
+        .eq('id', waterLogId)
+        .single();
+      
+      if (fetchError || !log) throw new Error('Log no encontrado');
+      if (log.user_id !== user.id) throw new Error('No autorizado');
+      
       const { error } = await supabase
         .from('water_logs')
         .delete()
-        .eq('id', waterLogId);
+        .eq('id', waterLogId)
+        .eq('user_id', user.id);
 
       if (error) throw error;
       return waterLogId;

@@ -10,6 +10,8 @@ import {
 import { useProfile } from '@/hooks/useProfile';
 import { useHealthSettings } from '@/hooks/useHealthSettings';
 import { usePreferencesStore } from '@/store/usePreferencesStore';
+import { useAuthStore } from '@/store';
+import { supabase } from '@/services/SupabaseContext';
 import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 const { width, height } = Dimensions.get('window');
@@ -411,7 +413,20 @@ const ProfileScreen = ({ navigation }: any) => {
             </View>
             <Switch 
               value={coachMode === 'high'} 
-              onValueChange={(val) => setCoachMode(val ? 'high' : 'low')} 
+              onValueChange={async (val) => {
+                const newMode = val ? 'high' : 'low';
+                setCoachMode(newMode);
+                
+                // Sincronizar con la base de datos para que la IA lo sepa
+                try {
+                  const { user } = useAuthStore.getState();
+                  if (user?.id) {
+                    await supabase.from('profiles').update({ coach_style: val ? 'directo' : 'apoyo' }).eq('id', user.id);
+                  }
+                } catch (err) {
+                  console.error('Error syncing coach style to DB:', err);
+                }
+              }} 
               trackColor={{ false: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)', true: colors.primary.amber }}
             />
           </View>

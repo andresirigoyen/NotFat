@@ -2,6 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/store';
 
+const verifyAuth = async () => {
+  const { user } = useAuthStore.getState();
+  if (!user) throw new Error('No autenticado');
+  return user;
+};
+
 export interface Nutritionist {
   id: string;
   first_name?: string;
@@ -279,6 +285,8 @@ export const useCreateGuidelineDay = () => {
       total_fat?: number;
       notes?: string;
     }) => {
+      await verifyAuth();
+      
       const { data, error } = await supabase
         .from('guideline_days')
         .insert(dayData)
@@ -307,6 +315,7 @@ export const useCreateGuidelineMeal = () => {
       meal_name: string;
       scheduled_time?: string;
     }) => {
+      await verifyAuth();
       const { data, error } = await supabase
         .from('guideline_meals')
         .insert(mealData)
@@ -340,6 +349,7 @@ export const useCreateGuidelineMealItem = () => {
       fat?: number;
       servings?: number;
     }) => {
+      await verifyAuth();
       const { data, error } = await supabase
         .from('guideline_meal_items')
         .insert(itemData)

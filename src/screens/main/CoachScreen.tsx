@@ -30,7 +30,7 @@ const ACCENT_COLOR = '#FBBF24'; // Amber
 
 export default function CoachScreen({ route }: any) {
   const { colors, isDark } = useThemeColors();
-  const styles = React.useMemo(() => getStyles(colors, true), [colors]); // Force dark mode aesthetics
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
   const navigation = useNavigation();
   const { profile } = useProfile();
@@ -295,7 +295,10 @@ export default function CoachScreen({ route }: any) {
                       msg.role === 'user' ? styles.userContainer : styles.assistantContainer,
                     ]}>
                       <MarkdownText 
-                        content={msg.content}
+                        content={(msg.content || '')
+                          .replace(/```json[\s\S]*?```/g, '')
+                          .replace(/{[\s\S]*?}/g, '')
+                          .trim()}
                         style={msg.role === 'user' ? styles.userText : styles.assistantText}
                         boldStyle={msg.role === 'user' ? { fontWeight: '900', color: ACCENT_COLOR } : { color: ACCENT_COLOR, fontWeight: '800' }}
                       />
@@ -599,6 +602,14 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   messageAvatar: {
     fontSize: 18,
+  },
+  messageAvatarContainer: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.2)',
   },
   messageContainer: {
     paddingVertical: 12,

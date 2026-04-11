@@ -296,7 +296,7 @@ export const useUserFriends = (userId: string) => {
           *,
           friend:profiles(id, first_name, last_name, avatar_url, subscription_status)
         `)
-        .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+        .or(`user_id.eq.${userId},friend_id.eq.${userId}`, { foreignTable: 'friendships' })
         .eq('status', 'accepted');
 
       if (error) throw error;

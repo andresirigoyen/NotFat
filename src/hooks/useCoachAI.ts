@@ -120,14 +120,15 @@ export const useGenerateCoachInsights = () => {
 
   return useMutation({
     mutationFn: async (userId: string) => {
-      // Get user data for context
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      const { data: recentMeals } = await supabase
+      if (profileError) throw new Error('Error fetching profile');
+
+      const { data: recentMeals, error: mealsError } = await supabase
         .from('meals')
         .select(`
           *,
@@ -137,6 +138,8 @@ export const useGenerateCoachInsights = () => {
         .gte('meal_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
         .order('meal_at', { ascending: false })
         .limit(20);
+
+      if (mealsError) throw new Error('Error fetching meals');
 
       const { data: healthData } = await supabase
         .from('health_daily_snapshots')
@@ -204,14 +207,15 @@ export const useGenerateCoachRecommendations = () => {
       userId: string; 
       category?: 'nutrition' | 'fitness' | 'lifestyle' | 'mental_health';
     }) => {
-      // Get user context
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      const { data: nutritionGoals } = await supabase
+      if (profileError) throw new Error('Error fetching profile');
+
+      const { data: nutritionGoals, error: goalsError } = await supabase
         .from('nutrition_goals')
         .select('*')
         .eq('user_id', userId)
@@ -219,6 +223,7 @@ export const useGenerateCoachRecommendations = () => {
         .limit(1)
         .single();
 
+      // It's OK if goals don't exist, continue without them
       const { data: recentActivity } = await supabase
         .from('health_daily_snapshots')
         .select('*')

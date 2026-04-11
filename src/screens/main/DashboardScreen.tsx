@@ -463,7 +463,7 @@ export default function DashboardScreen() {
                     <Ionicons name="add" size={22} color={colors.text.primary} />
                   </TouchableOpacity>
                 </View>
-                {idx < MEALS.length - 1 && <View style={s.divider} />}
+                {idx < MEAL_TYPES.length - 1 && <View style={s.divider} />}
               </React.Fragment>
             );
           })}

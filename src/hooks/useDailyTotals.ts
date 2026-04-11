@@ -76,9 +76,12 @@ export const useDailyTotals = (date?: Date) => {
       });
 
       waterData?.forEach((log: any) => {
-        // Convert oz to ml if necessary (using a simple 29.57 conversion if needed, but for daily totals usually just sum volume)
-        // Here we assume ml for standard summing or handle unit if mixed
-        totals.water += Number(log.volume) || 0;
+        const volume = Number(log.volume) || 0;
+        if (log.unit === 'oz') {
+          totals.water += Math.round(volume * 29.5735);
+        } else {
+          totals.water += volume;
+        }
       });
 
       workoutData?.forEach((workout: any) => {

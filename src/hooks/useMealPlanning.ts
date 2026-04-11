@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 
+// Helper to verify user authentication
+const verifyAuth = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('No autenticado');
+  return user;
+};
+
 interface MealPlan {
   id: string;
   name: string;
@@ -139,6 +146,12 @@ export const useCreateMealPlan = () => {
         target_fat: number;
       };
     }) => {
+      // Verify user is authenticated
+      const user = await verifyAuth();
+      if (user.id !== userId) {
+        throw new Error('No autorizado');
+      }
+
       const totalDays = Math.ceil(
         (new Date(planData.end_date).getTime() - new Date(planData.start_date).getTime()) / 
         (1000 * 60 * 60 * 24)
@@ -207,17 +220,17 @@ export const useGenerateMealPlan = () => {
         meal_preferences?: string[];
         allergies?: string[];
         cuisine_types?: string[];
-        cooking_time?: 'quick' | 'medium' | 'extensive';
       };
     }) => {
-      // ✅ FIX #3: supabase.functions.invoke() con auth automática
+      const user = await verifyAuth();
+      if (user.id !== userId) throw new Error('No autorizado');
+
       const { data: generatedPlan, error: fnError } = await supabase.functions.invoke('generate-meal-plan', {
         body: { userId, preferences },
       });
 
       if (fnError) throw fnError;
       return generatedPlan;
-
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal_plans'] });

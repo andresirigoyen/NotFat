@@ -286,7 +286,6 @@ export const usePersonalizedTips = (userId: string) => {
   return useQuery({
     queryKey: ['personalized_tips', userId],
     queryFn: async () => {
-      // Get user profile and recent activity
       const [profileResult, mealsResult, healthResult] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', userId).single(),
         supabase
@@ -305,7 +304,8 @@ export const usePersonalizedTips = (userId: string) => {
         throw new Error('Failed to fetch user data for personalization');
       }
 
-      const profile = profileResult.data;
+      // Profile might not exist, use defaults if null
+      const profile = profileResult.data ?? { first_name: 'Usuario' };
       const recentMeals = mealsResult.data || [];
       const healthData = healthResult.data || [];
 
