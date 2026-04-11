@@ -7,7 +7,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import { Button } from '@/components/ui/Button';
 
-const CustomTimeMealScreen = ({ navigation }: any) => {
+const CustomTimeMealScreen = ({ navigation, route }: any) => {
   const { colors, isDark } = useThemeColors();
   const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 

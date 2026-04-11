@@ -125,8 +125,7 @@ const MealTimeScreen = ({ navigation }: any) => {
               yesterday.setDate(yesterday.getDate() - 1);
               navigation.navigate('MealLogger', { 
                 mealDate: yesterday.toISOString(),
-                mealName,
-                mealType: passedType
+                mealType: 'custom'
               });
             }}
             style={{ marginBottom: 12 }}
@@ -136,8 +135,7 @@ const MealTimeScreen = ({ navigation }: any) => {
             variant="secondary"
             onPress={() => navigation.navigate('MealLogger', { 
               mealDate: 'before',
-              mealName,
-              mealType: passedType
+              mealType: 'custom'
             })}
           />
         </View>
