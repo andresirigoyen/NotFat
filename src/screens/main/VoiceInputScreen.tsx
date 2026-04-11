@@ -346,8 +346,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginBottom: SPACING.xl,
   },
   voiceButton: {
-    width: 120,
-    height: 120,
+    width: '30%',
+    aspectRatio: 1,
+    maxWidth: 120,
     borderRadius: 60,
     backgroundColor: colors.background.secondary,
     justifyContent: 'center',

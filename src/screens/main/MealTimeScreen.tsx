@@ -123,14 +123,22 @@ const MealTimeScreen = ({ navigation }: any) => {
             onPress={() => {
               const yesterday = new Date();
               yesterday.setDate(yesterday.getDate() - 1);
-              navigation.navigate('MealLogger', { mealDate: yesterday.toISOString() });
+              navigation.navigate('MealLogger', { 
+                mealDate: yesterday.toISOString(),
+                mealName,
+                mealType: passedType
+              });
             }}
             style={{ marginBottom: 12 }}
           />
           <Button
             title="Registrar para Antes"
             variant="secondary"
-            onPress={() => navigation.navigate('MealLogger', { mealDate: 'before' })}
+            onPress={() => navigation.navigate('MealLogger', { 
+              mealDate: 'before',
+              mealName,
+              mealType: passedType
+            })}
           />
         </View>
 

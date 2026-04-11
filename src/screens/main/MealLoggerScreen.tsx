@@ -19,7 +19,8 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
   const navigationHook = useNavigation();
   const initialType = route?.params?.mealType || 'breakfast';
   const initialDate = route?.params?.mealDate;
-  const [mealName, setMealName] = React.useState('');
+  const initialName = route?.params?.mealName || '';
+  const [mealName, setMealName] = React.useState(initialName);
   const [selectedType, setSelectedType] = React.useState(initialType);
   const [showPermissionPopover, setShowPermissionPopover] = React.useState(false);
   const [permissionType, setPermissionType] = React.useState<'camera' | 'microphone' | 'mediaLibrary'>('camera');
@@ -159,7 +160,8 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
       const estimatedCarbs = Math.round(estimatedCalories * 0.5 / 4); // 50% carbs
       const estimatedFat = Math.round(estimatedCalories * 0.3 / 9); // 30% fat
 
-      await createMeal({
+      // Run the creation in background (don't await)
+      createMeal({
         meal: {
           name: mealName,
           meal_type: selectedType as any,
@@ -200,9 +202,12 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
           is_alcoholic: false,
           has_ingredients_data: false,
         }],
+      }).catch(err => {
+        console.error('Background save failed:', err);
+        // Optional: show a notification if it fails
       });
 
-      Alert.alert('¡Éxito!', 'Comida registrada correctamente');
+      // Navigate back immediately for a snappy feel
       navigationHook.goBack();
     } catch (error) {
       Alert.alert('Error', 'No se pudo guardar la comida. Por favor intenta nuevamente.');
@@ -210,7 +215,10 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
   };
 
   const handleNowPress = () => {
-    (navigationHook as any).navigate('MealTime');
+    (navigationHook as any).navigate('MealTime', { 
+      mealName: mealName, 
+      mealType: selectedType 
+    });
   };
 
   return (
@@ -362,11 +370,11 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
       />
 
       {/* Loading Overlay */}
-      {(analyzing || saving) && (
+      {analyzing && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={colors.primary.amber} />
           <Text style={styles.loadingText}>
-            {analyzing ? 'Analizando imagen...' : 'Guardando comida...'}
+            Analizando imagen...
           </Text>
         </View>
       )}

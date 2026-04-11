@@ -192,7 +192,7 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -205,7 +205,10 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
       <ScrollView 
         style={styles.content} 
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ 
+          paddingBottom: 40,
+          backgroundColor: colors.background.primary 
+        }}
       >
         {renderProfileInfo()}
 

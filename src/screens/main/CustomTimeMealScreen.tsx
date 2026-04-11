@@ -26,9 +26,13 @@ const CustomTimeMealScreen = ({ navigation }: any) => {
     setDate(currentDate);
   };
 
+  const { mealName = '', mealType } = route.params ?? {};
+
   const handleContinue = () => {
     navigation.navigate('MealLogger', { 
-      mealDate: date.toISOString() 
+      mealDate: date.toISOString(),
+      mealName,
+      mealType
     });
   };
 
@@ -186,8 +190,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginBottom: SPACING.xl,
   },
   iconCircle: {
-    width: 100,
-    height: 100,
+    width: '25%',
+    aspectRatio: 1,
+    maxWidth: 100,
     borderRadius: 50,
     backgroundColor: 'rgba(252,211,77,0.1)',
     alignItems: 'center',

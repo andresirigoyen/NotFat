@@ -134,58 +134,52 @@ export default function AnalysisResultScreen() {
       return;
     }
 
-    try {
-      setSaving(true);
-      await createMeal({
-        meal: {
-          name: `Comida ${mealType}`,
-          meal_type: mealType as 'breakfast' | 'lunch' | 'dinner' | 'snack',
-          source_type: 'camera' as const,
-          status: 'complete' as const,
-          meal_at: (mealDate && mealDate !== 'before') ? mealDate : new Date().toISOString(),
-          image_url: imageUri,
-          recorded_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          llm_used: 'gemini-2.0-flash' as const,
-          modified: false,
-          is_from_favorite: false,
-          image_url_aux: null,
-          feedback: null,
-          recommendation: null,
-          api_time_ms: null,
-          processing_time_ms: null,
-          prompt_version: '1.0',
-        },
-        items: confirmed.map(ing => ({
-          name: ing.name,
-          quantity: 100,
-          unit: 'g' as const,
-          calories: ing.calories,
-          protein: ing.protein,
-          carbs: ing.carbs,
-          fat: ing.fat,
-          barcode_number: null,
-          scanned: false,
-          servings: 1,
-          contributed: false,
-          nutriscore_grade: null,
-          nova_group: null,
-          notfat_score: null,
-          labels_tags: null,
-          additives_tags: null,
-          notfat_score_breakdown: null,
-          additives_details: null,
-          is_alcoholic: false,
-          has_ingredients_data: false,
-        })),
-      });
-      
-      Alert.alert('Éxito', 'Comida guardada correctamente');
-      navigation.navigate('DashboardTab' as never);
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo guardar la comida');
-    } finally {
-      setSaving(false);
-    }
+    // Save in background without blocking UI
+    createMeal({
+      meal: {
+        name: `Comida ${mealType}`,
+        meal_type: mealType as 'breakfast' | 'lunch' | 'dinner' | 'snack',
+        source_type: 'camera' as const,
+        status: 'complete' as const,
+        meal_at: (mealDate && mealDate !== 'before') ? mealDate : new Date().toISOString(),
+        image_url: imageUri,
+        recorded_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        llm_used: 'gemini-2.0-flash' as const,
+        modified: false,
+        is_from_favorite: false,
+        image_url_aux: null,
+        feedback: null,
+        recommendation: null,
+        api_time_ms: null,
+        processing_time_ms: null,
+        prompt_version: '1.0',
+      },
+      items: confirmed.map(ing => ({
+        name: ing.name,
+        quantity: 100,
+        unit: 'g' as const,
+        calories: ing.calories,
+        protein: ing.protein,
+        carbs: ing.carbs,
+        fat: ing.fat,
+        barcode_number: null,
+        scanned: false,
+        servings: 1,
+        contributed: false,
+        nutriscore_grade: null,
+        nova_group: null,
+        notfat_score: null,
+        labels_tags: null,
+        additives_tags: null,
+        notfat_score_breakdown: null,
+        additives_details: null,
+        is_alcoholic: false,
+        has_ingredients_data: false,
+      })),
+    });
+
+    // Navigate immediately, save happens in background
+    navigation.goBack();
   };
 
   return (
@@ -310,9 +304,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   backLabel: { color: colors.text.primary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.base, fontWeight: '600' },
   content: { paddingHorizontal: SPACING.xl, paddingBottom: 120 },
   photoBadgeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.lg, marginBottom: SPACING.xl },
-  thumbnailContainer: { width: 110, height: 110, borderRadius: BORDER_RADIUS.xl, overflow: 'hidden' },
+  thumbnailContainer: { width: '28%', aspectRatio: 1, maxWidth: 120, borderRadius: BORDER_RADIUS.xl, overflow: 'hidden' },
   thumbnailImage: { width: '100%', height: '100%', borderRadius: BORDER_RADIUS.xl },
-  thumbnailPlaceholder: { width: 110, height: 110, backgroundColor: colors.background.card, borderRadius: BORDER_RADIUS.xl, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)', gap: 6 },
+  thumbnailPlaceholder: { width: '100%', aspectRatio: 1, maxWidth: 120, backgroundColor: colors.background.card, borderRadius: BORDER_RADIUS.xl, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)', gap: 6 },
   thumbnailLabel: { color: colors.text.secondary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.xs },
   loadingContainer: { 
     flex: 1, 

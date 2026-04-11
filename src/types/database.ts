@@ -34,6 +34,7 @@ export type Database = {
           onboarding_step: string | null;
           role: 'user' | 'creator' | 'admin' | 'superadmin';
           steps_goal: number;
+          coach_style: 'apoyo' | 'reto' | 'directo' | null;
         };
         Insert: Omit<Database['public']['Tables']['profiles']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;

@@ -406,7 +406,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     gap: 15,
   },
   glassCard: {
-    width: 200,
+    width: '45%',
+    minWidth: 150,
     padding: 16,
     borderRadius: 24,
     backgroundColor: 'rgba(255,255,255,0.05)',

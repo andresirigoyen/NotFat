@@ -89,15 +89,48 @@ function TabBarAddButton({ onPress }: { onPress: () => void }) {
   );
 }
 
+import { CardStyleInterpolators } from '@react-navigation/stack';
+
 // Stack Navigator para pantallas con TabBar
 function MainStackNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+        gestureEnabled: true,
+        gestureDirection: 'horizontal',
+        transitionSpec: {
+          open: {
+            animation: 'spring',
+            config: {
+              stiffness: 1000,
+              damping: 50,
+              mass: 3,
+              overshootClamping: true,
+              restDisplacementThreshold: 0.01,
+              restSpeedThreshold: 0.01,
+            },
+          },
+          close: {
+            animation: 'spring',
+            config: {
+              stiffness: 1000,
+              damping: 50,
+              mass: 3,
+              overshootClamping: true,
+              restDisplacementThreshold: 0.01,
+              restSpeedThreshold: 0.01,
+            },
+          },
+        },
+      }}
+    >
       <Stack.Screen name="DashboardTab" component={DashboardScreen} />
       <Stack.Screen name="CoachTab" component={CoachScreen} />
       <Stack.Screen name="ProfileTab" component={ProfileScreen} />
-      <Stack.Screen name="AnalysisResult" component={AnalysisResultScreen} />
-      <Stack.Screen name="MealLogger" component={MealLoggerScreen} />
+      <Stack.Screen name="AnalysisResult" component={AnalysisResultScreen} options={{ cardStyleInterpolator: CardStyleInterpolators.forFadeFromBottomAndroid }} />
+      <Stack.Screen name="MealLogger" component={MealLoggerScreen} options={{ cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS }} />
       <Stack.Screen name="MealTime" component={MealTimeScreen} />
       <Stack.Screen name="CustomTimeMeal" component={CustomTimeMealScreen} />
       <Stack.Screen name="Hydration" component={HydrationScreen} />

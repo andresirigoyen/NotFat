@@ -535,8 +535,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     textAlign: 'center',
   },
   avatarCircle: {
-    width: 100,
-    height: 100,
+    width: '25%',
+    aspectRatio: 1,
+    maxWidth: 100,
     borderRadius: 50,
     backgroundColor: colors.primary.amber,
     alignItems: 'center',

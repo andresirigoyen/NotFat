@@ -13,6 +13,7 @@ export const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingTop: Platform.OS === 'ios' ? 10 : 20,
     paddingBottom: SPACING.md,
+    backgroundColor: colors.background.primary,
   },
   backButton: {
     width: 44,
@@ -35,12 +36,14 @@ export const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: SPACING.lg,
+    backgroundColor: colors.background.primary,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     gap: SPACING.md,
+    backgroundColor: colors.background.primary,
   },
   loadingText: {
     fontFamily: FONTS.primary,
@@ -204,7 +207,7 @@ export const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontFamily: FONTS.primary,
     fontSize: 17,
     fontWeight: '800',
-    color: colors.background.primary,
+    color: '#000000',
   },
   
   secondaryButton: {

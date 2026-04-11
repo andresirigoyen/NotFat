@@ -486,8 +486,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     paddingHorizontal: 20,
   },
   catCard: {
-    width: 100,
-    height: 100,
+    width: '23%',
+    aspectRatio: 1,
+    maxWidth: 100,
     borderRadius: 24,
     padding: 12,
     justifyContent: 'center',

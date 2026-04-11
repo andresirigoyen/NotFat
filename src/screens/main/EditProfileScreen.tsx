@@ -460,8 +460,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     position: 'relative',
   },
   avatarCircle: {
-    width: 120,
-    height: 120,
+    width: '30%',
+    aspectRatio: 1,
+    maxWidth: 120,
     borderRadius: 60,
     backgroundColor: colors.primary.amber,
     alignItems: 'center',
@@ -473,8 +474,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     elevation: 8,
   },
   avatarImage: {
-    width: 120,
-    height: 120,
+    width: '100%',
+    height: '100%',
     borderRadius: 60,
   },
   avatarInitials: {
