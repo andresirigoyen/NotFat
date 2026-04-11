@@ -33,7 +33,10 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
 
   useEffect(() => {
     console.log('ScientificGoals - nutritionGoals:', nutritionGoals);
-    if (nutritionGoals?.source === 'algorithm') {
+    console.log('ScientificGoals - source:', nutritionGoals?.source);
+    const source = nutritionGoals?.source;
+    const hasAlgorithm = source === 'algorithm' || source === 'Algorithm' || source === 'ALGORITHM' || source === 'ai';
+    if (nutritionGoals && hasAlgorithm) {
       setGeneratedGoals({
         calories: nutritionGoals.calories,
         protein: nutritionGoals.protein,
