@@ -85,7 +85,7 @@ const tono = {
       throw new Error('GOOGLE_GEMINI_API_KEY is not configured. Please set the secret.')
     }
 
-    const model = 'gemini-2.0-flash'
+    const model = 'gemini-1.5-flash'
     console.log('Using model:', model)
     
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
@@ -130,16 +130,20 @@ const tono = {
       userContextStr = "\n\nContexto del usuario:\n- " + parts.join("\n- ")
     }
 
-    const prompt = `Eres NotFat AI, un experto nutricionista de clase mundial y especialista en salud metabólica.${userContextStr}${conversationHistory}
+    const prompt = `Eres NotFat AI, un experto nutricionista de clase mundial y especialista en salud metabólica.
+    FECHA ACTUAL: ${new Date().toLocaleDateString()}
+    HORA ACTUAL: ${new Date().toLocaleTimeString()}
+    ${userContextStr}
+    ${conversationHistory}
     
-    TU MISIÓN: Ayudar al usuario a alcanzar su peso ideal y optimizar su nutrición mediante consejos basados en ciencia, planes de comidas creativos y motivación disruptiva.
+    TU MISIÓN: Ayudar al usuario a alcanzar su peso ideal y optimizar su nutrición mediante consejos basados en ciencia, planes de comidas creativos y motivación disruptiva pero profesional.
     
-    Mensaje actual del usuario: "${message}"
-    
-    REGLAS DE ORO:
-    1. Si el usuario pregunta por ALMUERZO, COMIDA, CENA, DESAYUNO o IDEAS PARA COMER, DEBES usar "type": "recipe" obligatoriamente.
-    2. Enfoque 100% Nutricional: Tus consejos deben centrarse en macros (proteína, grasas, carbohidratos), densidad nutricional e hidratación.
-    3. Varía SIEMPRE tus sugerencias. Usa ingredientes frescos, variados y de temporada.
+    ESTILO DE RESPUESTA:
+    - Tono: ${tono}
+    - NUNCA insultes ni seas grosero. Sé exigente pero siempre con el objetivo de ayudar.
+    - Si el usuario pregunta por ALMUERZO, COMIDA, CENA, DESAYUNO o IDEAS PARA COMER, DEBES usar "type": "recipe" obligatoriamente.
+    - Enfoque 100% Nutricional: Tus consejos deben centrarse en macros (proteína, grasas, carbohidratos), densidad nutricional e hidratación.
+    - Varía SIEMPRE tus sugerencias. Sé creativo y ofrece opciones de diferentes culturas.
     
     Responde UNICAMENTE con este formato JSON:
     {
@@ -167,10 +171,9 @@ const tono = {
         body: JSON.stringify({ 
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.95,
-            topP: 0.95,
-            topK: 64,
-            maxOutputTokens: 1024,
+            temperature: 0.8,
+            topP: 0.9,
+            maxOutputTokens: 2048,
             responseMimeType: "application/json"
           }
         })
@@ -219,19 +222,29 @@ const tono = {
     
     let parsed;
     try {
-      // Extraer solo el JSON de la respuesta
-      let cleanJson = responseText.replace(/```json|```/g, '');
-      // Buscar el primer { y el último }
+      let cleanJson = responseText.replace(/```json|```/g, '').trim();
       const startIdx = cleanJson.indexOf('{');
       const endIdx = cleanJson.lastIndexOf('}');
       if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
         cleanJson = cleanJson.substring(startIdx, endIdx + 1);
       }
-      parsed = JSON.parse(cleanJson.trim());
+      parsed = JSON.parse(cleanJson);
+      
+      // Asegurarse de que la respuesta no sea un JSON crudo accidentalmente
+      if (parsed.response && (parsed.response.startsWith('{') || parsed.response.includes('"type":'))) {
+        parsed.response = "Aquí tienes una sugerencia personalizada para tu objetivo nutricional.";
+      }
     } catch (e) {
-      // Fallback: crear respuesta de chat simple
-      parsed = { type: 'chat', response: responseText.substring(0, 300), recipeData: null };
-      parsed = { type: 'chat', response: responseText.trim(), recipeData: null }
+      console.warn('Failed to parse AI JSON, falling back to chat');
+      // Extraer solo texto legible si el JSON falló y está truncado
+      let safeResponse = responseText.replace(/{|}|"type":|"response":|"recipeData":/g, '').trim();
+      if (safeResponse.length > 300) safeResponse = safeResponse.substring(0, 300) + "...";
+      
+      parsed = { 
+        type: 'chat', 
+        response: safeResponse || 'Lo siento, tuve un problema procesando la receta. ¿Podemos intentarlo de nuevo?', 
+        recipeData: null 
+      };
     }
 
     // Message persistence is handled by the frontend useSendMessage hook
