@@ -61,6 +61,9 @@ export const useSubscriptionEnhanced = () => {
     setIsLoading(true);
     try {
       await Promise.all([fetchSubscription(), fetchPayments()]);
+      // Trigger a refresh of the global auth status to sync isPro
+      const { refreshProfile } = useAuthStore.getState();
+      await refreshProfile();
     } finally {
       setIsLoading(false);
     }

@@ -7,6 +7,9 @@ import { Ghost, Sparkles, Send, Utensils, Zap, ChefHat, Salad, Coffee, ChefHat a
 import { useAIChat } from '@/hooks/useAIChat';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '@/store';
+import { useScanStore } from '@/store/scans';
+import { PremiumGuard } from '@/components/ui/PremiumGuard';
 
 const { width } = Dimensions.get('window');
 
@@ -19,6 +22,11 @@ const NoFatScreen = () => {
   const [chatHistory, setChatHistory] = React.useState<Array<{role: 'user' | 'ai', message: string}>>([]);
   const [generatedRecipe, setGeneratedRecipe] = React.useState<any>(null);
   const { processPrompt, loading, error } = useAIChat();
+  const { isPro } = useAuthStore();
+  const { getTodayMessages, incrementMessage } = useScanStore();
+
+  const todayMessages = getTodayMessages();
+  const isMessageLimitReached = !isPro && todayMessages >= 5;
 
   // Manejo de errores con Alert
   React.useEffect(() => {
@@ -56,6 +64,11 @@ const NoFatScreen = () => {
   }, []);
 
   const handleCategoryPress = async (category: typeof categories[0]) => {
+    if (isMessageLimitReached) {
+      Alert.alert("Límite de Chef IA", "Has agotado tus 5 mensajes diarios. Pásate al plan Pro para chatear sin límites con el Chef.");
+      return;
+    }
+
     setIsGenerating(true);
     setSelectedCategory(category.label);
     setChatHistory(prev => [...prev, { role: 'user', message: `Quiero recetas de ${category.label.toLowerCase()}` }]);
@@ -69,6 +82,7 @@ const NoFatScreen = () => {
         setGeneratedRecipe(result.recipeData);
         const friendlyMessage = result.response || `¡Aquí tienes recetas de ${category.label}! 🍽️`;
         setChatHistory(prev => [...prev, { role: 'ai', message: friendlyMessage }]);
+        incrementMessage();
       } else {
         console.log('⚠️ No recipe data in result');
         setGeneratedRecipe(null);
@@ -83,6 +97,11 @@ const NoFatScreen = () => {
   };
 
   const handleRecipePress = async (recipe: typeof suggestedRecipes[0]) => {
+    if (isMessageLimitReached) {
+      Alert.alert("Límite de Chef IA", "Has agotado tus 5 mensajes diarios. Pásate al plan Pro para chatear sin límites con el Chef.");
+      return;
+    }
+
     setIsGenerating(true);
     setChatHistory(prev => [...prev, { role: 'user', message: `Quiero la receta de ${recipe.name}` }]);
     
@@ -92,6 +111,7 @@ const NoFatScreen = () => {
         setGeneratedRecipe(result.recipeData);
         const friendlyMessage = result.response || `¡Aquí está la receta de ${recipe.name}! 🍽️`;
         setChatHistory(prev => [...prev, { role: 'ai', message: friendlyMessage }]);
+        incrementMessage();
       } else {
         setGeneratedRecipe(null);
       }
@@ -140,17 +160,22 @@ const NoFatScreen = () => {
             <View style={styles.chatInputWrapper}>
               <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.chatInputContainer}>
                 <TextInput
-                  style={styles.chatInput}
-                  placeholder="Tengo brócoli, pollo y arroz..."
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  style={[styles.chatInput, isMessageLimitReached && { opacity: 0.5 }]}
+                  placeholder={isMessageLimitReached ? "Límite diario alcanzado... 🔒" : "Tengo brócoli, pollo y arroz..."}
+                  placeholderTextColor={isMessageLimitReached ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.4)"}
                   value={chatInput}
                   onChangeText={setChatInput}
+                  editable={!isMessageLimitReached}
                 />
                 <TouchableOpacity 
                   style={styles.sendBtn} 
                   disabled={loading || isGenerating}
                   onPress={async () => {
                     if (!chatInput.trim()) return;
+                    if (isMessageLimitReached) {
+                      Alert.alert("Límite de Chef IA", "Has agotado tus 5 mensajes diarios. Pásate al plan Pro para chatear sin límites con el Chef.");
+                      return;
+                    }
                     
                     const userMessage = chatInput.trim();
                     setChatHistory(prev => [...prev, { role: 'user', message: userMessage }]);
@@ -174,6 +199,7 @@ const NoFatScreen = () => {
                           setGeneratedRecipe(null);
                           setChatHistory(prev => [...prev, { role: 'ai', message: cleanMessage || 'No entendí bien.' }]);
                         }
+                        incrementMessage();
                       }
                     } catch (err) {
                       console.error("error:", err);

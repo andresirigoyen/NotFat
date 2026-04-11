@@ -34,27 +34,41 @@ serve(async (req) => {
 
     const supabase = getSupabaseAdmin()
 
-    // Fetch latest user profile directly from DB to ensure 100% sync
-    let userProfile = null;
-    try {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('id, first_name, diet_type, nutrition_goal, coach_style')
-        .eq('id', userId)
-        .single();
-      userProfile = profileData;
-      console.log('✅ Profile synced from DB:', userProfile?.first_name);
-    } catch (e) {
-      console.log('Profile not found or error, continuing with fallback');
+    // 1. Fetch user tier and usage in parallel for efficiency
+    const today = new Date().toISOString().split('T')[0];
+    const [profileRes, usageRes] = await Promise.all([
+      supabase.from('profiles').select('subscription_tier').eq('id', userId).single(),
+      supabase.from('user_usage').select('messages_count').eq('user_id', userId).eq('usage_date', today).single()
+    ]);
+
+    const userProfile = profileRes.data;
+    const isPro = userProfile?.subscription_tier === 'pro';
+    const usageCount = usageRes.data?.messages_count || 0;
+
+    console.log(`✅ User tier: ${userProfile?.subscription_tier}, Daily AI Messages: ${usageCount}`);
+
+    // SECURE: Enforce Free Tier Limit server-side (5 messages/day)
+    if (!isPro && usageCount >= 5) {
+      console.warn(`🛑 LIMIT REACHED: User ${userId} is at 5 messages.`);
+      return new Response(JSON.stringify({ 
+        error: 'Límite diario de IA alcanzado.', 
+        code: 'LIMIT_REACHED',
+        suggestion: 'Pásate a Pro para disfrutar de conversaciones ilimitadas con el Chef IA.'
+      }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403 
+      });
     }
 
     // Determinar el tono según coach_style
-    const coachStyle = userProfile?.coach_style || 'reto';
-const tono = {
+    type CoachStyle = 'apoyo' | 'reto' | 'directo';
+    const coachStyle = (userProfile?.coach_style || 'reto') as CoachStyle;
+    const tono: Record<CoachStyle, string> = {
       apoyo: 'Siempre positivo y motivador.',
       reto: 'Directo y retador, pero justo.',
       directo: 'Sin filtro. Si fallas, se dice claro.'
-    }[coachStyle] || 'Directo y retador, pero justo.';
+    };
+    const tonoStr = tono[coachStyle] ?? 'Directo y retador, pero justo.';
 
     // Fetch conversation history (limited to last 3 messages to save tokens)
     let conversationHistory = "";
@@ -154,7 +168,7 @@ const tono = {
         2. Responde SIEMPRE en formato JSON con los campos "type" ("chat" o "recipe") y "response" (el texto de tu respuesta).
         3. Si el usuario sugiere o pregunta por comida/recetas, USA "type": "recipe" e incluye el objeto "recipeData".
         4. Enfoque: 100% Nutricional (macros, hidratación, metabolismo).
-        5. Tono: ${tono}
+        5. Tono: ${tonoStr}
         6. RECUERDA: ${coachStyle === 'apoyo' ? 'SÉ AMABLE Y APOYANTE.' : 'SÉ DIRECTO PERO ÚTIL. NUNCA SEA SARCÁSTICO.'}`
       }]
     };
@@ -295,8 +309,16 @@ const tono = {
       parsed.recipeData = null;
     }
 
-    // Message persistence is handled by the frontend useSendMessage hook
-    // to avoid duplication and allow for richer metadata/offline handling.
+    // 2. Increment daily usage counter in DB
+    try {
+      await supabase.rpc('increment_user_usage', { 
+        target_user_id: userId, 
+        column_name: 'messages_count' 
+      });
+      console.log('✅ Usage counter incremented for user:', userId);
+    } catch (e) {
+      console.error('Failed to increment usage counter:', e);
+    }
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

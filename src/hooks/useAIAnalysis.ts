@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/store';
+import { useScanStore } from '@/store/scans';
 import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
 
 export const useAIAnalysis = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuthStore();
+  const { user, isPro } = useAuthStore();
+  const { getTodayScans, incrementScan } = useScanStore();
 
   const analyzeMealImage = async (imageUri: string) => {
     console.log('[useAIAnalysis] Starting analysis for:', imageUri);
@@ -15,6 +17,14 @@ export const useAIAnalysis = () => {
     if (!user) {
       console.log('[useAIAnalysis] No user, returning null');
       return;
+    }
+
+    // Restriction for Free Users
+    const todayScans = getTodayScans();
+    if (!isPro && todayScans >= 3) {
+      const errorMsg = 'Límite de análisis alcanzado. Pásate a Pro para análisis ilimitados.';
+      setError(errorMsg);
+      throw new Error(errorMsg);
     }
     
     setAnalyzing(true);
@@ -62,6 +72,8 @@ export const useAIAnalysis = () => {
         throw new Error(`Error analyzing image: ${analysisError.message}`);
       }
 
+      // If successful, increment scan counter
+      incrementScan();
       console.log('[useAIAnalysis] Analysis result:', analysisData);
       return analysisData;
     } catch (err: any) {

@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "lib": ["deno.ns", "deno.unstable", "dom"],
+    "strict": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  }
+}

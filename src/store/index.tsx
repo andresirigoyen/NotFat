@@ -128,12 +128,19 @@ export const useAuthStore = create<AuthState>()(
           if (error) throw error;
           const user = session?.user || null;
           const isPro = !!(user?.user_metadata?.is_pro || user?.user_metadata?.subscription_tier === 'pro');
+          
           set({ 
             user, 
             session: session || null, 
             loading: false,
             isPro 
           });
+
+          // Sync usage limits from DB if user is logged in
+          if (user?.id) {
+            const { syncUsageFromServer } = (await import('./scans')).useScanStore.getState();
+            await syncUsageFromServer(user.id);
+          }
         } catch (error) {
           console.error('[AuthStore] Error en initializeAuth:', error);
           set({ loading: false });
@@ -141,11 +148,24 @@ export const useAuthStore = create<AuthState>()(
       },
       refreshProfile: async () => {
         try {
-          const { data: { user }, error } = await supabase.auth.getUser();
-          if (error) throw error;
-          if (user) {
-            const isPro = !!(user?.user_metadata?.is_pro || user?.user_metadata?.subscription_tier === 'pro');
-            set({ user, isPro });
+          const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+          if (authError) throw authError;
+          
+          if (authUser) {
+            // Check both metadata and profiles table (as backup)
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('subscription_tier')
+              .eq('id', authUser.id)
+              .single();
+
+            const isPro = !!(
+              authUser.user_metadata?.is_pro || 
+              authUser.user_metadata?.subscription_tier === 'pro' ||
+              profile?.subscription_tier === 'pro'
+            );
+
+            set({ user: authUser, isPro });
           }
         } catch (error) {
           console.error('[AuthStore] Error en refreshProfile:', error);

@@ -79,12 +79,24 @@ serve(async (req) => {
         const { error: updProfileErr } = await supabaseClient
           .from("profiles")
           .update({
-            subscription_status: "pro",
+            subscription_tier: subscription.plan_type || "pro",
+            subscription_status: "active",
             subscription_ends_at: endDate.toISOString(),
           })
           .eq("id", userId);
 
         if (updProfileErr) throw updProfileErr;
+
+        // 2.c Update auth metadata to ensure frontend picks it up immediately
+        const { error: updAuthErr } = await supabaseClient.auth.admin.updateUserById(
+          userId,
+          { user_metadata: { is_pro: true, subscription_tier: subscription.plan_type || "pro" } }
+        );
+
+        if (updAuthErr) {
+          console.error("Auth metadata sync error:", updAuthErr.message);
+          // Don't throw here as the profile update succeeded
+        }
 
         // 3. Analytics de pagos (payments_analytics)
         const analyticsRow = {

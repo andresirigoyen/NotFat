@@ -14,11 +14,31 @@ serve(async (req) => {
   try {
     const { imageUrl, userId } = await req.json()
 
-    if (!imageUrl || !userId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required parameters: imageUrl and userId' }), 
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      )
+    const supabase = getSupabaseAdmin()
+
+    // 1. Fetch user tier and usage in parallel for efficiency
+    const today = new Date().toISOString().split('T')[0];
+    const [profileRes, usageRes] = await Promise.all([
+      supabase.from('profiles').select('subscription_tier').eq('id', userId).single(),
+      supabase.from('user_usage').select('scans_count').eq('user_id', userId).eq('usage_date', today).single()
+    ]);
+
+    const isPro = profileRes.data?.subscription_tier === 'pro';
+    const scansCount = usageRes.data?.scans_count || 0;
+
+    console.log(`✅ User tier: ${profileRes.data?.subscription_tier}, Daily Scans: ${scansCount}`);
+
+    // SECURE: Enforce Free Tier Limit server-side (3 scans/day)
+    if (!isPro && scansCount >= 3) {
+      console.warn(`🛑 LIMIT REACHED: User ${userId} is at 3 scans.`);
+      return new Response(JSON.stringify({ 
+        error: 'Límite diario de escaneos alcanzado.', 
+        code: 'LIMIT_REACHED',
+        suggestion: 'Pásate a Pro para disfrutar de escaneos ilimitados.'
+      }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403 
+      });
     }
 
     const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
@@ -107,6 +127,17 @@ serve(async (req) => {
       } else {
         throw new Error('No se pudo parsear el análisis de la imagen');
       }
+    }
+
+    // 2. Increment daily usage counter in DB
+    try {
+      await supabase.rpc('increment_user_usage', { 
+        target_user_id: userId, 
+        column_name: 'scans_count' 
+      });
+      console.log('✅ Usage counter (scan) incremented for user:', userId);
+    } catch (e) {
+      console.error('Failed to increment usage counter:', e);
     }
 
     // Solo devolvemos el análisis al frontend para que el usuario confirme
