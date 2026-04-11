@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
-import { useCoachMessages, useSendMessage, useCoachInsights, useDailyTips, useMarkTipAsUsed } from '@/hooks/useCoach';
+import { useCoachMessages, useSendMessage, useCoachInsights, useDailyTips, useMarkTipAsUsed, useClearChatHistory } from '@/hooks/useCoach';
 import { useDailyTotals } from '@/hooks/useDailyTotals';
 import { useProfile } from '@/hooks/useProfile';
 import { BlurView } from 'expo-blur';
@@ -40,6 +40,15 @@ export default function CoachScreen({ route }: any) {
   const { data: messages, isLoading: messagesLoading } = useCoachMessages(profile?.id || '');
   const { data: totals } = useDailyTotals(new Date());
   const { mutate: sendMessage, isPending: sending } = useSendMessage();
+  const { mutate: clearChatHistory } = useClearChatHistory();
+
+  // Clear chat history when screen loads (fresh session)
+  useEffect(() => {
+    // Only clear on mount, not on every re-render
+    if (profile?.id && !messagesLoading) {
+      clearChatHistory();
+    }
+  }, []);
 
   const getDynamicRecommendation = () => {
     if (!profile || !totals) return "Cargando tus datos para darte la mejor recomendación...";
@@ -197,9 +206,12 @@ export default function CoachScreen({ route }: any) {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('RecipeDetail' as never, { recipe } as never)}
+        >
           <Text style={styles.actionButtonText}>Ver receta completa</Text>
-          <Ionicons name="arrow-forward" size={18} color="#000" />
+          <Ionicons name="arrow-forward" size={16} color="#000" />
         </TouchableOpacity>
       </View>
     );

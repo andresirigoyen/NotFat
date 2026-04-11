@@ -196,7 +196,7 @@ const tono = {
       const responseBody = await aiResponse.json()
       console.log('Gemini response:', JSON.stringify(responseBody).substring(0, 200));
       
-      responseText = responseBody.candidates?.[0]?.content?.parts?.[0]?.text || ''
+      responseText = responseBody.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') || ''
       
       if (!responseText) {
         console.error('Empty response from Gemini');

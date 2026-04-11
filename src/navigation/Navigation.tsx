@@ -24,6 +24,7 @@ import MainNavigator from './MainNavigator';
 import BarcodeScannerScreen from '../screens/main/BarcodeScannerScreen';
 import SubscriptionCenterScreen from '../screens/main/SubscriptionCenterScreen';
 import SubscriptionScreen from '../screens/main/SubscriptionScreen';
+import RecipeDetailScreen from '../screens/main/RecipeDetailScreen';
 
 // Pantallas que SÍ deben tener TabBar (se moverán dentro del MainNavigator)
 // Estas pantallas ahora están manejadas dentro del MainNavigator
@@ -110,6 +111,7 @@ export default function Navigation() {
         <Stack.Screen name="BarcodeScanner" component={BarcodeScannerScreen} />
         <Stack.Screen name="SubscriptionCenter" component={SubscriptionCenterScreen} />
         <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+        <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
 
         {/* Navegador Principal con TabBar */}
         <Stack.Screen

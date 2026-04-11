@@ -3,8 +3,10 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, TextInput, ActivityIndicator, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ghost, Sparkles, Send, Utensils, Zap, ChefHat, Salad, Coffee } from 'lucide-react-native';
+import { Ghost, Sparkles, Send, Utensils, Zap, ChefHat, Salad, Coffee, ChefHat as ChefIcon } from 'lucide-react-native';
 import { useAIChat } from '@/hooks/useAIChat';
+import { BlurView } from 'expo-blur';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
@@ -34,10 +36,24 @@ const NoFatScreen = () => {
     { label: 'Snacks', icon: <Salad size={20} color="#7c2d12" />, color: '#e0f2fe', prompt: 'Snacks saludables y nutritivos para romper el ayuno' },
   ];
 
-  const suggestedRecipes = [
-    { name: 'Bowl de Avena y Chía', kcal: 320, time: '10 min', tag: 'Desayuno', prompt: 'Bowl de avena y chía' },
-    { name: 'Salmón con Espárragos', kcal: 450, time: '20 min', tag: 'Almuerzo', prompt: 'Salmón con espárragos' },
+  const RECIPE_POOL = [
+    { name: 'Bowl de Avena y Chía', kcal: 320, time: '10 min', tag: 'Desayuno', prompt: 'Bowl de avena y chía saludable' },
+    { name: 'Salmón con Espárragos', kcal: 450, time: '20 min', tag: 'Almuerzo', prompt: 'Salmón a la plancha con espárragos' },
+    { name: 'Tacos de Lechuga con Pollo', kcal: 280, time: '15 min', tag: 'Cena', prompt: 'Tacos de lechuga con pollo y aguacate' },
+    { name: 'Ensalada de Quinoa', kcal: 350, time: '12 min', tag: 'Almuerzo', prompt: 'Ensalada de quinoa con vegetales' },
+    { name: 'Smoothie Verde Detox', kcal: 180, time: '5 min', tag: 'Desayuno', prompt: 'Smoothie verde con espinaca y piña' },
+    { name: 'Pechuga Cítrica', kcal: 400, time: '25 min', tag: 'Cena', prompt: 'Pechuga de pollo al limón con brócoli' },
+    { name: 'Aguacate Relleno', kcal: 310, time: '8 min', tag: 'Snack', prompt: 'Aguacate relleno de atún' },
+    { name: 'Pasta de Calabacín', kcal: 220, time: '15 min', tag: 'Cena', prompt: 'Zoodles (pasta de calabacín) al pesto' },
   ];
+
+  const [suggestedRecipes, setSuggestedRecipes] = useState<typeof RECIPE_POOL>([]);
+
+  // Barajar y seleccionar sugerencias al montar la pantalla
+  React.useEffect(() => {
+    const shuffled = [...RECIPE_POOL].sort(() => 0.5 - Math.random());
+    setSuggestedRecipes(shuffled.slice(0, 2));
+  }, []);
 
   const handleCategoryPress = async (category: typeof categories[0]) => {
     setIsGenerating(true);
@@ -86,98 +102,86 @@ const NoFatScreen = () => {
     }
   };
 
+  const ACCENT_COLOR = '#FBBF24';
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.brandRow}>
-            <Image 
-              source={require('../../../assets/images/logo.png')} 
-              style={styles.logoImageSmall}
-              resizeMode="contain" 
-            />
+            <View style={styles.chefIconContainer}>
+              <ChefIcon size={22} color={ACCENT_COLOR} />
+            </View>
             <Text style={styles.brandText}>NotFat Chef</Text>
           </View>
           <View style={styles.aiBadge}>
-            <Sparkles color="#7c2d12" size={14} fill="#7c2d12" />
+            <Sparkles color={ACCENT_COLOR} size={14} fill={ACCENT_COLOR} />
             <Text style={styles.aiBadgeText}>Powered by Gemini</Text>
           </View>
         </View>
 
         {/* AI Chat Intro Card */}
-        <LinearGradient
-          colors={['#7c2d12', '#451a03']}
-          style={styles.chatIntroCard}
-        >
-          <Image 
-            source={require('../../../assets/images/logo.png')} 
-            style={styles.logoImageLarge}
-            resizeMode="contain" 
-          />
-          <Text style={styles.chatTitle}>¿Qué cocinamos hoy?</Text>
-          <Text style={styles.chatSubtitle}>Dime qué ingredientes tienes y te crearé una receta saludable personalizada.</Text>
-          
-          <View style={styles.chatInputContainer}>
-            <TextInput
-              style={styles.chatInput}
-              placeholder="Tengo brócoli, pollo y arroz..."
-              placeholderTextColor="rgba(255,255,255,0.5)"
-              value={chatInput}
-              onChangeText={setChatInput}
-            />
-            <TouchableOpacity 
-              style={styles.sendBtn} 
-              disabled={loading || isGenerating}
-              onPress={async () => {
-                if (!chatInput.trim()) return;
-                
-                const userMessage = chatInput.trim();
-                setChatHistory(prev => [...prev, { role: 'user', message: userMessage }]);
-                setChatInput('');
-                setIsGenerating(true);
-                
-                try {
-                  console.log('👨‍🍳 Sending to Chef IA:', userMessage);
-                  // Usar el endpoint unificado processPrompt
-                  const result = await processPrompt(userMessage);
-                  console.log('👨‍🍳 Chef IA Response:', result);
-                  
-                  if (result) {
-                    if (result.type === 'recipe' && result.recipeData) {
-                      console.log('🥗 Recipe detected!');
-                      setGeneratedRecipe(result.recipeData);
-                      // Mostrar mensaje amigable
-                      const friendlyMessage = result.response || '¡He creado una receta deliciosa para ti! 🍽️';
-                      setChatHistory(prev => [...prev, { 
-                        role: 'ai', 
-                        message: friendlyMessage
-                      }]);
-                    } else {
-                      console.log('💬 Chat detected');
-                      // Es solo chat, limpiamos la receta anterior
-                      setGeneratedRecipe(null);
-                      // Mostrar respuesta limpia del hook
-                      const cleanMessage = result.response || 'No entendí bien. ¿Puedes repetir?';
-                      setChatHistory(prev => [...prev, { 
-                        role: 'ai', 
-                        message: cleanMessage
-                      }]);
+        <View style={styles.chatIntroCardContainer}>
+          <LinearGradient
+            colors={['rgba(251, 191, 36, 0.15)', 'transparent']}
+            style={styles.chatIntroCard}
+          >
+            <View style={styles.introTopRow}>
+              <View style={styles.logoCircle}>
+                 <Text style={{fontSize: 32}}>👨‍🍳</Text>
+              </View>
+              <View>
+                <Text style={styles.chatTitle}>¿Qué cocinamos hoy?</Text>
+                <Text style={styles.chatSubtitle}>Indica tus ingredientes para una receta saludable.</Text>
+              </View>
+            </View>
+            
+            <View style={styles.chatInputWrapper}>
+              <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.chatInputContainer}>
+                <TextInput
+                  style={styles.chatInput}
+                  placeholder="Tengo brócoli, pollo y arroz..."
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  value={chatInput}
+                  onChangeText={setChatInput}
+                />
+                <TouchableOpacity 
+                  style={styles.sendBtn} 
+                  disabled={loading || isGenerating}
+                  onPress={async () => {
+                    if (!chatInput.trim()) return;
+                    
+                    const userMessage = chatInput.trim();
+                    setChatHistory(prev => [...prev, { role: 'user', message: userMessage }]);
+                    setChatInput('');
+                    setIsGenerating(true);
+                    
+                    try {
+                      const result = await processPrompt(userMessage);
+                      if (result) {
+                        if (result.type === 'recipe' && result.recipeData) {
+                          setGeneratedRecipe(result.recipeData);
+                          const friendlyMessage = result.response || '¡He creado una receta deliciosa para ti! 🍽️';
+                          setChatHistory(prev => [...prev, { role: 'ai', message: friendlyMessage }]);
+                        } else {
+                          setGeneratedRecipe(null);
+                          setChatHistory(prev => [...prev, { role: 'ai', message: result.response || 'No entendí bien.' }]);
+                        }
+                      }
+                    } catch (err) {
+                      console.error("error:", err);
+                    } finally {
+                      setIsGenerating(false);
                     }
-                  } else {
-                    console.log('⚠️ No result from IA');
-                  }
-                } catch (err) {
-                  console.error("❌ Fallo al enviar mensaje:", err);
-                } finally {
-                  setIsGenerating(false);
-                }
-              }}
-            >
-              {loading || isGenerating ? <ActivityIndicator color="#7c2d12" size="small" /> : <Send color="#7c2d12" size={20} />}
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
+                  }}
+                >
+                  {loading || isGenerating ? <ActivityIndicator color="#000" size="small" /> : <Send color="#000" size={20} />}
+                </TouchableOpacity>
+              </BlurView>
+            </View>
+          </LinearGradient>
+        </View>
 
         {/* Chat History */}
         {chatHistory.length > 0 ? (
@@ -187,6 +191,7 @@ const NoFatScreen = () => {
                     styles.messageBubble,
                     msg.role === 'user' ? styles.userBubble : styles.aiBubble
                   ]}>
+                    <BlurView intensity={20} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
                     <Text style={[
                       styles.messageText,
                       msg.role === 'user' ? styles.userText : styles.aiText
@@ -347,101 +352,113 @@ const NoFatScreen = () => {
 const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF3ED',
+    backgroundColor: isDark ? '#000' : '#FFF',
   },
   scrollContent: {
-    padding: 24,
+    padding: 20,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
+    marginTop: 10,
   },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
-  logoImageSmall: {
-    width: 32,
-    height: 32,
-  },
-  logoImageLarge: {
-    width: 60,
-    height: 60,
-    marginBottom: 16,
-    tintColor: '#FFFFFF',
+  chefIconContainer: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.2)',
   },
   brandText: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '900',
-    color: '#7c2d12',
+    color: isDark ? '#FFF' : '#000',
+    letterSpacing: -0.5,
   },
   aiBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#ffffff',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#7c2d12',
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(251, 191, 36, 0.3)' : 'rgba(251, 191, 36, 0.2)',
   },
   aiBadgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#7c2d12',
+    color: '#FBBF24',
     textTransform: 'uppercase',
   },
-  chatIntroCard: {
-    padding: 32,
-    borderRadius: 36,
-    marginBottom: 32,
-    shadowColor: '#7c2d12',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 8,
+  chatIntroCardContainer: {
+    borderRadius: 32,
+    overflow: 'hidden',
+    marginBottom: 25,
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.1)',
   },
-  ghostIcon: {
-    marginBottom: 16,
-    opacity: 0.8,
+  chatIntroCard: {
+    padding: 24,
+  },
+  introTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+    marginBottom: 20,
+  },
+  logoCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   chatTitle: {
-    fontSize: 30,
+    fontSize: 20,
     fontWeight: '900',
-    color: '#ffffff',
-    marginBottom: 12,
+    color: isDark ? '#FFF' : '#000',
+    marginBottom: 4,
   },
   chatSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.7)',
-    lineHeight: 24,
-    marginBottom: 24,
+    fontSize: 13,
+    color: isDark ? 'rgba(255,255,255,0.5)' : '#666',
     fontWeight: '600',
+  },
+  chatInputWrapper: {
+    borderRadius: 18,
+    overflow: 'hidden',
   },
   chatInputContainer: {
     flexDirection: 'row',
-    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-    borderRadius: 24,
-    padding: 8,
+    padding: 6,
     alignItems: 'center',
   },
   chatInput: {
     flex: 1,
-    paddingHorizontal: 16,
-    color: '#ffffff',
-    fontSize: 16,
+    paddingHorizontal: 15,
+    color: isDark ? '#FFF' : '#000',
+    fontSize: 14,
     fontWeight: '600',
-    height: 50,
+    height: 48,
   },
   sendBtn: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    backgroundColor: '#FBBF24',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -449,168 +466,172 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 15,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#1e293b',
+    fontSize: 18,
+    fontWeight: '900',
+    color: isDark ? '#FFF' : '#000',
+    letterSpacing: -0.4,
   },
   catScroll: {
-    marginBottom: 32,
-    marginHorizontal: -24,
-    paddingHorizontal: 24,
+    marginBottom: 25,
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
   },
   catCard: {
-    width: 120,
-    height: 120,
-    borderRadius: 28,
-    padding: 16,
+    width: 100,
+    height: 100,
+    borderRadius: 24,
+    padding: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 12,
     gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   catLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '800',
-    color: '#7c2d12',
+    color: '#000',
   },
   seeAll: {
-    color: '#7c2d12',
+    color: '#FBBF24',
     fontWeight: '800',
-    fontSize: 14,
+    fontSize: 13,
   },
   recipeCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 28,
-    padding: 16,
+    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8F8F8',
+    borderRadius: 24,
+    padding: 15,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
   },
   recipeImagePlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    backgroundColor: '#f1f5f9',
+    width: 70,
+    height: 70,
+    borderRadius: 18,
+    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   recipeInfo: {
     flex: 1,
-    marginLeft: 16,
+    marginLeft: 15,
   },
   tagRow: {
     flexDirection: 'row',
     gap: 6,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   tag: {
-    backgroundColor: '#FAF3ED',
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 6,
   },
   tagText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
-    color: '#7c2d12',
+    color: '#FBBF24',
     textTransform: 'uppercase',
   },
   aiTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0fdf4',
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 6,
-    gap: 4,
+    gap: 3,
   },
   aiTagText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
-    color: '#166534',
+    color: '#22C55E',
   },
   recipeName: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1e293b',
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: '900',
+    color: isDark ? '#FFF' : '#000',
+    marginBottom: 2,
   },
   recipeStats: {
-    fontSize: 14,
-    color: '#94a3b8',
+    fontSize: 13,
+    color: isDark ? 'rgba(255,255,255,0.4)' : '#666',
     fontWeight: '600',
   },
   favBtn: {
     padding: 8,
   },
-  // Chat styles
   chatHistory: {
-    marginBottom: 16,
-    paddingHorizontal: 4,
+    marginBottom: 20,
   },
   messageBubble: { 
-    maxWidth: '92%', 
-    padding: 12, 
-    borderRadius: 16, 
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    maxWidth: '85%', 
+    padding: 14, 
+    borderRadius: 18, 
+    marginBottom: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
   },
   userBubble: {
-    backgroundColor: '#7c2d12',
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
     alignSelf: 'flex-end',
+    borderColor: 'rgba(251, 191, 36, 0.3)',
+    borderTopRightRadius: 4,
   },
   aiBubble: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     alignSelf: 'flex-start',
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderTopLeftRadius: 4,
   },
   messageText: {
     fontSize: 15,
-    lineHeight: 20,
-    flexWrap: 'wrap',
-    maxWidth: '100%',
+    lineHeight: 22,
   },
   userText: {
-    color: '#ffffff',
+    color: '#FFF',
+    fontWeight: '600',
   },
   aiText: {
-    color: '#1e293b',
+    color: '#FFF',
   },
-  // Recipe styles
   recipeHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 15,
   },
   recipeTime: {
-    fontSize: 14,
-    color: '#94a3b8',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
     fontWeight: '600',
   },
   recipeDescription: {
-    fontSize: 16,
-    color: '#475569',
-    lineHeight: 24,
+    fontSize: 15,
+    color: isDark ? '#CCC' : '#444',
+    lineHeight: 22,
     marginBottom: 20,
   },
   nutritionInfo: {
-    backgroundColor: '#f8fafc',
-    padding: 16,
-    borderRadius: 16,
+    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#F8F8F8',
+    padding: 18,
+    borderRadius: 22,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   nutritionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1e293b',
-    marginBottom: 12,
+    fontSize: 17,
+    fontWeight: '900',
+    color: isDark ? '#FFF' : '#000',
+    marginBottom: 15,
   },
   nutritionGrid: {
     flexDirection: 'row',
@@ -621,67 +642,74 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     flex: 1,
   },
   nutritionValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
-    color: '#7c2d12',
+    color: '#FBBF24',
   },
   nutritionLabel: {
-    fontSize: 12,
-    color: '#94a3b8',
-    fontWeight: '600',
+    fontSize: 10,
+    color: isDark ? 'rgba(255,255,255,0.4)' : '#666',
+    fontWeight: '800',
     marginTop: 4,
+    textTransform: 'uppercase',
   },
   ingredientsSection: {
     marginBottom: 20,
   },
   ingredientItem: {
-    fontSize: 16,
-    color: '#475569',
+    fontSize: 15,
+    color: isDark ? '#CCC' : '#444',
     lineHeight: 24,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   instructionsSection: {
     marginBottom: 20,
   },
   instructionItem: {
-    fontSize: 16,
-    color: '#475569',
+    fontSize: 15,
+    color: isDark ? '#CCC' : '#444',
     lineHeight: 24,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   healthSection: {
-    backgroundColor: '#dcfce7',
-    padding: 16,
-    borderRadius: 16,
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    padding: 18,
+    borderRadius: 22,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.2)',
   },
   healthItem: {
-    fontSize: 15,
-    color: '#166534',
-    lineHeight: 22,
-    marginBottom: 6,
+    fontSize: 14,
+    color: '#22C55E',
+    lineHeight: 20,
+    marginBottom: 8,
+    fontWeight: '600',
   },
   metaSection: {
-    backgroundColor: '#fef3c7',
-    padding: 16,
-    borderRadius: 16,
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    padding: 18,
+    borderRadius: 22,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.2)',
   },
   metaItem: {
     flexDirection: 'row',
-    marginBottom: 8,
-    flexWrap: 'wrap',
+    marginBottom: 10,
+    alignItems: 'center',
   },
   metaLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#92400e',
-    marginRight: 6,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FBBF24',
+    marginRight: 8,
   },
   metaValue: {
-    fontSize: 14,
-    color: '#78350f',
+    fontSize: 13,
+    color: isDark ? '#FFF' : '#000',
     flex: 1,
+    fontWeight: '600',
   },
   tagsSection: {
     flexDirection: 'row',
@@ -690,15 +718,17 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     gap: 8,
   },
   dietaryTag: {
-    backgroundColor: '#7c2d12',
+    backgroundColor: 'rgba(251, 191, 36, 0.2)',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.3)',
   },
   dietaryTagText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
+    color: '#FBBF24',
+    fontSize: 11,
+    fontWeight: '900',
   },
 });
 

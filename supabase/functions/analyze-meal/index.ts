@@ -26,8 +26,9 @@ serve(async (req) => {
       throw new Error('GOOGLE_GEMINI_API_KEY is not configured')
     }
 
-    // Usar gemini-2.0-flash para análisis de imágenes (más económico)
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
+    // Usar gemini-1.5-flash para consistencia
+    const model = 'gemini-1.5-flash'
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
     const prompt = `Analiza esta imagen de comida y devuelve un JSON con:
     {
@@ -59,7 +60,10 @@ serve(async (req) => {
               }
             }
           ]
-        }]
+        }],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
       })
     })
 
@@ -74,7 +78,7 @@ serve(async (req) => {
       throw new Error('No se pudo generar un análisis para esta imagen.')
     }
 
-    const content = result.candidates[0].content.parts[0].text
+    const content = result.candidates[0].content.parts.map((p: any) => p.text).join('')
     let analysis;
     try {
       const cleanContent = content.replace(/```json|```/g, '').trim();

@@ -170,6 +170,29 @@ export const useCoachInsights = (userId: string) => {
   });
 };
 
+export const useClearChatHistory = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
+      // Delete all messages for this user
+      const { error } = await supabase
+        .from('coach_messages')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['coach_messages'] });
+    },
+  });
+};
+
 export const useGenerateInsights = () => {
   const queryClient = useQueryClient();
 

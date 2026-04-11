@@ -25,7 +25,8 @@ serve(async (req) => {
     const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
     if (!apiKey) throw new Error('GOOGLE_GEMINI_API_KEY is not configured')
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
+    const model = 'gemini-1.5-flash'
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
     const prompt = `Create a healthy recipe using: "${requestedIngredients}"
     
@@ -43,11 +44,17 @@ serve(async (req) => {
     const aiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      body: JSON.stringify({ 
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.8,
+          responseMimeType: "application/json"
+        }
+      })
     })
 
     const body = await aiResponse.json()
-    const content = body.candidates[0].content.parts[0].text
+    const content = body.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') || ''
     const recipeData = JSON.parse(content.replace(/```json|```/g, '').trim())
 
     // 3. Persist Recipe if userId is provided
