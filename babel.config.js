@@ -23,9 +23,12 @@ module.exports = function(api) {
         }
       ],
       [
-        'babel-plugin-transform-import-meta',
+        'babel-plugin-transform-import-meta'
+      ],
+      [
+        'transform-define',
         {
-          metaObjectProperty: '__meta__'
+          'import.meta.env': 'process.env'
         }
       ],
       [
