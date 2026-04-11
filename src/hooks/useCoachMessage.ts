@@ -1,61 +1,70 @@
-import { usePreferencesStore } from '@/store/usePreferencesStore';
+import { useCallback, useState, useEffect, useRef } from 'react';
+import { Vibration, Platform } from 'react-native';
+import { useProfile } from './useProfile';
 import { COACH_MESSAGES, CoachCategoryMessages } from '@/utils/coachMessages';
-import { useState, useCallback, useEffect, useRef } from 'react';
 
-/**
- * Hook personalizado para obtener un mensaje motivacional del Coach con soporte para refrescar
- * y evitar repeticiones consecutivas.
- * @param category Categoría del mensaje ('hydration', 'steps', 'workout', 'nutrition', 'general')
- */
-export const useCoachMessage = (category: string) => {
-  const { coachMode } = usePreferencesStore();
+export type ActionType = 'hydration' | 'steps' | 'workout' | 'nutrition' | 'general' | 'registration' | 'failure';
+
+export const useCoachMessage = (initialCategory: ActionType = 'general') => {
+  const { profile } = useProfile();
   const [message, setMessage] = useState('');
   const lastIndexRef = useRef<number>(-1);
+  
+  // Map hard/soft to disruptive/friendly
+  const coachMode = profile?.coach_mode || 'soft';
+  const isFriendly = coachMode === 'soft' || coachMode === 'friendly';
 
-  const getNewMessage = useCallback(() => {
+  const triggerHaptic = useCallback(() => {
+    if (Platform.OS === 'web') return;
+    
+    if (isFriendly) {
+      // Light vibration for friendly mode
+      Vibration.vibrate(10);
+    } else {
+      // Stronger vibration for disruptive mode
+      Vibration.vibrate([0, 50, 20, 50]);
+    }
+  }, [isFriendly]);
+
+  const getNewMessage = useCallback((category: ActionType = initialCategory) => {
     const categoryData: CoachCategoryMessages = COACH_MESSAGES[category] || COACH_MESSAGES.general;
     
-    let phrases: string[] = [];
-    
-    // Selección de conjunto de frases según modo
-    if (coachMode === 'high') {
-      phrases = categoryData.aggressive;
-    }
+    const phrases = isFriendly 
+      ? categoryData.friendly 
+      : categoryData.aggressive;
 
-    // Fallback a amigables
-    if (phrases.length === 0) {
-      phrases = categoryData.friendly || COACH_MESSAGES.general.friendly;
-    }
-
-    if (phrases.length > 0) {
-      // Si solo hay una frase, no hay mucho que evitar
-      if (phrases.length === 1) {
-        setMessage(phrases[0]);
-        return;
-      }
-
+    if (phrases && phrases.length > 0) {
       let randomIndex;
-      // Intentamos obtener un índice distinto al anterior (máximo 5 intentos para evitar bucles infinitos en arrays pequeños)
       let attempts = 0;
       do {
         randomIndex = Math.floor(Math.random() * phrases.length);
         attempts++;
-      } while (randomIndex === lastIndexRef.current && attempts < 5);
+      } while (randomIndex === lastIndexRef.current && attempts < 5 && phrases.length > 1);
 
       lastIndexRef.current = randomIndex;
-      setMessage(phrases[randomIndex]);
+      const newMessage = phrases[randomIndex];
+      setMessage(newMessage);
+      return newMessage;
     }
-  }, [category, coachMode]);
+    return '';
+  }, [isFriendly, initialCategory]);
 
-  // Inicialización y reactividad al cambio de modo/categoría
   useEffect(() => {
-    // Resetear el índice si cambia la categoría o el modo para permitir la primera frase de la nueva lista
-    lastIndexRef.current = -1;
     getNewMessage();
   }, [getNewMessage]);
 
-  return { 
-    message, 
-    refresh: getNewMessage 
+  const say = (category: ActionType) => {
+    const msg = getNewMessage(category);
+    triggerHaptic();
+    return msg;
+  };
+
+  return {
+    message,
+    coachMode,
+    isFriendly,
+    refresh: getNewMessage,
+    say,
+    triggerHaptic
   };
 };

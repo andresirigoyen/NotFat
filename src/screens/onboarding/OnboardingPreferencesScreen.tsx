@@ -259,8 +259,6 @@ export default function OnboardingPreferencesScreen() {
             </View>
           </View>
 
-          </View>
-
           {/* Display Preferences */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Preferencias de Visualización</Text>

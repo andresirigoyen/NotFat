@@ -75,7 +75,7 @@ export default function DashboardScreen() {
   const [selectedMacro, setSelectedMacro] = useState<{ label: string; current: number; goal: number; color: string; desc: string } | null>(null);
   const [weight, setWeight] = useState(profile?.weight_value || 70.0);
   const { data: scannedAnalytics } = useScannedCaloriesAnalytics(user?.id, selectedDate);
-  const { message: coachMessage, refresh: refreshCoachMessage } = useCoachMessage('general');
+  const { message: coachMessage, refresh: refreshCoachMessage, isFriendly, triggerHaptic: coachHaptic } = useCoachMessage('general');
   const [showPermissionPopover, setShowPermissionPopover] = useState(false);
   const [permissionType, setPermissionType] = useState<'camera' | 'microphone' | 'gallery'>('camera');
 
@@ -183,7 +183,7 @@ export default function DashboardScreen() {
     ]).start(() => setShowWaterFeedback(false));
 
     if (Platform.OS !== 'web') {
-      Vibration.vibrate(10);
+      coachHaptic();
     }
   };
 
@@ -389,7 +389,9 @@ export default function DashboardScreen() {
                   </View>
                 </View>
                 <Text style={s.remainingText}>
-                  {totalRemaining > 0 ? `${totalRemaining} kcal restantes` : 'Límite alcanzado'}
+                  {totalRemaining > 0 
+                    ? (isFriendly ? `Estás a solo ${totalRemaining} kcal de tu meta ✨` : `${totalRemaining} kcal restantes`)
+                    : '¡Objetivo alcanzado!'}
                 </Text>
               </View>
 
@@ -423,7 +425,7 @@ export default function DashboardScreen() {
                     fullName: 'Carbohidratos',
                     current: totals?.carbs || 0, 
                     goal: nutritionGoals?.carbs || 300, 
-                    color: colors.primary.sky,
+                    color: colors.accent,
                     desc: 'Los carbohidratos son la fuente primaria de energía para tu cerebro y músculos durante el día.'
                   },
                   { 
@@ -560,7 +562,7 @@ export default function DashboardScreen() {
                 activeOpacity={0.7}
               >
                 <LinearGradient
-                  colors={[colors.primary.sky, '#0284C7']}
+                  colors={[colors.accent, '#0284C7']}
                   style={s.waterAddIconCircle}
                 >
                   <Ionicons name="add" size={24} color="#FFFFFF" />
@@ -578,7 +580,7 @@ export default function DashboardScreen() {
                   { width: waterProgressAnim }
                 ]}>
                   <LinearGradient
-                    colors={['#7DD3FC', '#38BDF8', colors.primary.sky]}
+                    colors={['#7DD3FC', '#38BDF8', colors.accent]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={StyleSheet.absoluteFill}
@@ -785,8 +787,8 @@ export default function DashboardScreen() {
                   <Text style={s.notifItemTitle}>Calorías</Text>
                   <Text style={s.notifItemDesc}>
                     {totalConsumed >= calGoal 
-                      ? "Has alcanzado tu meta diaria." 
-                      : `Te quedan ${totalRemaining} kcal para tu objetivo.`}
+                      ? (isFriendly ? "¡Genial! Has alcanzado tu meta diaria." : "Has alcanzado tu meta diaria.")
+                      : (isFriendly ? `¡Solo te faltan ${totalRemaining} kcal! Tú puedes.` : `Te quedan ${totalRemaining} kcal para tu objetivo.`)}
                   </Text>
                   <View style={s.notifBarBase}>
                     <View style={[s.notifBarFill, { 
@@ -799,8 +801,8 @@ export default function DashboardScreen() {
 
               {/* Agua */}
               <View style={s.notifItem}>
-                <View style={[s.notifIcon, { backgroundColor: `${colors.primary.sky}20` }]}>
-                  <Ionicons name="water" size={20} color={colors.primary.sky} />
+                <View style={[s.notifIcon, { backgroundColor: `${colors.accent}20` }]}>
+                  <Ionicons name="water" size={20} color={colors.accent} />
                 </View>
                 <View style={s.notifContent}>
                   <Text style={s.notifItemTitle}>Hidratación</Text>
@@ -812,7 +814,7 @@ export default function DashboardScreen() {
                   <View style={s.notifBarBase}>
                     <View style={[s.notifBarFill, { 
                       width: `${Math.min((waterMl / waterGoal) * 100, 100)}%`,
-                      backgroundColor: colors.primary.sky 
+                      backgroundColor: colors.accent 
                     }]} />
                   </View>
                 </View>
@@ -1204,7 +1206,7 @@ const getStyles = (colors: any, isDark: boolean, shadows: any) => StyleSheet.cre
     borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.primary.sky,
+    backgroundColor: colors.accent,
   },
   waterProgressWrapper: {
     flexDirection: 'row',
@@ -1227,7 +1229,7 @@ const getStyles = (colors: any, isDark: boolean, shadows: any) => StyleSheet.cre
   waterPercentageText: {
     fontSize: 15,
     fontWeight: '900',
-    color: colors.primary.sky,
+    color: colors.accent,
     fontFamily: FONTS.primary,
     width: 45,
     textAlign: 'right',
@@ -1237,7 +1239,7 @@ const getStyles = (colors: any, isDark: boolean, shadows: any) => StyleSheet.cre
     top: 10,
     right: 70,
     zIndex: 10,
-    backgroundColor: colors.primary.sky,
+    backgroundColor: colors.accent,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -1263,7 +1265,7 @@ const getStyles = (colors: any, isDark: boolean, shadows: any) => StyleSheet.cre
   actSub: { fontSize: FONTS.sizes.xs, color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.primary },
   connectBtn: { backgroundColor: colors.primary.amber, borderRadius: BORDER_RADIUS.full, paddingVertical: SPACING.md, alignItems: 'center' },
   connectBtnText: { color: '#000000', fontFamily: FONTS.primary, fontWeight: '800', fontSize: FONTS.sizes.base },
-  manualLink: { color: colors.primary.sky, fontFamily: FONTS.primary, fontSize: FONTS.sizes.sm, textAlign: 'center', marginTop: SPACING.xs },
+  manualLink: { color: colors.accent, fontFamily: FONTS.primary, fontSize: FONTS.sizes.sm, textAlign: 'center', marginTop: SPACING.xs },
 
   // Notes
   notesCard: { gap: SPACING.md },
@@ -1323,7 +1325,7 @@ const getStyles = (colors: any, isDark: boolean, shadows: any) => StyleSheet.cre
     marginBottom: SPACING.xs,
   },
   calendarDayToday: {
-    backgroundColor: colors.primary.sky,
+    backgroundColor: colors.accent,
   },
   calendarDaySelected: {
     backgroundColor: colors.primary.amber,
@@ -1463,7 +1465,7 @@ const getStyles = (colors: any, isDark: boolean, shadows: any) => StyleSheet.cre
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.primary.sky,
+    backgroundColor: colors.accent,
   },
   scanName: {
     fontSize: FONTS.sizes.sm,

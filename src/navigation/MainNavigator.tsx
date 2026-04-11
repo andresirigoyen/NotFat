@@ -48,44 +48,16 @@ const tabStyles = StyleSheet.create({
     height: 72,
     paddingBottom: SPACING.md,
     paddingTop: SPACING.sm,
-    overflow: 'visible',
   },
   label: {
     fontFamily: FONTS.primary,
-    fontSize: 11,
+    fontSize: 10,
     marginTop: 2,
-  },
-});
-
-const fabStyles = StyleSheet.create({
-  button: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: COLORS.primary.amber,
-    justifyContent: 'center',
-    alignItems: 'center',
-    top: -14,
-    shadowColor: COLORS.primary.amber,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-    elevation: 12,
-    borderWidth: 4,
-    borderColor: '#0D0D0D',
   },
 });
 
 function AddPlaceholder() {
   return null;
-}
-
-function TabBarAddButton({ onPress }: { onPress: () => void }) {
-  return (
-    <TouchableOpacity style={fabStyles.button} onPress={onPress} activeOpacity={0.85}>
-      <Ionicons name="camera" size={32} color={COLORS.background.primary} />
-    </TouchableOpacity>
-  );
 }
 
 function MainStackNavigator() {
@@ -196,9 +168,14 @@ export default function MainNavigator() {
             name="Add"
             component={AddPlaceholder}
             options={{
-              tabBarLabel: () => null,
-              tabBarIcon: () => null,
-              tabBarButton: () => <TabBarAddButton onPress={() => setHubVisible(true)} />,
+              tabBarIcon: ({ color, size }) => <Ionicons name="camera-outline" size={size} color={color} />,
+              tabBarLabel: 'Registrar',
+            }}
+            listeners={{
+              tabPress: (e) => {
+                e.preventDefault();
+                setHubVisible(true);
+              },
             }}
           />
           <Tab.Screen
@@ -214,7 +191,7 @@ export default function MainNavigator() {
             component={ProfileScreen}
             options={{
               tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
-              tabBarLabel: 'Mi Perfil',
+              tabBarLabel: 'Perfil',
             }}
           />
           <Tab.Screen

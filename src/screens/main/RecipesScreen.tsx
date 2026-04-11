@@ -74,6 +74,8 @@ const CATEGORIES = [
   { id: '5', name: 'Low Carb', icon: '🥜' },
 ];
 
+import { PremiumGuard } from '@/components/ui/PremiumGuard';
+
 const RecipesScreen = () => {
   const { colors, isDark } = useThemeColors();
   const styles = getStyles(colors, isDark);
@@ -201,15 +203,25 @@ const RecipesScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>For You ({coachMode} mode)</Text>
           <View style={styles.recipeGrid}>
-            {recipes.map(recipe => renderRecipeCard(recipe))}
+            {recipes.map((recipe, index) => (
+               index < 2 ? renderRecipeCard(recipe) : (
+                 <PremiumGuard key={recipe.id} style={{ marginHorizontal: 4, marginBottom: 12 }}>
+                    {renderRecipeCard(recipe)}
+                 </PremiumGuard>
+               )
+            ))}
           </View>
         </View>
 
         {/* Special Occasions - Wide Cards */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Featured Collections</Text>
+          <Text style={styles.sectionTitle}>Featured Collections (Pro)</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-            {recipes.slice(0, 2).map(recipe => renderRecipeCard(recipe, true))}
+            {recipes.slice(0, 2).map(recipe => (
+              <PremiumGuard key={recipe.id + '_featured'} style={{ marginRight: 12 }}>
+                {renderRecipeCard(recipe, true)}
+              </PremiumGuard>
+            ))}
           </ScrollView>
         </View>
 

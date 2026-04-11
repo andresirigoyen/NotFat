@@ -81,5 +81,29 @@ export const COACH_MESSAGES: Record<string, CoachCategoryMessages> = {
       "Cada paso que NO das es un paso hacia el hospital.",
       "Tu sofá no te va a llevar a tus metas. ¡Camina!"
     ]
+  },
+  registration: {
+    friendly: [
+      "¡Buen provecho! Registrar esto nos ayudará a mantener el equilibrio hoy. ✨",
+      "Qué bien se ve eso. ¡A disfrutar!",
+      "Cada registro es un paso más hacia tu meta consciente."
+    ],
+    aggressive: [
+      "¿De verdad te vas a comer eso? Registra tu fracaso.",
+      "Espero que al menos sepa bien, porque tus macros van a sufrir.",
+      "Registrando otra mala decisión... adelante."
+    ]
+  },
+  failure: {
+    friendly: [
+      "No pasa nada, un día no define tu progreso. Mañana volvemos con todo. 💪",
+      "Los baches en el camino son parte del viaje. ¡Tú puedes!",
+      "Mañana es una nueva oportunidad para brillar."
+    ],
+    aggressive: [
+      "Tu fuerza de voluntad es inexistente. Mañana será peor.",
+      "Fallas de nuevo. El Coach está decepcionado.",
+      "Si sigues así, el único progreso que verás será en tu talla de pantalón."
+    ]
   }
 };

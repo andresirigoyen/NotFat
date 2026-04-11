@@ -35,6 +35,13 @@ const BarcodeScannerScreen = ({ navigation }: any) => {
   const [torch, setTorch] = useState<FlashMode>('off');
   const laserAnim = useRef(new Animated.Value(0)).current;
 
+  const { isPro } = useAuthStore();
+  const { getTodayScans, incrementScan } = useScanStore();
+  const [showUpsell, setShowUpsell] = useState(false);
+  
+  const todayScans = getTodayScans();
+  const isLimitReached = !isPro && todayScans >= 3;
+
   useEffect(() => {
     if (!permission) {
       requestPermission();
@@ -42,7 +49,7 @@ const BarcodeScannerScreen = ({ navigation }: any) => {
   }, [permission, requestPermission]);
 
   useEffect(() => {
-    if (permission?.granted && isScanning) {
+    if (permission?.granted && isScanning && !isLimitReached) {
       startScanning();
       
       // Iniciar animación del láser
@@ -65,7 +72,7 @@ const BarcodeScannerScreen = ({ navigation }: any) => {
     } else {
       laserAnim.stopAnimation();
     }
-  }, [permission, isScanning, startScanning, laserAnim]);
+  }, [permission, isScanning, startScanning, laserAnim, isLimitReached]);
 
   if (!permission) {
     return (
@@ -95,8 +102,10 @@ const BarcodeScannerScreen = ({ navigation }: any) => {
   }
 
   const handleScan = ({ data }: { data: string }) => {
+    if (isLimitReached) return;
     Vibration.vibrate();
     stopScanning();
+    incrementScan();
     handleBarCodeScanned({ data } as any);
   };
 
@@ -109,7 +118,7 @@ const BarcodeScannerScreen = ({ navigation }: any) => {
         </TouchableOpacity>
         <CustomText variant="bold" style={styles.title}>Escáner de Códigos</CustomText>
         <TouchableOpacity 
-          style={[styles.closeButton, torch === 'on' && { backgroundColor: colors.primary.amber }]} 
+          style={[styles.closeButton, torch === 'on' && { backgroundColor: COLORS.primary.amber }]} 
           onPress={() => setTorch(prev => prev === 'off' ? 'on' : 'off')}
         >
           <Ionicons name={torch === 'on' ? "flashlight" : "flashlight-outline"} size={22} color={torch === 'on' ? "#000" : "#fff"} />
@@ -118,64 +127,85 @@ const BarcodeScannerScreen = ({ navigation }: any) => {
 
       {/* Scanner */}
       <View style={{ flex: 1, width: '100%' }}>
-        <CameraView
-          onBarcodeScanned={isScanning ? handleScan : undefined}
-          barcodeScannerSettings={{
-            barcodeTypes: ['qr', 'ean13', 'ean8', 'code128', 'code39', 'upc_a', 'upc_e'],
-          }}
-          enableTorch={torch === 'on'}
-          style={StyleSheet.absoluteFillObject}
-        />
+        {isLimitReached ? (
+          <View style={styles.limitContainer}>
+             <BlurView intensity={40} style={StyleSheet.absoluteFill} tint="dark" />
+             <View style={styles.limitContent}>
+                <Ionicons name="lock-closed" size={64} color={COLORS.primary.amber} style={{ marginBottom: 20 }} />
+                <CustomText variant="bold" style={styles.limitTitle}>Límite Alcanzado</CustomText>
+                <CustomText variant="regular" style={styles.limitSubtitle}>
+                  "Has agotado tu ración gratuita. Paga el Pro o saca la calculadora manual, novato."
+                </CustomText>
+                <TouchableOpacity 
+                   style={styles.limitUpgradeBtn} 
+                   onPress={() => navigation.navigate('Pro')}
+                >
+                   <CustomText variant="bold" style={styles.limitUpgradeText}>Subir de Nivel (Pro)</CustomText>
+                </TouchableOpacity>
+             </View>
+          </View>
+        ) : (
+          <CameraView
+            onBarcodeScanned={isScanning ? handleScan : undefined}
+            barcodeScannerSettings={{
+              barcodeTypes: ['qr', 'ean13', 'ean8', 'code128', 'code39', 'upc_a', 'upc_e'],
+            }}
+            enableTorch={torch === 'on'}
+            style={StyleSheet.absoluteFillObject}
+          />
+        )}
         
         {/* Overlay */}
-        <View style={styles.overlay}>
-          <View style={styles.topOverlay} />
-          <View style={styles.middleOverlay}>
-            <View style={styles.sideOverlay} />
-            <View style={styles.scannerFrame}>
-              <View style={styles.corner} />
-              <View style={[styles.corner, { top: 0, right: 0, borderTopWidth: 3, borderLeftWidth: 0, borderRightWidth: 3 }]} />
-              <View style={[styles.corner, { bottom: 0, left: 0, borderTopWidth: 0, borderLeftWidth: 3, borderBottomWidth: 3 }]} />
-              <View style={[styles.corner, { bottom: 0, right: 0, borderTopWidth: 0, borderLeftWidth: 0, borderRightWidth: 3, borderBottomWidth: 3 }]} />
-              
-              {isScanning && (
-                <Animated.View 
-                  style={[
-                    styles.laserLine,
-                    {
-                      transform: [
-                        { 
-                          translateY: laserAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [15, width * 0.7 - 15]
-                          }) 
-                        }
-                      ]
-                    }
-                  ]} 
-                />
+        {!isLimitReached && (
+          <View style={styles.overlay}>
+            <View style={styles.topOverlay} />
+            <View style={styles.middleOverlay}>
+              <View style={styles.sideOverlay} />
+              <View style={styles.scannerFrame}>
+                <View style={styles.corner} />
+                <View style={[styles.corner, { top: 0, right: 0, borderTopWidth: 3, borderLeftWidth: 0, borderRightWidth: 3 }]} />
+                <View style={[styles.corner, { bottom: 0, left: 0, borderTopWidth: 0, borderLeftWidth: 3, borderBottomWidth: 3 }]} />
+                <View style={[styles.corner, { bottom: 0, right: 0, borderTopWidth: 0, borderLeftWidth: 0, borderRightWidth: 3, borderBottomWidth: 3 }]} />
+                
+                {isScanning && (
+                  <Animated.View 
+                    style={[
+                      styles.laserLine,
+                      {
+                        transform: [
+                          { 
+                            translateY: laserAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [15, width * 0.7 - 15]
+                            }) 
+                          }
+                        ]
+                      }
+                    ]} 
+                  />
+                )}
+              </View>
+              <View style={styles.sideOverlay} />
+            </View>
+            <View style={styles.bottomOverlay}>
+              <CustomText variant="regular" style={styles.instructionText}>
+                {isLoading ? 'Procesando...' : 'Centra el código de barras en el marco'}
+              </CustomText>
+              {!isScanning && (
+                <TouchableOpacity style={styles.resumeButton} onPress={startScanning}>
+                  <CustomText variant="bold" style={styles.resumeButtonText}>Reanudar Escaneo</CustomText>
+                </TouchableOpacity>
               )}
             </View>
-            <View style={styles.sideOverlay} />
           </View>
-          <View style={styles.bottomOverlay}>
-            <CustomText variant="regular" style={styles.instructionText}>
-              {isLoading ? 'Procesando...' : 'Centra el código de barras en el marco'}
-            </CustomText>
-            {!isScanning && (
-              <TouchableOpacity style={styles.resumeButton} onPress={startScanning}>
-                <CustomText variant="bold" style={styles.resumeButtonText}>Reanudar Escaneo</CustomText>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
+        )}
       </View>
 
       {/* Loading Overlay */}
       {isLoading && (
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingCard}>
-            <ActivityIndicator size="large" color={colors.primary.amber} />
+            <ActivityIndicator size="large" color={COLORS.primary.amber} />
             <CustomText variant="medium" style={styles.loadingText}>Buscando producto...</CustomText>
           </View>
         </View>
@@ -283,6 +313,44 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginTop: SPACING.md 
   },
   buttonText: { color: '#000000' },
+  limitContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    zIndex: 100,
+  },
+  limitContent: {
+    padding: SPACING.xl,
+    alignItems: 'center',
+    width: '100%',
+  },
+  limitTitle: {
+    color: '#ffffff',
+    fontSize: 24,
+    marginBottom: SPACING.sm,
+    textAlign: 'center',
+  },
+  limitSubtitle: {
+    color: '#9CA3AF',
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: SPACING.xl,
+    fontStyle: 'italic',
+  },
+  limitUpgradeBtn: {
+    backgroundColor: COLORS.primary.amber,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.md,
+    borderRadius: 16,
+    width: '100%',
+    alignItems: 'center',
+  },
+  limitUpgradeText: {
+    color: '#000000',
+    fontSize: 16,
+  },
 });
 
 export default BarcodeScannerScreen;

@@ -53,6 +53,8 @@ export const darkColors = {
     pressed: '#0EA5E9',   // sky-500
     disabled: '#4B5563',  // disabled gray
   },
+  mint: '#AAF0D1',
+  platinum: '#E5E4E2',
 };
 
 export const lightColors = {

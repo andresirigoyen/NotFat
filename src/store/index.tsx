@@ -8,9 +8,11 @@ interface AuthState {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isPro: boolean;
   setUser: (user: User | null) => void;
   setSession: (session: Session | null) => void;
   setLoading: (loading: boolean) => void;
+  setPro: (isPro: boolean) => void;
   signOut: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: any; user?: User | null; session?: Session | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any; user?: User | null; session?: Session | null }>;
@@ -28,9 +30,14 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       session: null,
       loading: true,
-      setUser: (user) => set({ user }),
+      isPro: false,
+      setUser: (user) => {
+        const isPro = !!(user?.user_metadata?.is_pro || user?.user_metadata?.subscription_tier === 'pro');
+        set({ user, isPro });
+      },
       setSession: (session) => set({ session }),
       setLoading: (loading) => set({ loading }),
+      setPro: (isPro) => set({ isPro }),
 
       signOut: async () => {
         try {
@@ -118,7 +125,14 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { data: { session }, error } = await supabase.auth.getSession();
           if (error) throw error;
-          set({ user: session?.user || null, session: session || null, loading: false });
+          const user = session?.user || null;
+          const isPro = !!(user?.user_metadata?.is_pro || user?.user_metadata?.subscription_tier === 'pro');
+          set({ 
+            user, 
+            session: session || null, 
+            loading: false,
+            isPro 
+          });
         } catch (error) {
           console.error('[AuthStore] Error en initializeAuth:', error);
           set({ loading: false });
@@ -147,10 +161,13 @@ export const useAuthStore = create<AuthState>()(
 // ✅ FIX #6: Guardamos la suscripción para poder cancelarla.
 // App.tsx debe llamar a authListenerUnsubscribe() en su cleanup de useEffect.
 const { data: _authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+  const user = session?.user || null;
+  const isPro = !!(user?.user_metadata?.is_pro || user?.user_metadata?.subscription_tier === 'pro');
   useAuthStore.setState({
-    user: session?.user || null,
+    user,
     session: session || null,
-    loading: false
+    loading: false,
+    isPro
   });
 });
 

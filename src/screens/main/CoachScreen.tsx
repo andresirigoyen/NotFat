@@ -26,7 +26,7 @@ import MarkdownText from '@/components/MarkdownText';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const ACCENT_COLOR = '#FBBF24'; // Amber
+// No longer static, we use colors.accent from hook
 
 export default function CoachScreen({ route }: any) {
   const { colors, isDark } = useThemeColors();
@@ -53,6 +53,9 @@ export default function CoachScreen({ route }: any) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const { isFriendly, triggerHaptic: coachHaptic } = useCoachMessage();
+  const ACCENT = colors.accent || '#FCD34D';
+
   const getDynamicRecommendation = () => {
     if (!profile || !totals) return "Cargando tus datos para darte la mejor recomendación...";
     
@@ -72,22 +75,30 @@ export default function CoachScreen({ route }: any) {
     };
 
     if (consumed.calories === 0) {
-      return `¡Hola, **${profile.first_name || 'campeón'}**! Aún no has registrado nada hoy. Comienza con un desayuno rico en **proteína** para activar tu metabolismo. 🚀`;
+      return isFriendly 
+        ? `¡Hola, **${profile.first_name || 'campeón'}**! Qué alegría verte por aquí. ¿Qué tal si empezamos con un desayuno nutritivo hoy? ✨`
+        : `¡Hola, **${profile.first_name || 'campeón'}**! Aún no has registrado nada hoy. Comienza con un desayuno rico en **proteína** para activar tu metabolismo. 🚀`;
     }
 
     if (remaining.calories < 100) {
-      return "Has alcanzado casi tu límite calórico de hoy. Te recomiendo enfocarte en **vegetales verdes** y mucha **hidratación** para lo que queda del día. ✅";
+      return isFriendly
+        ? "¡Increíble! Has gestionado muy bien tus calorías hoy. Ahora enfócate en disfrutar de una buena **hidratación** para cerrar el día con broche de oro. ✅"
+        : "Has alcanzado casi tu límite calórico de hoy. Te recomiendo enfocarte en **vegetales verdes** y mucha **hidratación** para lo que queda del día. ✅";
     }
 
     if (remaining.protein > 30) {
-      return `He analizado tu día y te faltan **${Math.round(remaining.protein)}g de proteína** para llegar a tu meta. Una cena con pollo, pescado o legumbres sería ideal. 🍗`;
+      return isFriendly
+        ? `¡Vas genial! Solo nos faltan **${Math.round(remaining.protein)}g de proteína** para completar tu meta. ¿Qué te parece una cena ligera con algo de proteína? 🍗`
+        : `He analizado tu día y te faltan **${Math.round(remaining.protein)}g de proteína** para llegar a tu meta. Una cena con pollo, pescado o legumbres sería ideal. 🍗`;
     }
 
     if (remaining.calories > 500) {
-      return `Aún tienes **${Math.round(remaining.calories)} kcal** disponibles. ¡Es un buen momento para una comida balanceada que incluya carbohidratos complejos! 🍱`;
+      return isFriendly
+        ? `¡Qué buen balance! Aún tienes **${Math.round(remaining.calories)} kcal** para disfrutar de una comida completa. ¡Te lo has ganado! 🍱`
+        : `Aún tienes **${Math.round(remaining.calories)} kcal** disponibles. ¡Es un buen momento para una comida balanceada que incluya carbohidratos complejos! 🍱`;
     }
 
-    return "Vas por muy buen camino con tus objetivos. ¡Sigue así y no olvides registrar tu próxima comida! 🌟";
+    return "Vas por muy buen camino con tus objetivos. ¡Celebro tu constancia hoy! 🌟";
   };
 
   const isSubmitting = useRef(false);
@@ -107,6 +118,7 @@ export default function CoachScreen({ route }: any) {
         isSubmitting.current = false;
       }
     });
+    coachHaptic();
     setInput('');
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   };
@@ -178,11 +190,11 @@ export default function CoachScreen({ route }: any) {
           </View>
           <View style={styles.recipeMetaBadges}>
             <View style={styles.recipeBadge}>
-              <Ionicons name="time-outline" size={14} color={ACCENT_COLOR} />
+              <Ionicons name="time-outline" size={14} color={ACCENT} />
               <Text style={styles.recipeBadgeText}>{recipe.time || '15'} min</Text>
             </View>
             <View style={styles.recipeBadge}>
-              <Ionicons name="flash-outline" size={14} color={ACCENT_COLOR} />
+              <Ionicons name="flash-outline" size={14} color={ACCENT} />
               <Text style={styles.recipeBadgeText}>{recipe.difficulty || 'Fácil'}</Text>
             </View>
           </View>
@@ -247,7 +259,7 @@ export default function CoachScreen({ route }: any) {
               activeOpacity={0.7}
             >
               <View style={styles.sectionTitleGroup}>
-                <Ionicons name="sparkles" size={18} color={ACCENT_COLOR} />
+                <Ionicons name="sparkles" size={18} color={ACCENT} />
                 <Text style={styles.sectionTitle}>Recomendaciones IA</Text>
               </View>
               <Ionicons name={showRecommendations ? "chevron-up" : "chevron-down"} size={20} color="rgba(255,255,255,0.4)" />
@@ -298,7 +310,7 @@ export default function CoachScreen({ route }: any) {
                           .replace(/{[\s\S]*?}/g, '')
                           .trim()}
                         style={msg.role === 'user' ? styles.userText : styles.assistantText}
-                        boldStyle={msg.role === 'user' ? { fontWeight: '900', color: ACCENT_COLOR } : { color: ACCENT_COLOR, fontWeight: '800' }}
+                        boldStyle={msg.role === 'user' ? { fontWeight: '900', color: ACCENT } : { color: ACCENT, fontWeight: '800' }}
                       />
                     </View>
                     
@@ -328,7 +340,7 @@ export default function CoachScreen({ route }: any) {
                 value={input}
                 onChangeText={setInput}
                 onSubmitEditing={handleSend}
-                selectionColor={ACCENT_COLOR}
+                selectionColor={ACCENT}
               />
 
               <TouchableOpacity style={styles.accessoryButton}>
@@ -479,7 +491,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: '#DDD',
   },
   highlight: {
-    color: ACCENT_COLOR,
+    color: ACCENT,
     fontWeight: '800',
   },
   subTitle: {
@@ -558,7 +570,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontWeight: '800',
   },
   actionButton: {
-    backgroundColor: ACCENT_COLOR,
+    backgroundColor: ACCENT,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -670,7 +682,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: ACCENT_COLOR,
+    backgroundColor: ACCENT,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 5,
