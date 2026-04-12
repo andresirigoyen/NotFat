@@ -98,14 +98,16 @@ export const useAIChat = () => {
 
       const profileToSend = profileData || userProfile;
 
-      console.log('📤 Invoking process-prompt function with explicit auth...');
+      console.log('📤 Invoking process-prompt function with fresh auth...');
       
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // 🛡️ Usamos getUser() para forzar la validación/refresco del token si es necesario
+      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
       
       if (!accessToken) {
-        console.error('🛑 No se encontró un Token de Acceso en el frontend');
-        throw new Error('La sesión ha expirado o es inválida. Por favor, reinicia la app.');
+        console.error('🛑 Error de sesión: No hay token disponible');
+        throw new Error('Tu sesión ha expirado. Por favor, cierra sesión y vuelve a entrar.');
       }
 
       let result;

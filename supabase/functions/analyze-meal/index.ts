@@ -25,6 +25,8 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace(/^Bearer\s+/i, '');
+    console.log('🔑 [analyze-meal] Token received (last 10 chars):', token.substring(token.length - 10));
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     

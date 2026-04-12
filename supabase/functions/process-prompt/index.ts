@@ -43,6 +43,8 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace(/^Bearer\s+/i, '');
+    console.log('🔑 Token received (last 10 chars):', token.substring(token.length - 10));
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     
@@ -64,8 +66,8 @@ serve(async (req) => {
     // 1. Fetch user tier and usage in parallel for efficiency
     const today = new Date().toISOString().split('T')[0];
     const [profileRes, usageRes] = await Promise.all([
-      supabase.from('profiles').select('subscription_tier').eq('id', userId).single(),
-      supabase.from('user_usage').select('messages_count').eq('user_id', userId).eq('usage_date', today).single()
+      supabase.from('profiles').select('subscription_tier').eq('id', userId).maybeSingle(),
+      supabase.from('user_usage').select('messages_count').eq('user_id', userId).eq('usage_date', today).maybeSingle()
     ]);
 
     const userProfile = profileRes.data;

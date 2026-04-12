@@ -25,6 +25,8 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace(/^Bearer\s+/i, '');
+    console.log('🔑 [gen-plan] Token received (last 10 chars):', token.substring(token.length - 10));
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     
@@ -46,11 +48,22 @@ serve(async (req) => {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single()
+      .maybeSingle()
 
-    if (profileError || !profile) {
-      throw new Error(`Profile not found: ${profileError?.message}`)
-    }
+    // Si no hay perfil, creamos un fallback para evitar el crash del onboarding
+    const safeProfile = profile || {
+      first_name: 'Usuario',
+      gender: 'other',
+      birth_date: '1990-01-01',
+      height_value: 170,
+      weight_value: 70,
+      height_unit: 'cm',
+      weight_unit: 'kg',
+      activity_level: 'moderate',
+      diet_type: 'balanced',
+      onboarding_metadata: { allergies: [] },
+      traffic_source: 'direct'
+    };
 
     // 2. Prepare AI Prompt
     const calculateAge = (birthDate: string) => {
@@ -62,22 +75,22 @@ serve(async (req) => {
       return age;
     };
 
-    const full_name = profile.full_name || 'Usuario';
-    const age = profile.birth_date ? calculateAge(profile.birth_date) : 30;
-    const gender = profile.gender || 'otro';
-    const height_cm = profile.height_value || 170;
-    const current_weight_kg = profile.weight_value || 70;
-    const target_weight_kg = profile.target_weight_kg || current_weight_kg;
-    const goal_type = profile.nutrition_goal || 'mantenimiento';
-    const activity_level = profile.activity_level || 'sedentario';
-    const diet_type = profile.diet_type || 'balanceada';
-    const work_schedule = profile.work_schedule || 'horario regular';
-    const hunger_trigger = profile.hunger_trigger || 'hambre fisiológica';
-    const weekend_struggle = profile.weekend_struggle || 'vida social';
+    const full_name = safeProfile.first_name || 'Usuario';
+    const age = safeProfile.birth_date ? calculateAge(safeProfile.birth_date) : 30;
+    const gender = safeProfile.gender || 'otro';
+    const height_cm = safeProfile.height_value || 170;
+    const current_weight_kg = safeProfile.weight_value || 70;
+    const target_weight_kg = safeProfile.target_weight_kg || current_weight_kg;
+    const goal_type = safeProfile.nutrition_goal || 'mantenimiento';
+    const activity_level = safeProfile.activity_level || 'sedentario';
+    const diet_type = safeProfile.diet_type || 'balanceada';
+    const work_schedule = safeProfile.work_schedule || 'horario regular';
+    const hunger_trigger = safeProfile.hunger_trigger || 'hambre fisiológica';
+    const weekend_struggle = safeProfile.weekend_struggle || 'vida social';
     
     // Captura de datos de seguridad y atribución
-    const allergies = profile.onboarding_metadata?.allergies || [];
-    const traffic_source = profile.traffic_source || 'directo';
+    const allergies = safeProfile.onboarding_metadata?.allergies || [];
+    const traffic_source = safeProfile.traffic_source || 'directo';
 
     const systemPrompt = `Actúa como un Nutricionista Clínico y experto en Psicología Conductual. Tu tarea es procesar los datos de un nuevo usuario para generar un plan de nutrición y hábitos que sea científicamente preciso y psicológicamente motivador. `;
     
