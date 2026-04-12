@@ -44,17 +44,17 @@ serve(async (req) => {
 
     const token = authHeader.replace(/^Bearer\s+/i, '');
     console.log('🔑 Token received (last 10 chars):', token.substring(token.length - 10));
-    
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    
+
     // Cliente para validar al usuario (Importado arriba para evitar latencia)
     const userClient = createClient(supabaseUrl, supabaseAnonKey);
     const { data: { user }, error: authError } = await userClient.auth.getUser(token);
 
     if (authError || !user) {
       console.error('🛑 Auth Error:', authError);
-      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), { 
+      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401
       });
@@ -134,7 +134,7 @@ serve(async (req) => {
     const model = 'gemini-2.5-flash'
     console.log('Using model:', model)
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
     // OPTIMIZACIÓN: Detectar si es una consulta simple que no necesita IA
     const simpleResponses: Record<string, string> = {

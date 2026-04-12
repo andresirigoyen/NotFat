@@ -37,7 +37,7 @@ export const useAuthStore = create<AuthState>()(
         const metadata = user?.user_metadata;
         const isPro = !!(
           metadata?.is_pro || 
-          (metadata?.subscription_tier === 'pro' && (metadata?.subscription_status === 'active' || metadata?.subscription_status === 'trialing'))
+          metadata?.subscription_tier === 'pro'
         );
         set({ user, isPro });
       },
@@ -206,7 +206,7 @@ export const useAuthStore = create<AuthState>()(
           const metadata = user?.user_metadata;
           const isPro = !!(
             metadata?.is_pro || 
-            (metadata?.subscription_tier === 'pro' && (metadata?.subscription_status === 'active' || metadata?.subscription_status === 'trialing'))
+            metadata?.subscription_tier === 'pro'
           );
           
           set({ 
@@ -242,8 +242,8 @@ export const useAuthStore = create<AuthState>()(
             const metadata = authUser.user_metadata;
             const isPro = !!(
               metadata?.is_pro || 
-              (metadata?.subscription_tier === 'pro' && (metadata?.subscription_status === 'active' || metadata?.subscription_status === 'trialing')) ||
-              (profile?.subscription_tier === 'pro' && (profile?.subscription_status === 'active' || profile?.subscription_status === 'trialing'))
+              metadata?.subscription_tier === 'pro' ||
+              profile?.subscription_tier === 'pro'
             );
 
             set({ user: authUser, isPro });

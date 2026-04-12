@@ -373,7 +373,7 @@ const ProfileScreen = ({ navigation }: any) => {
                 <View style={styles.gridIcon}><Star size={24} color={colors.primary.amber} /></View>
                 <Text style={styles.gridTitle}>Suscripción</Text>
                 <Text style={styles.gridValue}>
-                  {profile?.subscription_status === 'premium' ? 'Premium' : 'Gratis'}
+                  {isPro ? 'Premium' : 'Gratis'}
                 </Text>
               </TouchableOpacity>
             </View>
