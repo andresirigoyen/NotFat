@@ -1,6 +1,6 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ImageBackground } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, StatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,70 +13,65 @@ export default function WelcomeScreen() {
   const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
   const navigation = useNavigation();
-  useEffect(() => {
-    // Breve delay inicial para suavizar el montaje
-    const timer = setTimeout(() => {}, 100);
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
     <View style={styles.container}>
-      <Animated.View entering={FadeIn.duration(800)} style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <Animated.View entering={FadeIn.duration(1000)} style={styles.container}>
         <ImageBackground 
-          source={require('../../../assets/images/welcome.jpg')} 
+          source={{ uri: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070&auto=format&fit=crop' }} 
           style={styles.backgroundImage}
           resizeMode="cover"
         >
           <LinearGradient
-            colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.7)', '#000000']}
-            locations={[0, 0.3, 0.7, 1]}
+            colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)', '#000000']}
+            locations={[0, 0.2, 0.6, 1]}
             style={styles.gradient}
           >
             <SafeAreaView style={styles.safeArea}>
               
-              {/* Header: Close Button only */}
               <View style={styles.header}>
-                <View style={{ flex: 1 }} /> {/* Espaciador para mantener Close Button a la derecha */}
-                
-                <TouchableOpacity 
-                  style={styles.closeButton}
-                  activeOpacity={0.7}
-                  onPress={() => (navigation.navigate as any)('Splash', { nextScreen: 'Login', duration: 4500 })}
-                >
-                  <Ionicons name="close" size={24} color={colors.text.primary} />
-                </TouchableOpacity>
+                <View style={styles.logoContainer}>
+                  <Text style={styles.logoText}>NOT<Text style={{ color: '#FBBF24' }}>FAT</Text></Text>
+                </View>
               </View>
 
-              {/* Bottom Content */}
               <View style={styles.bottomContent}>
                 <Animated.View entering={FadeInDown.duration(800).delay(200)}>
+                  <Text style={styles.title}>
+                    Tu evolución física{'\n'}
+                    <Text style={{ color: '#FBBF24' }}>comienza hoy.</Text>
+                  </Text>
                   <Text style={styles.subtitle}>
-                    Experimenta una movilidad fluida en tu nutrición. Tu compañero definitivo.
+                    Planificación nutricional de alta resolución impulsada por IA. Simple, potente y definitiva.
                   </Text>
                 </Animated.View>
 
                 <Animated.View entering={SlideInDown.springify().delay(500)}>
                   <TouchableOpacity 
-                    style={styles.button}
-                    activeOpacity={0.8}
-                    onPress={() => navigation.navigate('SignUp' as never)}
+                    style={styles.primaryButton}
+                    activeOpacity={0.9}
+                    onPress={() => navigation.navigate('OnboardingName' as never)}
                   >
-                    <Text style={styles.buttonText}>Continuar</Text>
-                    
-                    {/* Flechas indicativas estilo Uber reference */}
-                    <View style={styles.iconContainer}>
-                      <Ionicons name="chevron-forward" size={16} color={colors.background.primary} />
-                      <Ionicons name="chevron-forward" size={16} color={colors.background.primary} style={{ marginLeft: -8, opacity: 0.6 }} />
-                      <Ionicons name="chevron-forward" size={16} color={colors.background.primary} style={{ marginLeft: -8, opacity: 0.3 }} />
-                    </View>
+                    <LinearGradient
+                      colors={['#FBBF24', '#D97706']}
+                      style={styles.buttonGradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    >
+                      <Text style={styles.buttonText}>Comenzar ahora</Text>
+                      <Ionicons name="arrow-forward" size={20} color="#000" />
+                    </LinearGradient>
                   </TouchableOpacity>
 
                   <TouchableOpacity 
                     style={styles.secondaryButton}
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                     onPress={() => navigation.navigate('Login' as never)}
                   >
-                    <Text style={styles.secondaryButtonText}>Ya tengo cuenta</Text>
+                    <Text style={styles.secondaryButtonText}>
+                      ¿Ya eres miembro? <Text style={styles.loginHighlight}>Inicia sesión</Text>
+                    </Text>
                   </TouchableOpacity>
                 </Animated.View>
               </View>
@@ -92,12 +87,11 @@ export default function WelcomeScreen() {
 const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#000',
   },
   backgroundImage: {
     flex: 1,
     width: '100%',
-    height: '100%',
   },
   gradient: {
     flex: 1,
@@ -107,67 +101,72 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     justifyContent: 'space-between',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: SPACING.xl,
-    paddingTop: SPACING.md,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)', 
-    justifyContent: 'center',
+    paddingTop: SPACING.xl,
     alignItems: 'center',
+  },
+  logoContainer: {
+    padding: SPACING.md,
+  },
+  logoText: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#FFF',
+    letterSpacing: 2,
+    fontFamily: FONTS.primary,
   },
   bottomContent: {
     paddingHorizontal: SPACING.xl,
     paddingBottom: SPACING['3xl'],
   },
-  subtitle: {
-    fontSize: FONTS.sizes.base,
-    color: '#A0A0A0', 
+  title: {
+    fontSize: 42,
+    fontWeight: '900',
+    color: '#FFF',
     fontFamily: FONTS.primary,
-    lineHeight: 22,
-    marginBottom: SPACING.xl * 1.5, 
-    paddingRight: SPACING.lg, 
+    lineHeight: 48,
+    marginBottom: SPACING.md,
+    letterSpacing: -1,
   },
-  button: {
+  subtitle: {
+    fontSize: 16,
+    color: '#9CA3AF',
+    fontFamily: FONTS.primary,
+    lineHeight: 24,
+    marginBottom: SPACING['2xl'],
+    opacity: 0.9,
+  },
+  primaryButton: {
     width: '100%',
-    backgroundColor: colors.primary.amber, 
-    borderRadius: BORDER_RADIUS.full,
+    borderRadius: BORDER_RADIUS.xl,
+    overflow: 'hidden',
+  },
+  buttonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: SPACING.lg,
-    paddingHorizontal: SPACING.xl,
+    justifyContent: 'center',
+    paddingVertical: 18,
+    gap: SPACING.sm,
   },
   buttonText: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: '600',
-    color: colors.background.primary, 
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#000',
     fontFamily: FONTS.primary,
-  },
-  iconContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   secondaryButton: {
     width: '100%',
-    backgroundColor: 'transparent',
-    borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: SPACING.lg,
-    marginTop: SPACING.md,
+    marginTop: SPACING.xl,
   },
   secondaryButtonText: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: '600',
-    color: colors.text.primary,
+    fontSize: 15,
+    color: '#6B7280',
     fontFamily: FONTS.primary,
+    fontWeight: '500',
+  },
+  loginHighlight: {
+    color: '#FBBF24',
+    fontWeight: '700',
   },
 });

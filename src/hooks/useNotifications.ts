@@ -283,6 +283,15 @@ export const useNotifications = () => {
     cancelAllNotifications,
     getNotificationPreferences,
     updateNotificationPreferences,
+    schedulePushNotification: async (title: string, body: string, seconds: number) => {
+      await Notifications.scheduleNotificationAsync({
+        content: { title, body, data: { type: 'retention_nudge' } },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: seconds,
+        },
+      });
+    },
     setupAllNotifications,
   };
 };

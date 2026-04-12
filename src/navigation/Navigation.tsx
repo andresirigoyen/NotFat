@@ -7,6 +7,8 @@ import { deepLinkingService } from '@/services/deeplinking';
 // Importaciones de Onboarding / Auth
 import SplashScreen from '../screens/onboarding/SplashScreen';
 import WelcomeScreen from '../screens/onboarding/WelcomeScreen';
+import OnboardingReferralScreen from '../screens/onboarding/OnboardingReferralScreen';
+import OnboardingNameScreen from '../screens/onboarding/OnboardingNameScreen';
 import OnboardingGenderScreen from '../screens/onboarding/OnboardingGenderScreen';
 import OnboardingBirthDateScreen from '../screens/onboarding/OnboardingBirthDateScreen';
 import OnboardingGoalsScreen from '../screens/onboarding/OnboardingGoalsScreen';
@@ -15,6 +17,8 @@ import OnboardingActivityScreen from '../screens/onboarding/OnboardingActivitySc
 import OnboardingPreferencesScreen from '../screens/onboarding/OnboardingPreferencesScreen';
 import OnboardingAIGoalsScreen from '../screens/onboarding/OnboardingAIGoalsScreen';
 import OnboardingModeSelectionScreen from '../screens/onboarding/OnboardingModeSelectionScreen';
+import OnboardingPsychologyScreen from '../screens/onboarding/OnboardingPsychologyScreen';
+import OnboardingGeneratingPlanScreen from '../screens/onboarding/OnboardingGeneratingPlanScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignUpScreen from '../screens/auth/SignUpScreen';
 
@@ -112,6 +116,8 @@ export default function Navigation() {
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="SignUp" component={SignUpScreen} />
+        <Stack.Screen name="OnboardingReferral" component={OnboardingReferralScreen} />
+        <Stack.Screen name="OnboardingName" component={OnboardingNameScreen} />
         <Stack.Screen name="OnboardingGender" component={OnboardingGenderScreen} />
         <Stack.Screen name="OnboardingBirthDate" component={OnboardingBirthDateScreen} />
         <Stack.Screen name="OnboardingGoals" component={OnboardingGoalsScreen} />
@@ -119,7 +125,9 @@ export default function Navigation() {
         <Stack.Screen name="OnboardingProfile" component={OnboardingProfileScreen} />
         <Stack.Screen name="OnboardingActivity" component={OnboardingActivityScreen} />
         <Stack.Screen name="OnboardingPreferences" component={OnboardingPreferencesScreen} />
+        <Stack.Screen name="OnboardingPsychology" component={OnboardingPsychologyScreen} />
         <Stack.Screen name="OnboardingModeSelection" component={OnboardingModeSelectionScreen} />
+        <Stack.Screen name="OnboardingGeneratingPlan" component={OnboardingGeneratingPlanScreen} />
 
         {/* Pantallas SIN TabBar */}
         <Stack.Screen name="BarcodeScanner" component={BarcodeScannerScreen} />

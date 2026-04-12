@@ -1,19 +1,19 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
+import { useOnboardingStore } from '@/store/onboarding-store';
 import { analytics } from '@/services/analytics';
 import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 // Sincronizado con Prisma: height_unit_enum
 const HEIGHT_UNITS = [
   { id: 'cm', label: 'cm', description: 'Centímetros' },
-  { id: 'm', label: 'm', description: 'Metros' },
   { id: 'in', label: 'in', description: 'Pulgadas' },
 ];
 
@@ -30,27 +30,20 @@ export default function OnboardingProfileScreen() {
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
+  const { setData: setOnboardingData } = useOnboardingStore();
   
   // Estados para los campos del perfil (sincronizados con Prisma)
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  // Estados para los campos del perfil (sincronizados con Prisma)
   const [heightValue, setHeightValue] = useState('');
-  const [heightUnit, setHeightUnit] = useState<'cm' | 'm' | 'in'>('cm');
+  const [heightUnit, setHeightUnit] = useState<'cm' | 'in'>('cm');
   const [weightValue, setWeightValue] = useState('');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
   const [isLoading, setIsLoading] = useState(false);
 
+  const { data: onboardingData } = useOnboardingStore();
+  const userName = onboardingData?.onboarding_metadata?.first_name || '';
+
   const validateInputs = () => {
-    if (!firstName.trim()) {
-      Alert.alert('Nombre Requerido', 'Por favor ingresa tu nombre');
-      return false;
-    }
-
-    if (!lastName.trim()) {
-      Alert.alert('Apellido Requerido', 'Por favor ingresa tu apellido');
-      return false;
-    }
-
     if (!heightValue || parseFloat(heightValue) <= 0) {
       Alert.alert('Altura Inválida', 'Por favor ingresa una altura válida');
       return false;
@@ -67,11 +60,6 @@ export default function OnboardingProfileScreen() {
 
     if (heightUnit === 'cm' && (height < 50 || height > 250)) {
       Alert.alert('Altura Inválida', 'La altura debe estar entre 50cm y 250cm');
-      return false;
-    }
-
-    if (heightUnit === 'm' && (height < 0.5 || height > 2.5)) {
-      Alert.alert('Altura Inválida', 'La altura debe estar entre 0.5m y 2.5m');
       return false;
     }
 
@@ -94,21 +82,27 @@ export default function OnboardingProfileScreen() {
   };
 
   const handleContinue = async () => {
-    if (!user || !validateInputs()) return;
-
     setIsLoading(true);
     try {
-      // Sincronizado con Prisma: profiles
-      await updateProfile.mutateAsync({
-        first_name: firstName.trim(), // String?
-        last_name: lastName.trim(), // String?
-        height_value: parseFloat(heightValue), // Float?
-        height_unit: heightUnit, // height_unit_enum
-        weight_value: parseFloat(weightValue), // Float?
-        weight_unit: weightUnit, // weight_unit_enum
-        onboarding_step: 'activity',
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, // String?
-      });
+      if (user) {
+        // Sincronizado con Prisma: profiles
+        await updateProfile.mutateAsync({
+          height_value: parseFloat(heightValue),
+          height_unit: heightUnit,
+          weight_value: parseFloat(weightValue),
+          weight_unit: weightUnit,
+          onboarding_step: 'activity',
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        });
+      } else {
+        // Almacenamiento local temporal
+        setOnboardingData({
+          height_value: parseFloat(heightValue),
+          height_unit: heightUnit,
+          weight_value: parseFloat(weightValue),
+          weight_unit: weightUnit,
+        });
+      }
 
       analytics.trackOnboardingStep('profile', {
         height_value: parseFloat(heightValue),
@@ -131,82 +125,49 @@ export default function OnboardingProfileScreen() {
       <ScrollView 
         style={styles.scrollView} 
         contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.text.secondary} />
+            <Ionicons name="chevron-back" size={24} color="#FFF" />
           </TouchableOpacity>
           
-          <View style={styles.progressContainer}>
-            <View style={[styles.progressBar, { width: '50%' }]} />
+          <View style={styles.progressWrapper}>
+             <View style={styles.progressBackground}>
+               <View style={[styles.progressBar, { width: '40%' }]} />
+             </View>
+             <Text style={styles.progressLabel}>PASO 4 DE 10</Text>
           </View>
         </View>
 
-        {/* Content */}
         <View style={styles.content}>
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Cuéntanos sobre ti</Text>
+            <Text style={styles.title}>
+              {userName ? `¡Ya casi, ${userName}!` : 'Datos Físicos'}
+            </Text>
             <Text style={styles.subtitle}>
-              Tu información física nos ayuda a crear metas personalizadas
+              Tu altura y peso son esenciales para calcular tus macros.
             </Text>
           </View>
 
-          {/* Name Fields */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Nombre Completo</Text>
-            
-            <View style={styles.inputGroup}>
-              <View style={styles.inputContainer}>
-                <Ionicons name="person" size={20} color={colors.text.muted} />
-                <Text style={styles.inputLabel}>Nombre</Text>
-                <TextInput
+          <View style={styles.measurementCard}>
+            <Text style={styles.measurementLabel}>Tu altura</Text>
+            <View style={styles.measurementLayout}>
+              <View style={styles.inputBox}>
+                 <TextInput
                   style={styles.input}
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  placeholder="Tu nombre"
-                  placeholderTextColor={colors.text.muted}
-                  editable={!isLoading}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Ionicons name="person-outline" size={20} color={colors.text.muted} />
-                <Text style={styles.inputLabel}>Apellido</Text>
-                <TextInput
-                  style={styles.input}
-                  value={lastName}
-                  onChangeText={setLastName}
-                  placeholder="Tu apellido"
-                  placeholderTextColor={colors.text.muted}
-                  editable={!isLoading}
-                />
-              </View>
-            </View>
-          </View>
-
-          {/* Height Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Altura</Text>
-            
-            <View style={styles.measurementContainer}>
-              <View style={styles.measurementInput}>
-                <Ionicons name="resize" size={20} color={colors.text.muted} />
-                <TextInput
-                  style={styles.measurementValue}
                   value={heightValue}
                   onChangeText={setHeightValue}
                   placeholder="0"
-                  placeholderTextColor={colors.text.muted}
+                  placeholderTextColor="#333"
                   keyboardType="numeric"
                   editable={!isLoading}
                 />
               </View>
-              
               <View style={styles.unitSelector}>
                 {HEIGHT_UNITS.map((unit) => (
                   <TouchableOpacity
@@ -230,24 +191,20 @@ export default function OnboardingProfileScreen() {
             </View>
           </View>
 
-          {/* Weight Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Peso Actual</Text>
-            
-            <View style={styles.measurementContainer}>
-              <View style={styles.measurementInput}>
-                <Ionicons name="fitness" size={20} color={colors.text.muted} />
+          <View style={styles.measurementCard}>
+            <Text style={styles.measurementLabel}>Peso Actual</Text>
+            <View style={styles.measurementLayout}>
+              <View style={styles.inputBox}>
                 <TextInput
-                  style={styles.measurementValue}
+                  style={styles.input}
                   value={weightValue}
                   onChangeText={setWeightValue}
                   placeholder="0"
-                  placeholderTextColor={colors.text.muted}
+                  placeholderTextColor="#333"
                   keyboardType="numeric"
                   editable={!isLoading}
                 />
               </View>
-              
               <View style={styles.unitSelector}>
                 {WEIGHT_UNITS.map((unit) => (
                   <TouchableOpacity
@@ -271,39 +228,37 @@ export default function OnboardingProfileScreen() {
             </View>
           </View>
 
-          {/* Privacy Note */}
-          <View style={styles.privacyNote}>
-            <Ionicons name="shield-checkmark" size={16} color={colors.text.muted} />
+          <View style={styles.privacyCard}>
+            <Ionicons name="lock-closed" size={16} color="#FBBF24" />
             <Text style={styles.privacyText}>
               Tu información es privada y solo se usa para personalizar tu experiencia
             </Text>
           </View>
         </View>
 
-        {/* Continue Button */}
         <View style={styles.footer}>
           <TouchableOpacity
             style={[
               styles.continueButton,
-              (!firstName || !lastName || !heightValue || !weightValue) && styles.continueButtonDisabled,
+              (!heightValue || !weightValue) && styles.continueButtonDisabled,
               isLoading && styles.continueButtonLoading
             ]}
             onPress={handleContinue}
-            disabled={!firstName || !lastName || !heightValue || !weightValue || isLoading}
+            disabled={!heightValue || !weightValue || isLoading}
           >
             <LinearGradient
-              colors={(firstName && lastName && heightValue && weightValue) ? [colors.primary.sky, '#0EA5E9'] : [colors.background.border, colors.background.border]}
+              colors={(heightValue && weightValue) ? ['#FBBF24', '#D97706'] : ['#333', '#333']}
               style={styles.continueButtonGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
               {isLoading ? (
-                <Text style={styles.continueButtonText}>Guardando...</Text>
+                <ActivityIndicator color="#000" />
               ) : (
-                <>
+                <View style={styles.buttonLayout}>
                   <Text style={styles.continueButtonText}>Continuar</Text>
-                  <Ionicons name="arrow-forward" size={20} color={colors.text.primary} />
-                </>
+                  <Ionicons name="arrow-forward" size={20} color="#000" />
+                </View>
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -316,166 +271,149 @@ export default function OnboardingProfileScreen() {
 const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#000',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: SPACING['3xl'],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.md,
-    paddingBottom: SPACING.lg,
+    height: 60,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.background.card,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#111',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.background.border,
   },
-  progressContainer: {
+  progressWrapper: {
     flex: 1,
-    height: 4,
-    backgroundColor: colors.background.tertiary,
-    borderRadius: 2,
-    marginLeft: SPACING.md,
+    marginLeft: SPACING.lg,
+  },
+  progressBackground: {
+    height: 6,
+    backgroundColor: '#111',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 4,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: colors.primary.sky,
-    borderRadius: 2,
+    backgroundColor: '#FBBF24',
+    borderRadius: 3,
+  },
+  progressLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#6B7280',
+    letterSpacing: 1,
   },
   content: {
-    flex: 1,
     paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xl,
   },
   titleSection: {
     marginBottom: SPACING.xl,
   },
   title: {
-    fontSize: FONTS.sizes['3xl'],
-    fontWeight: FONTS.weights.bold,
-    color: colors.text.primary,
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFF',
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: FONTS.sizes.base,
-    color: colors.text.secondary,
+    fontSize: 16,
+    color: '#9CA3AF',
     fontFamily: FONTS.primary,
-    lineHeight: 24,
+    lineHeight: 22,
   },
-  section: {
+  measurementCard: {
+    backgroundColor: '#111',
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.lg,
     marginBottom: SPACING.xl,
+    borderWidth: 1,
+    borderColor: '#222',
   },
-  sectionTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.semibold,
-    color: colors.text.primary,
+  measurementLabel: {
+    fontSize: 13,
+    color: '#6B7280',
     fontFamily: FONTS.primary,
     marginBottom: SPACING.md,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
-  inputGroup: {
-    gap: SPACING.md,
-  },
-  inputContainer: {
-    backgroundColor: colors.background.card,
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    borderColor: colors.background.border,
-    padding: SPACING.md,
+  measurementLayout: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    gap: SPACING.md,
   },
-  inputLabel: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.muted,
-    fontFamily: FONTS.primary,
-    position: 'absolute',
-    top: SPACING.xs,
-    left: SPACING['2xl'],
+  inputBox: {
+    flex: 1,
+    height: 56,
+    backgroundColor: '#1A1A1A',
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: '#333',
+    paddingHorizontal: SPACING.md,
+    justifyContent: 'center',
   },
   input: {
-    flex: 1,
-    fontSize: FONTS.sizes.base,
-    color: colors.text.primary,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFF',
     fontFamily: FONTS.primary,
-    paddingTop: SPACING.lg,
-  },
-  measurementContainer: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-    alignItems: 'center',
-  },
-  measurementInput: {
-    flex: 1,
-    backgroundColor: colors.background.card,
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    borderColor: colors.background.border,
-    padding: SPACING.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  measurementValue: {
-    flex: 1,
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.semibold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
-    textAlign: 'center',
   },
   unitSelector: {
     flexDirection: 'row',
-    backgroundColor: colors.background.card,
-    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: '#1A1A1A',
+    borderRadius: BORDER_RADIUS.lg,
+    padding: 4,
     borderWidth: 1,
-    borderColor: colors.background.border,
-    padding: SPACING.xs,
+    borderColor: '#333',
   },
   unitButton: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: BORDER_RADIUS.md,
   },
   unitButtonSelected: {
-    backgroundColor: colors.primary.sky,
+    backgroundColor: '#FBBF24',
   },
   unitText: {
-    fontSize: FONTS.sizes.sm,
-    fontWeight: FONTS.weights.semibold,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#6B7280',
   },
   unitTextSelected: {
-    color: colors.text.primary,
+    color: '#000',
   },
-  privacyNote: {
+  privacyCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.tertiary,
-    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: '#111',
+    borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
+    borderWidth: 1,
+    borderColor: '#222',
   },
   privacyText: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.muted,
-    fontFamily: FONTS.primary,
+    fontSize: 12,
+    color: '#6B7280',
     marginLeft: SPACING.sm,
     flex: 1,
-    lineHeight: 18,
   },
   footer: {
     paddingHorizontal: SPACING.lg,
@@ -483,9 +421,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     paddingTop: SPACING.md,
   },
   continueButton: {
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.xl,
     overflow: 'hidden',
-    ...SHADOWS.md,
   },
   continueButtonDisabled: {
     opacity: 0.5,
@@ -494,17 +431,19 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     opacity: 0.8,
   },
   continueButtonGradient: {
+    height: 64,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonLayout: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.xl,
     gap: SPACING.sm,
   },
   continueButtonText: {
-    fontSize: FONTS.sizes.base,
-    fontWeight: FONTS.weights.semibold,
-    color: colors.text.primary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
     fontFamily: FONTS.primary,
   },
 });

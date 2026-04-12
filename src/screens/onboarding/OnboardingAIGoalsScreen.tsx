@@ -8,9 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
 import { analytics } from '@/services/analytics';
-import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
-// Sincronizado con Prisma: nutrition_goals table
 interface AIGeneratedGoals {
   calories: number;
   protein: number;
@@ -30,7 +29,6 @@ export default function OnboardingAIGoalsScreen() {
   const { user } = useAuthStore();
   const { updateProfile, generateAutomaticGoals, generateAutomaticHydrationGoal } = useProfile();
   
-  // Estados para la generación de metas con IA
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiGoals, setAiGoals] = useState<AIGeneratedGoals | null>(null);
   const [showResults, setShowResults] = useState(false);
@@ -42,13 +40,11 @@ export default function OnboardingAIGoalsScreen() {
 
   const generateAIGoals = async () => {
     if (!user) return;
-
     setIsGenerating(true);
     setError(null);
     setShowResults(false);
 
     try {
-      // Generar metas reales según tu lógica de negocio (utils/nutrition + IA)
       const goals = await generateAutomaticGoals();
       const hydration = await generateAutomaticHydrationGoal();
 
@@ -60,61 +56,27 @@ export default function OnboardingAIGoalsScreen() {
         water_ml: hydration.target ?? 0,
         steps_daily: (goals as any).steps_daily ?? 10000,
         workout_frequency: (goals as any).workout_frequency ?? 'moderate',
-        reasoning: 'Estas metas se calcularon con tu edad, peso, altura, objetivo y nivel de actividad para que sean realistas y sostenibles.',
+        reasoning: 'Estas metas se calcularon con precisión analítica para que sean realistas y sostenibles según tu perfil único.',
       };
 
       setAiGoals(result);
       setShowResults(true);
-
-      analytics.trackOnboardingStep('ai_goals_generated', {
-        calories: result.calories,
-        protein: result.protein,
-        carbs: result.carbs,
-        fat: result.fat,
-        water_ml: result.water_ml,
-        steps_daily: result.steps_daily,
-        workout_frequency: result.workout_frequency,
-      });
+      analytics.trackOnboardingStep('ai_goals_generated', { calories: result.calories });
     } catch (err) {
       setError('No pudimos generar tus metas. Intenta nuevamente.');
-      console.error('AI Goals Error:', err);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Guardar metas generadas por IA
   const saveAIGoals = async () => {
     if (!aiGoals || !user) return;
-
     try {
-      await updateProfile.mutateAsync({
-        onboarding_step: 'preferences',
-      });
-
-      if (aiGoals) {
-        analytics.trackOnboardingStep('ai_goals_accepted', {
-          calories: aiGoals.calories,
-          protein: aiGoals.protein,
-          carbs: aiGoals.carbs,
-          fat: aiGoals.fat,
-          water_ml: aiGoals.water_ml,
-          steps_daily: aiGoals.steps_daily,
-          workout_frequency: aiGoals.workout_frequency,
-        });
-      }
-
+      await updateProfile.mutateAsync({ onboarding_step: 'preferences' });
       navigation.navigate('OnboardingPreferences' as never);
     } catch (error) {
-      console.error('Error saving AI goals:', error);
-      Alert.alert('Error', 'No pudimos guardar tus metas. Intenta nuevamente.');
+      Alert.alert('Error', 'No pudimos guardar tus metas.');
     }
-  };
-
-  // Opción manual
-  const handleManualSetup = () => {
-    analytics.trackOnboardingStep('ai_goals_manual_override');
-    navigation.navigate('OnboardingGoals' as never);
   };
 
   return (
@@ -124,191 +86,92 @@ export default function OnboardingAIGoalsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.text.secondary} />
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={24} color="#FFF" />
           </TouchableOpacity>
-          
-          <View style={styles.progressContainer}>
-            <View style={[styles.progressBar, { width: '85%' }]} />
+          <View style={styles.progressWrapper}>
+             <View style={styles.progressBackground}>
+               <View style={[styles.progressBar, { width: '85%' }]} />
+             </View>
+             <Text style={styles.progressLabel}>METAS IA</Text>
           </View>
         </View>
 
-        {/* Content */}
         <View style={styles.content}>
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Metas Personalizadas con IA</Text>
+            <Text style={styles.title}>Metas Inteligentes</Text>
             <Text style={styles.subtitle}>
-              Nuestra IA analizará tu perfil para crear metas perfectas para ti
+              Nuestra IA analizará tu perfil completo para crear objetivos de alto rendimiento.
             </Text>
           </View>
 
-          {/* AI Status Card */}
           <View style={styles.aiCard}>
-            <LinearGradient
-              colors={[colors.primary.sky, '#0EA5E9']}
-              style={styles.aiGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.aiContent}>
-                {isGenerating ? (
-                  <View style={styles.generatingContent}>
-                    <ActivityIndicator size="large" color={colors.text.primary} />
-                    <Text style={styles.generatingText}>Analizando tu perfil...</Text>
-                    <Text style={styles.generatingSubtext}>
-                      Nuestra IA está creando metas personalizadas para ti
-                    </Text>
+             {!showResults ? (
+               <View style={styles.aiInitialContent}>
+                 <View style={styles.aiIconWrapper}>
+                   <Ionicons name="sparkles" size={48} color="#FBBF24" />
+                 </View>
+                 <Text style={styles.aiCardTitle}>IA de Alta Resolución</Text>
+                 <Text style={styles.aiCardDesc}>Lista para procesar tus requerimientos metabólicos.</Text>
+                 
+                 <TouchableOpacity 
+                   style={styles.generateButton}
+                   onPress={generateAIGoals}
+                   disabled={isGenerating}
+                 >
+                   <LinearGradient
+                     colors={['#FBBF24', '#D97706']}
+                     style={styles.buttonGradient}
+                   >
+                     {isGenerating ? <ActivityIndicator color="#000" /> : <Text style={styles.buttonText}>Activar Análisis</Text>}
+                   </LinearGradient>
+                 </TouchableOpacity>
+               </View>
+             ) : (
+               <View style={styles.aiResultsContent}>
+                  <View style={styles.reasoningCard}>
+                    <Text style={styles.reasoningLabel}>Análisis Biológico:</Text>
+                    <Text style={styles.reasoningText}>{aiGoals?.reasoning}</Text>
                   </View>
-                ) : showResults && aiGoals ? (
-                  <View style={styles.resultsContent}>
-                    <View style={styles.aiIconContainer}>
-                      <Ionicons name="sparkles" size={32} color={colors.text.primary} />
+
+                  <View style={styles.goalsGrid}>
+                    <View style={styles.goalBox}>
+                      <Text style={styles.goalVal}>{aiGoals?.calories}</Text>
+                      <Text style={styles.goalLab}>KCAL</Text>
                     </View>
-                    <Text style={styles.resultsTitle}>¡Metas Generadas!</Text>
-                    <Text style={styles.resultsSubtitle}>
-                      Basadas en tu perfil único
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={styles.initialContent}>
-                    <View style={styles.aiIconContainer}>
-                      <Ionicons name="analytics" size={32} color={colors.text.primary} />
+                    <View style={styles.goalBox}>
+                      <Text style={styles.goalVal}>{aiGoals?.protein}g</Text>
+                      <Text style={styles.goalLab}>PROTEÍNA</Text>
                     </View>
-                    <Text style={styles.initialTitle}>IA Lista para Analizar</Text>
-                    <Text style={styles.initialSubtitle}>
-                      Presiona el botón para generar tus metas personalizadas
-                    </Text>
+                    <View style={styles.goalBox}>
+                      <Text style={styles.goalVal}>{aiGoals?.water_ml}ml</Text>
+                      <Text style={styles.goalLab}>AGUA</Text>
+                    </View>
+                    <View style={styles.goalBox}>
+                      <Text style={styles.goalVal}>{aiGoals?.steps_daily}</Text>
+                      <Text style={styles.goalLab}>PASOS</Text>
+                    </View>
                   </View>
-                )}
-              </View>
-            </LinearGradient>
+               </View>
+             )}
           </View>
 
-          {/* AI Results */}
-          {showResults && aiGoals && (
-            <View style={styles.resultsSection}>
-              <Text style={styles.sectionTitle}>Tus Metas Personalizadas</Text>
-              
-              {/* Reasoning */}
-              <View style={styles.reasoningCard}>
-                <View style={styles.reasoningHeader}>
-                  <Ionicons name="bulb" size={20} color={colors.primary.amber} />
-                  <Text style={styles.reasoningTitle}>¿Por qué estas metas?</Text>
-                </View>
-                <Text style={styles.reasoningText}>{aiGoals.reasoning}</Text>
-              </View>
-
-              {/* Goals Grid */}
-              <View style={styles.goalsGrid}>
-                <View style={styles.goalItem}>
-                  <Ionicons name="flame" size={24} color={colors.status.error} />
-                  <Text style={styles.goalValue}>{aiGoals.calories}</Text>
-                  <Text style={styles.goalLabel}>Calorías/día</Text>
-                </View>
-
-                <View style={styles.goalItem}>
-                  <Ionicons name="fitness" size={24} color={colors.primary.sky} />
-                  <Text style={styles.goalValue}>{aiGoals.protein}g</Text>
-                  <Text style={styles.goalLabel}>Proteína</Text>
-                </View>
-
-                <View style={styles.goalItem}>
-                  <Ionicons name="nutrition" size={24} color={colors.primary.amber} />
-                  <Text style={styles.goalValue}>{aiGoals.carbs}g</Text>
-                  <Text style={styles.goalLabel}>Carbohidratos</Text>
-                </View>
-
-                <View style={styles.goalItem}>
-                  <Ionicons name="water" size={24} color={colors.status.success} />
-                  <Text style={styles.goalValue}>{aiGoals.water_ml}ml</Text>
-                  <Text style={styles.goalLabel}>Agua</Text>
-                </View>
-
-                <View style={styles.goalItem}>
-                  <Ionicons name="footsteps" size={24} color={colors.status.info} />
-                  <Text style={styles.goalValue}>{aiGoals.steps_daily.toLocaleString()}</Text>
-                  <Text style={styles.goalLabel}>Pasos/día</Text>
-                </View>
-
-                <View style={styles.goalItem}>
-                  <Ionicons name="bicycle" size={24} color={colors.text.secondary} />
-                  <Text style={styles.goalValue}>{aiGoals.workout_frequency}</Text>
-                  <Text style={styles.goalLabel}>Ejercicio</Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Error Message */}
-          {!!error && (
-            <View style={styles.errorCard}>
-              <Ionicons name="warning" size={20} color={colors.status.error} />
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
-
-          {/* Action Buttons */}
-          <View style={styles.actionSection}>
-            {!showResults ? (
-              <TouchableOpacity
-                style={[styles.generateButton, isGenerating && styles.generateButtonDisabled]}
-                onPress={generateAIGoals}
-                disabled={isGenerating}
-              >
-                <LinearGradient
-                  colors={[colors.primary.sky, '#0EA5E9']}
-                  style={styles.generateButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  {isGenerating ? (
-                    <ActivityIndicator size="small" color={colors.text.primary} />
-                  ) : (
-                    <>
-                      <Ionicons name="sparkles" size={20} color={colors.text.primary} />
-                      <Text style={styles.generateButtonText}>Generar con IA</Text>
-                    </>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={saveAIGoals}
-              >
-                <LinearGradient
-                  colors={[colors.status.success, '#059669']}
-                  style={styles.saveButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Ionicons name="checkmark-circle" size={20} color={colors.text.primary} />
-                  <Text style={styles.saveButtonText}>Usar estas metas</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-              style={styles.manualButton}
-              onPress={handleManualSetup}
-            >
-              <Ionicons name="create" size={20} color={colors.text.secondary} />
-              <Text style={styles.manualButtonText}>Configurar manualmente</Text>
+          {showResults && (
+            <TouchableOpacity style={styles.confirmButton} onPress={saveAIGoals}>
+              <LinearGradient colors={['#FBBF24', '#D97706']} style={styles.buttonGradient}>
+                 <Text style={styles.buttonText}>Aceptar Plan IA</Text>
+                 <Ionicons name="arrow-forward" size={20} color="#000" />
+              </LinearGradient>
             </TouchableOpacity>
-          </View>
+          )}
 
-          {/* Privacy Note */}
-          <View style={styles.privacyNote}>
-            <Ionicons name="shield-checkmark" size={16} color={colors.text.muted} />
-            <Text style={styles.privacyText}>
-              Tus metas se guardan de forma privada y puedes cambiarlas cuando quieras
-            </Text>
-          </View>
+          <TouchableOpacity 
+            style={styles.manualButton}
+            onPress={() => navigation.navigate('OnboardingGoals' as never)}
+          >
+            <Text style={styles.manualButtonText}>Configurar manualmente</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -316,299 +179,36 @@ export default function OnboardingAIGoalsScreen() {
 }
 
 const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.primary,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.lg,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.background.card,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.background.border,
-  },
-  progressContainer: {
-    flex: 1,
-    height: 4,
-    backgroundColor: colors.background.tertiary,
-    borderRadius: 2,
-    marginLeft: SPACING.md,
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: colors.primary.sky,
-    borderRadius: 2,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: SPACING.lg,
-  },
-  titleSection: {
-    marginBottom: SPACING.xl,
-  },
-  title: {
-    fontSize: FONTS.sizes['3xl'],
-    fontWeight: FONTS.weights.bold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
-    marginBottom: SPACING.sm,
-  },
-  subtitle: {
-    fontSize: FONTS.sizes.base,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
-    lineHeight: 24,
-  },
-  aiCard: {
-    borderRadius: BORDER_RADIUS.xl,
-    overflow: 'hidden',
-    marginBottom: SPACING.xl,
-    ...SHADOWS.lg,
-  },
-  aiGradient: {
-    padding: SPACING.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aiContent: {
-    alignItems: 'center',
-  },
-  generatingContent: {
-    alignItems: 'center',
-  },
-  generatingText: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.bold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
-    marginTop: SPACING.md,
-    marginBottom: SPACING.sm,
-  },
-  generatingSubtext: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
-    textAlign: 'center',
-  },
-  resultsContent: {
-    alignItems: 'center',
-  },
-  aiIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-  resultsTitle: {
-    fontSize: FONTS.sizes['2xl'],
-    fontWeight: FONTS.weights.bold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
-    marginBottom: SPACING.sm,
-  },
-  resultsSubtitle: {
-    fontSize: FONTS.sizes.base,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
-    textAlign: 'center',
-  },
-  initialContent: {
-    alignItems: 'center',
-  },
-  initialTitle: {
-    fontSize: FONTS.sizes.xl,
-    fontWeight: FONTS.weights.bold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
-    marginBottom: SPACING.sm,
-  },
-  initialSubtitle: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
-    textAlign: 'center',
-  },
-  resultsSection: {
-    marginBottom: SPACING.xl,
-  },
-  sectionTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.semibold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
-    marginBottom: SPACING.md,
-  },
-  reasoningCard: {
-    backgroundColor: colors.background.card,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.lg,
-    marginBottom: SPACING.lg,
-    borderWidth: 1,
-    borderColor: colors.background.border,
-    ...SHADOWS.sm,
-  },
-  reasoningHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-    gap: SPACING.sm,
-  },
-  reasoningTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.semibold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
-  },
-  reasoningText: {
-    fontSize: FONTS.sizes.base,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
-    lineHeight: 22,
-  },
-  goalsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  goalItem: {
-    width: '48%',
-    backgroundColor: colors.background.card,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.lg,
-    marginBottom: SPACING.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.background.border,
-    ...SHADOWS.sm,
-  },
-  goalValue: {
-    fontSize: FONTS.sizes.xl,
-    fontWeight: FONTS.weights.bold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
-    marginBottom: SPACING.xs,
-  },
-  goalLabel: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
-    textAlign: 'center',
-  },
-  errorCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEF2F2',
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    marginBottom: SPACING.lg,
-    borderWidth: 1,
-    borderColor: colors.status.error,
-  },
-  errorText: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.status.error,
-    fontFamily: FONTS.primary,
-    marginLeft: SPACING.sm,
-    flex: 1,
-  },
-  actionSection: {
-    marginBottom: SPACING.xl,
-  },
-  generateButton: {
-    borderRadius: BORDER_RADIUS.lg,
-    overflow: 'hidden',
-    marginBottom: SPACING.md,
-    ...SHADOWS.md,
-  },
-  generateButtonDisabled: {
-    opacity: 0.6,
-  },
-  generateButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: SPACING.lg,
-    paddingHorizontal: SPACING.xl,
-    gap: SPACING.sm,
-  },
-  generateButtonText: {
-    fontSize: FONTS.sizes.base,
-    fontWeight: FONTS.weights.semibold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
-  },
-  saveButton: {
-    borderRadius: BORDER_RADIUS.lg,
-    overflow: 'hidden',
-    marginBottom: SPACING.md,
-    ...SHADOWS.md,
-  },
-  saveButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: SPACING.lg,
-    paddingHorizontal: SPACING.xl,
-    gap: SPACING.sm,
-  },
-  saveButtonText: {
-    fontSize: FONTS.sizes.base,
-    fontWeight: FONTS.weights.semibold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
-  },
-  manualButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background.card,
-    borderRadius: BORDER_RADIUS.lg,
-    paddingVertical: SPACING.lg,
-    paddingHorizontal: SPACING.xl,
-    borderWidth: 1,
-    borderColor: colors.background.border,
-    gap: SPACING.sm,
-  },
-  manualButtonText: {
-    fontSize: FONTS.sizes.base,
-    fontWeight: FONTS.weights.semibold,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
-  },
-  privacyNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.tertiary,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    marginTop: SPACING.md,
-  },
-  privacyText: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.muted,
-    fontFamily: FONTS.primary,
-    marginLeft: SPACING.sm,
-    flex: 1,
-    lineHeight: 18,
-  },
+  container: { flex: 1, backgroundColor: '#000' },
+  scrollView: { flex: 1 },
+  scrollContent: { flexGrow: 1, paddingBottom: SPACING['3xl'] },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, height: 60 },
+  backButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' },
+  progressWrapper: { flex: 1, marginLeft: SPACING.lg },
+  progressBackground: { height: 6, backgroundColor: '#111', borderRadius: 3, overflow: 'hidden', marginBottom: 4 },
+  progressBar: { height: '100%', backgroundColor: '#FBBF24', borderRadius: 3 },
+  progressLabel: { fontSize: 10, fontWeight: '800', color: '#6B7280', letterSpacing: 1 },
+  content: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xl },
+  titleSection: { marginBottom: SPACING.xl },
+  title: { fontSize: 32, fontWeight: '800', color: '#FFF', letterSpacing: -0.5 },
+  subtitle: { fontSize: 16, color: '#9CA3AF', lineHeight: 22 },
+  aiCard: { backgroundColor: '#111', borderRadius: BORDER_RADIUS.xl, padding: SPACING.xl, borderWidth: 1, borderColor: '#222' },
+  aiInitialContent: { alignItems: 'center', gap: SPACING.md },
+  aiIconWrapper: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(251, 191, 36, 0.1)', justifyContent: 'center', alignItems: 'center' },
+  aiCardTitle: { fontSize: 20, fontWeight: '800', color: '#FFF' },
+  aiCardDesc: { fontSize: 14, color: '#6B7280', textAlign: 'center' },
+  generateButton: { width: '100%', borderRadius: BORDER_RADIUS.lg, overflow: 'hidden', marginTop: SPACING.md },
+  buttonGradient: { height: 56, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  buttonText: { fontSize: 16, fontWeight: '800', color: '#000' },
+  aiResultsContent: { gap: SPACING.xl },
+  reasoningCard: { backgroundColor: '#1A1A1A', padding: SPACING.md, borderRadius: BORDER_RADIUS.lg, borderLeftWidth: 3, borderLeftColor: '#FBBF24' },
+  reasoningLabel: { fontSize: 12, fontWeight: '800', color: '#FBBF24', marginBottom: 4 },
+  reasoningText: { fontSize: 14, color: '#FFF', lineHeight: 20 },
+  goalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+  goalBox: { flex: 1, minWidth: '45%', backgroundColor: '#1A1A1A', padding: SPACING.md, borderRadius: BORDER_RADIUS.lg, alignItems: 'center' },
+  goalVal: { fontSize: 22, fontWeight: '900', color: '#FFF' },
+  goalLab: { fontSize: 10, fontWeight: '800', color: '#6B7280', letterSpacing: 1 },
+  confirmButton: { marginTop: SPACING.xl, borderRadius: BORDER_RADIUS.xl, overflow: 'hidden' },
+  manualButton: { marginTop: SPACING.lg, alignItems: 'center' },
+  manualButtonText: { color: '#6B7280', fontSize: 14, fontWeight: '600', textDecorationLine: 'underline' },
 });

@@ -1,6 +1,6 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,7 +10,7 @@ import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
 import { useOnboardingStore } from '@/store/onboarding-store';
 import { analytics } from '@/services/analytics';
-import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 export default function OnboardingBirthDateScreen() {
   const { colors, isDark } = useThemeColors();
@@ -19,7 +19,8 @@ export default function OnboardingBirthDateScreen() {
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
-  const { setData: setOnboardingData } = useOnboardingStore();
+  const { data: onboardingData, setData: setOnboardingData } = useOnboardingStore();
+  const firstName = onboardingData?.onboarding_metadata?.first_name || '';
   const [birthDate, setBirthDate] = useState(() => {
     const d = new Date();
     d.setFullYear(d.getFullYear() - 18);
@@ -52,7 +53,6 @@ export default function OnboardingBirthDateScreen() {
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    // En Android cerramos el picker tras la selección
     if (Platform.OS === 'android') {
       setShowPicker(false);
     }
@@ -60,7 +60,6 @@ export default function OnboardingBirthDateScreen() {
     if (selectedDate) {
       const selectedAge = calculateAge(selectedDate);
       
-      // Validación: usuario debe tener al menos 13 años
       if (selectedAge < 13) {
         Alert.alert(
           'Edad Mínima',
@@ -70,7 +69,6 @@ export default function OnboardingBirthDateScreen() {
         return;
       }
       
-      // Validación: usuario no debe tener más de 120 años
       if (selectedAge > 120) {
         Alert.alert(
           'Fecha Inválida',
@@ -88,13 +86,11 @@ export default function OnboardingBirthDateScreen() {
     setIsLoading(true);
     try {
       if (user) {
-        // Sincronizado con Prisma: profiles.birth_date (DateTime)
         await updateProfile.mutateAsync({
-          birth_date: birthDate.toISOString(), // DateTime format for Prisma
+          birth_date: birthDate.toISOString(),
           onboarding_step: 'goals',
         });
       } else {
-        // En store temporal
         setOnboardingData({ birth_date: birthDate.toISOString() });
       }
 
@@ -128,49 +124,50 @@ export default function OnboardingBirthDateScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.text.secondary} />
+            <Ionicons name="chevron-back" size={24} color="#FFF" />
           </TouchableOpacity>
           
-          <View style={styles.progressContainer}>
-            <View style={[styles.progressBar, { width: '50%' }]} />
+          <View style={styles.progressWrapper}>
+             <View style={styles.progressBackground}>
+               <View style={[styles.progressBar, { width: '30%' }]} />
+             </View>
+             <Text style={styles.progressLabel}>PASO 3 DE 10</Text>
           </View>
         </View>
 
-        {/* Content */}
         <View style={styles.content}>
           <View style={styles.titleSection}>
-            <Text style={styles.title}>¿Cuándo es tu cumpleaños?</Text>
+            <Text style={styles.title}>
+              {firstName ? `¡Excelente, ${firstName}!` : '¿Cuándo es tu cumpleaños?'}
+            </Text>
             <Text style={styles.subtitle}>
-              Esto nos ayuda a calcular tus necesidades calóricas y metas apropiadas
+              Tu edad es clave para calcular tus necesidades calóricas con precisión.
             </Text>
           </View>
 
-          {/* Age Display - Now Modifiable */}
           <View style={styles.ageCard}>
             <View style={styles.ageIconContainer}>
-              <Ionicons name="gift" size={32} color={colors.primary.sky} />
+              <Ionicons name="gift" size={32} color="#FBBF24" />
             </View>
             <View style={styles.ageContent}>
               <Text style={styles.ageLabel}>Tu edad estimada</Text>
               <View style={styles.ageAdjuster}>
                 <TouchableOpacity onPress={() => adjustAge(-1)} style={styles.adjustBtn}>
-                  <Ionicons name="remove-circle-outline" size={28} color={colors.primary.sky} />
+                  <Ionicons name="remove-circle-outline" size={28} color="#FBBF24" />
                 </TouchableOpacity>
                 <Text style={styles.ageValue}>{userAge} años</Text>
                 <TouchableOpacity onPress={() => adjustAge(1)} style={styles.adjustBtn}>
-                  <Ionicons name="add-circle-outline" size={28} color={colors.primary.sky} />
+                  <Ionicons name="add-circle-outline" size={28} color="#FBBF24" />
                 </TouchableOpacity>
               </View>
             </View>
           </View>
 
-          {/* Date Picker Button */}
           <View style={styles.dateCardContainer}>
             <TouchableOpacity
               style={styles.dateCard}
@@ -180,44 +177,34 @@ export default function OnboardingBirthDateScreen() {
             >
               <View style={styles.dateContent}>
                 <View style={styles.dateIconContainer}>
-                  <Ionicons name="calendar-outline" size={24} color={colors.primary.sky} />
+                  <Ionicons name="calendar-outline" size={24} color="#FBBF24" />
                 </View>
                 <View style={styles.dateText}>
                   <Text style={styles.dateLabel}>Fecha seleccionada</Text>
                   <Text style={styles.dateValue}>{formatDate(birthDate)}</Text>
                 </View>
-                <Ionicons name="create-outline" size={24} color={colors.primary.sky} />
+                <Ionicons name="create-outline" size={24} color="#FBBF24" />
               </View>
             </TouchableOpacity>
           </View>
 
-          {/* Info Cards */}
           <View style={styles.infoSection}>
             <View style={styles.infoCard}>
-              <Ionicons name="shield-checkmark" size={20} color={colors.status.success} />
+              <Ionicons name="shield-checkmark" size={20} color="#FBBF24" />
               <Text style={styles.infoText}>
                 Tu información es segura y privada
               </Text>
             </View>
             
             <View style={styles.infoCard}>
-              <Ionicons name="calculator" size={20} color={colors.primary.amber} />
+              <Ionicons name="calculator" size={20} color="#FBBF24" />
               <Text style={styles.infoText}>
                 Usamos tu edad para calcular metas personalizadas
               </Text>
             </View>
           </View>
-
-          {/* Privacy Note */}
-          <View style={styles.privacyNote}>
-            <Ionicons name="lock-closed" size={16} color={colors.text.muted} />
-            <Text style={styles.privacyText}>
-              Cumplimos con las normativas GDPR de protección de datos.
-            </Text>
-          </View>
         </View>
 
-        {/* Continue Button */}
         <View style={styles.footer}>
           <TouchableOpacity
             style={[
@@ -228,25 +215,24 @@ export default function OnboardingBirthDateScreen() {
             disabled={isLoading}
           >
             <LinearGradient
-              colors={[colors.primary.sky, '#0EA5E9']}
+              colors={['#FBBF24', '#D97706']}
               style={styles.continueButtonGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
               {isLoading ? (
-                <Text style={styles.continueButtonText}>Guardando...</Text>
+                <ActivityIndicator color="#000" />
               ) : (
-                <>
+                <View style={styles.buttonLayout}>
                   <Text style={styles.continueButtonText}>Continuar</Text>
-                  <Ionicons name="arrow-forward" size={20} color={colors.text.primary} />
-                </>
+                  <Ionicons name="arrow-forward" size={20} color="#000" />
+                </View>
               )}
             </LinearGradient>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Date Picker Modal / View */}
       {showPicker && (
         <View style={Platform.OS === 'ios' ? styles.iosPickerModal : null}>
           {Platform.OS === 'ios' && (
@@ -277,100 +263,100 @@ export default function OnboardingBirthDateScreen() {
 const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#000',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: SPACING['3xl'],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.md,
-    paddingBottom: SPACING.lg,
+    height: 60,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.background.card,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#111',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.background.border,
   },
-  progressContainer: {
+  progressWrapper: {
     flex: 1,
-    height: 4,
-    backgroundColor: colors.background.tertiary,
-    borderRadius: 2,
-    marginLeft: SPACING.md,
+    marginLeft: SPACING.lg,
+  },
+  progressBackground: {
+    height: 6,
+    backgroundColor: '#111',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 4,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: colors.primary.sky,
-    borderRadius: 2,
+    backgroundColor: '#FBBF24',
+    borderRadius: 3,
+  },
+  progressLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#6B7280',
+    letterSpacing: 1,
   },
   content: {
-    flex: 1,
     paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xl,
   },
   titleSection: {
     marginBottom: SPACING.xl,
   },
   title: {
-    fontSize: FONTS.sizes['3xl'],
-    fontWeight: FONTS.weights.bold,
-    color: colors.text.primary,
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFF',
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: FONTS.sizes.base,
-    color: colors.text.secondary,
+    fontSize: 16,
+    color: '#9CA3AF',
     fontFamily: FONTS.primary,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   ageCard: {
-    backgroundColor: colors.background.card,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.lg,
-    marginBottom: SPACING.lg,
+    backgroundColor: '#111',
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.xl,
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: SPACING.xl,
     borderWidth: 1,
-    borderColor: colors.background.border,
-    ...SHADOWS.sm,
+    borderColor: '#222',
   },
   ageIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: `${colors.primary.sky}20`,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: SPACING.md,
+    marginRight: SPACING.lg,
   },
   ageContent: {
     flex: 1,
   },
   ageLabel: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.muted,
+    fontSize: 14,
+    color: '#6B7280',
     fontFamily: FONTS.primary,
-    marginBottom: SPACING.xs,
-  },
-  ageValue: {
-    fontSize: FONTS.sizes['2xl'],
-    fontWeight: FONTS.weights.bold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
-    minWidth: 40,
-    textAlign: 'center',
+    marginBottom: 4,
   },
   ageAdjuster: {
     flexDirection: 'row',
@@ -380,27 +366,31 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   adjustBtn: {
     padding: 4,
   },
+  ageValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#FFF',
+    fontFamily: FONTS.primary,
+  },
   dateCardContainer: {
     marginBottom: SPACING.xl,
   },
   dateCard: {
-    backgroundColor: colors.background.card,
-    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: '#111',
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.md,
     borderWidth: 1,
-    borderColor: colors.background.border,
-    marginBottom: SPACING.xl,
-    ...SHADOWS.sm,
+    borderColor: '#222',
   },
   dateContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: SPACING.lg,
   },
   dateIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: `${colors.primary.sky}20`,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.md,
@@ -409,15 +399,15 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     flex: 1,
   },
   dateLabel: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.muted,
+    fontSize: 13,
+    color: '#6B7280',
     fontFamily: FONTS.primary,
-    marginBottom: SPACING.xs,
+    marginBottom: 4,
   },
   dateValue: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.semibold,
-    color: colors.text.primary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFF',
     fontFamily: FONTS.primary,
   },
   infoSection: {
@@ -426,30 +416,16 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.tertiary,
-    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: '#111',
+    borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     marginBottom: SPACING.sm,
+    borderWidth: 1,
+    borderColor: '#222',
   },
   infoText: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
-    marginLeft: SPACING.sm,
-    flex: 1,
-    lineHeight: 18,
-  },
-  privacyNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.tertiary,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    marginTop: SPACING.md,
-  },
-  privacyText: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.muted,
+    fontSize: 13,
+    color: '#9CA3AF',
     fontFamily: FONTS.primary,
     marginLeft: SPACING.sm,
     flex: 1,
@@ -461,52 +437,52 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     paddingTop: SPACING.md,
   },
   continueButton: {
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.xl,
     overflow: 'hidden',
-    ...SHADOWS.md,
+  },
+  continueButtonDisabled: {
+    opacity: 0.5,
   },
   continueButtonLoading: {
     opacity: 0.8,
   },
   continueButtonGradient: {
+    height: 64,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonLayout: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.xl,
     gap: SPACING.sm,
   },
   continueButtonText: {
-    fontSize: FONTS.sizes.base,
-    fontWeight: FONTS.weights.semibold,
-    color: colors.text.primary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
     fontFamily: FONTS.primary,
   },
   iosPickerModal: {
-    backgroundColor: colors.background.card,
+    backgroundColor: '#111',
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    paddingBottom: 40,
     borderTopWidth: 1,
-    borderTopColor: colors.background.border,
-    ...SHADOWS.lg,
+    borderTopColor: '#222',
   },
   iosPickerHeader: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     padding: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background.border,
+    backgroundColor: '#1A1A1A',
   },
   iosPickerDoneButton: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+    padding: 8,
   },
   iosPickerDoneText: {
-    color: colors.primary.sky,
-    fontWeight: 'bold',
-    fontSize: FONTS.sizes.base,
+    color: '#FBBF24',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

@@ -1,6 +1,6 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, TextInput, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, TextInput, ActivityIndicator, Alert, Image, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ghost, Sparkles, Send, Utensils, Zap, ChefHat, Salad, Coffee, ChefHat as ChefIcon } from 'lucide-react-native';
@@ -11,7 +11,9 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '@/store';
 import { useScanStore } from '@/store/scans';
 import { useTierPermissions } from '@/hooks/useTierPermissions';
+import { useProfile } from '@/hooks/useProfile';
 import { PremiumGuard } from '@/components/ui/PremiumGuard';
+import { Target, TrendingUp, BrainCircuit } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -19,6 +21,17 @@ const NoFatScreen = () => {
   const { colors, isDark } = useThemeColors();
   const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
   const navigation = useNavigation<any>();
+  const { profile } = useProfile();
+
+  const isWeekend = React.useMemo(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const hour = now.getHours();
+    // Viernes después de las 4 PM (5) hasta Domingo (0)
+    if (day === 5 && hour >= 16) return true;
+    if (day === 6 || day === 0) return true;
+    return false;
+  }, []);
 
   const [chatInput, setChatInput] = React.useState('');
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -214,6 +227,77 @@ const NoFatScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Tu Plan para Hoy Card - Dashboard Hook */}
+        {profile?.nutritional_plan?.plan_nutricional && (
+          <View style={styles.planCardContainer}>
+            <LinearGradient
+              colors={['#FBBF24', '#D97706']}
+              style={styles.planCard}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.planHeader}>
+                <View style={styles.planIconCircle}>
+                  <Sparkles size={20} color="#000" fill="#000" />
+                </View>
+                <Text style={styles.planTitle}>Tu Plan Personalizado</Text>
+              </View>
+
+              <View style={styles.planStatsRow}>
+                <View style={styles.planStatItem}>
+                  <Text style={styles.planStatValue}>{profile.nutritional_plan.plan_nutricional.calorias_objetivo}</Text>
+                  <Text style={styles.planStatLabel}>kcal/día</Text>
+                </View>
+                <View style={styles.planStatDivider} />
+                <View style={styles.planStatItem}>
+                  <Text style={styles.planStatValue}>{profile.nutritional_plan.plan_nutricional.macros.proteina_g}g</Text>
+                  <Text style={styles.planStatLabel}>Proteína</Text>
+                </View>
+                <View style={styles.planStatDivider} />
+                <View style={styles.planStatItem}>
+                  <Text style={styles.planStatValue}>{profile.nutritional_plan.plan_nutricional.macros.carbos_g}g</Text>
+                  <Text style={styles.planStatLabel}>Carbos</Text>
+                </View>
+              </View>
+
+              <View style={styles.planInsightBox}>
+                <BrainCircuit size={16} color="#000" />
+                <Text style={styles.planInsightText} numberOfLines={2}>
+                  {profile.nutritional_plan.estrategia_conductual.tip_motivacional_personalizado || "Confía en el proceso. Cada alimento registrado te acerca a tu meta."}
+                </Text>
+              </View>
+
+              {/* 🏕️ WEEKEND SURVIVAL MODE */}
+              {isWeekend && profile.nutritional_plan?.estrategia_conductual?.hack_fines_de_semana && (
+                <View style={styles.weekendNoticeBox}>
+                   <Zap size={14} color="#000" />
+                   <Text style={styles.weekendNoticeText}>
+                      Finde: {profile.nutritional_plan.estrategia_conductual.hack_fines_de_semana}
+                   </Text>
+                </View>
+              )}
+
+              {/* ✨ SAFETY BUFFER NOTICE ✨ */}
+              {((profile.gender === 'female' && profile.nutritional_plan.plan_nutricional.calorias_objetivo <= 1200) || 
+                (profile.gender === 'male' && profile.nutritional_plan.plan_nutricional.calorias_objetivo <= 1500)) && (
+                <View style={styles.safetyNoticeBox}>
+                   <Ionicons name="shield-checkmark" size={14} color="#000" />
+                   <Text style={styles.safetyNoticeText}>
+                     Ajustado por seguridad metabólica para evitar efecto rebote.
+                   </Text>
+                </View>
+              )}
+
+              <View style={styles.planMetaRow}>
+                <TrendingUp size={14} color="rgba(0,0,0,0.6)" />
+                <Text style={styles.planMetaText}>
+                  Meta: {profile.nutritional_plan.plan_nutricional.fecha_meta_estimada}
+                </Text>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.brandRow}>
@@ -962,6 +1046,138 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: '#FBBF24',
     fontSize: 11,
     fontWeight: '900',
+  },
+  // --- Plan Card Styles ---
+  planCardContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+    marginTop: 10,
+  },
+  planCard: {
+    borderRadius: 30,
+    padding: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#FBBF24',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.2,
+        shadowRadius: 15,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
+  },
+  planHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  planIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  planTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#000',
+    letterSpacing: -0.5,
+  },
+  planStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+  },
+  planStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  planStatValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#000',
+  },
+  planStatLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: 'rgba(0,0,0,0.6)',
+    textTransform: 'uppercase',
+    marginTop: 2,
+  },
+  planStatDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+  },
+  planInsightBox: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 16,
+    padding: 12,
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  planInsightText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#000',
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  planMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    justifyContent: 'flex-end',
+  },
+  planMetaText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: 'rgba(0,0,0,0.6)',
+  },
+  safetyNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  safetyNoticeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#000',
+  },
+  weekendNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FBBF24',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+  },
+  weekendNoticeText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#000',
+    flex: 1,
   },
 });
 

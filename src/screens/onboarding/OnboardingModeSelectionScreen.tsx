@@ -8,8 +8,9 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useAuthStore } from '@/store';
 import { supabase } from '@/services/SupabaseContext';
 import { useOnboardingStore } from '@/store/onboarding-store';
-import { FONTS, SPACING, BORDER_RADIUS, SHADOWS, SCREEN } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import { analytics } from '@/services/analytics';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function OnboardingModeSelectionScreen() {
   const { colors } = useThemeColors();
@@ -28,25 +29,18 @@ export default function OnboardingModeSelectionScreen() {
       const coachStyle = isHard ? 'reto' : 'apoyo';
 
       if (user) {
-        console.log(`[Onboarding] Syncing Coach Mode: ${selectedMode}`);
-        // Logged in: update DB
         const { error } = await supabase
           .from('profiles')
           .update({ 
             coach_mode: selectedMode,
             coach_style: coachStyle,
-            onboarding_completed: true,
-            onboarding_step: 'completed'
           })
           .eq('id', user.id);
 
         if (error) throw new Error(error.message);
-        
-        if (refreshProfile) await refreshProfile();
         analytics.trackOnboardingStep('coach_mode_selected', { mode: selectedMode });
-        navigation.dispatch(StackActions.replace('Main'));
+        navigation.navigate('OnboardingGeneratingPlan' as never);
       } else {
-        // Anonymous: save to store and go to SignUp
         setOnboardingData({ 
           coach_style: coachStyle
         });
@@ -67,86 +61,97 @@ export default function OnboardingModeSelectionScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color="#FFF" />
+          </TouchableOpacity>
+          <View style={styles.progressWrapper}>
+             <View style={styles.progressBackground}>
+               <View style={[styles.progressBar, { width: '90%' }]} />
+             </View>
+             <Text style={styles.progressLabel}>PASO 10 DE 10</Text>
+          </View>
+        </View>
+
         <View style={styles.content}>
-          <Animated.View entering={FadeInDown.delay(100)} style={styles.header}>
+          <View style={styles.titleSection}>
             <Text style={styles.title}>Selecciona tu Modo</Text>
-            <Text style={styles.subtitle}>Esto define la personalidad de tu Coach IA</Text>
-          </Animated.View>
-
-          <View style={styles.grid}>
-            {/* Tarjeta A: Fuego Real (Hard) */}
-            <Animated.View entering={FadeInDown.delay(300)}>
-              <Pressable
-                onPress={() => setSelectedMode('hard')}
-                disabled={loading}
-                style={[
-                  styles.card,
-                  styles.hardCard,
-                  selectedMode === 'hard' && styles.hardCardSelected,
-                ]}
-              >
-                <View style={styles.cardHeader}>
-                  <View style={[styles.iconContainer, { backgroundColor: '#FF006620' }]}>
-                    <Ionicons name="flame" size={32} color="#FF0066" />
-                  </View>
-                  <View style={styles.cardTitleContainer}>
-                    <Text style={styles.cardTitle}>Fuego Real</Text>
-                    <Text style={styles.cardBadge}>HARD</Text>
-                  </View>
-                </View>
-                <Text style={styles.cardDescription}>
-                  La IA será tu espejo: sin excusas ni filtros. No esperes amabilidad; prepárate para la verdad cruda y una disciplina implacable para alcanzar tus metas.
-                </Text>
-              </Pressable>
-            </Animated.View>
-
-            {/* Tarjeta B: Modo Aliado (Soft/Friendly) */}
-            <Animated.View entering={FadeInDown.delay(500)}>
-              <Pressable
-                onPress={() => setSelectedMode('friendly')}
-                disabled={loading}
-                style={[
-                  styles.card,
-                  styles.softCard,
-                  selectedMode === 'friendly' && styles.softCardSelected,
-                ]}
-              >
-                <View style={styles.cardHeader}>
-                  <View style={[styles.iconContainer, { backgroundColor: '#10B98120' }]}>
-                    <Ionicons name="heart" size={32} color="#10B981" />
-                  </View>
-                  <View style={styles.cardTitleContainer}>
-                    <Text style={styles.cardTitle}>Modo Aliado</Text>
-                    <Text style={[styles.cardBadge, { backgroundColor: '#10B981', color: '#FFF' }]}>SOFT</Text>
-                  </View>
-                </View>
-                <Text style={styles.cardDescription}>
-                  La IA será tu apoyo: mensajes motivadores y progreso guiado con empatía.
-                </Text>
-              </Pressable>
-            </Animated.View>
+            <Text style={styles.subtitle}>Esto define la personalidad y el tono de tu Coach IA.</Text>
           </View>
 
-          <Animated.View entering={FadeIn.delay(700)} style={styles.footer}>
-            <TouchableOpacity 
+          <View style={styles.grid}>
+            <Pressable
+              onPress={() => setSelectedMode('hard')}
               style={[
-                styles.continueBtn, 
-                !selectedMode && styles.continueBtnDisabled,
-                loading && { opacity: 0.8 }
+                styles.card,
+                selectedMode === 'hard' && styles.cardSelectedHard,
               ]}
-              onPress={handleConfirm}
-              disabled={!selectedMode || loading}
+            >
+              <View style={styles.cardHeader}>
+                <View style={[styles.iconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
+                  <Ionicons name="flame" size={28} color="#EF4444" />
+                </View>
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardTitle}>Fuego Real</Text>
+                  <View style={styles.badgeHard}><Text style={styles.badgeText}>RETO</Text></View>
+                </View>
+              </View>
+              <Text style={styles.cardDescription}>
+                Tu Coach será implacable. Sin filtros ni excusas. Prepárate para la disciplina cruda necesaria para resultados extremos.
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setSelectedMode('friendly')}
+              style={[
+                styles.card,
+                selectedMode === 'friendly' && styles.cardSelectedFriendly,
+              ]}
+            >
+              <View style={styles.cardHeader}>
+                <View style={[styles.iconContainer, { backgroundColor: 'rgba(251, 191, 36, 0.1)' }]}>
+                  <Ionicons name="heart" size={28} color="#FBBF24" />
+                </View>
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardTitle}>Modo Aliado</Text>
+                  <View style={styles.badgeFriendly}><Text style={styles.badgeText}>APOYO</Text></View>
+                </View>
+              </View>
+              <Text style={styles.cardDescription}>
+                Un acompañamiento empático y motivador. Metas progresivas con un enfoque en la sostenibilidad y el bienestar.
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.footer}>
+          <TouchableOpacity 
+            style={[
+              styles.continueButton, 
+              !selectedMode && styles.buttonDisabled
+            ]}
+            onPress={handleConfirm}
+            disabled={!selectedMode || loading}
+          >
+            <LinearGradient
+              colors={['#FBBF24', '#D97706']}
+              style={styles.gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
             >
               {loading ? (
                 <ActivityIndicator color="#000" />
               ) : (
-                <Text style={styles.continueBtnText}>
-                  {selectedMode ? 'Comenzar ahora' : 'Selecciona un modo'}
-                </Text>
+                <View style={styles.buttonLayout}>
+                  <Text style={styles.continueButtonText}>Activar Coach</Text>
+                  <Ionicons name="arrow-forward" size={20} color="#000" />
+                </View>
               )}
-            </TouchableOpacity>
-            <Text style={styles.footerNote}>Puedes cambiar esto luego en tu perfil.</Text>
-          </Animated.View>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -156,138 +161,160 @@ export default function OnboardingModeSelectionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#000',
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: SPACING['3xl'],
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
+    height: 60,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#111',
     justifyContent: 'center',
-    paddingVertical: SPACING.xl,
+    alignItems: 'center',
+  },
+  progressWrapper: {
+    flex: 1,
+    marginLeft: SPACING.lg,
+  },
+  progressBackground: {
+    height: 6,
+    backgroundColor: '#111',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#FBBF24',
+    borderRadius: 3,
+  },
+  progressLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#6B7280',
+    letterSpacing: 1,
   },
   content: {
     paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xl,
   },
-  header: {
+  titleSection: {
     marginBottom: SPACING.xl,
-    alignItems: 'center',
   },
   title: {
-    fontSize: FONTS.sizes['3xl'],
+    fontSize: 32,
     fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: SPACING.sm,
+    color: '#FFF',
     fontFamily: FONTS.primary,
-    textAlign: 'center',
+    marginBottom: SPACING.sm,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: FONTS.sizes.base,
+    fontSize: 16,
     color: '#9CA3AF',
-    textAlign: 'center',
     fontFamily: FONTS.primary,
     lineHeight: 22,
   },
   grid: {
-    gap: SPACING.md,
+    gap: SPACING.lg,
   },
   card: {
-    backgroundColor: '#111111',
+    backgroundColor: '#111',
     borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING.lg,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.05)',
-    ...SHADOWS.md,
-    position: 'relative',
+    padding: SPACING.xl,
+    borderWidth: 1,
+    borderColor: '#222',
+  },
+  cardSelectedHard: {
+    borderColor: '#EF4444',
+    backgroundColor: 'rgba(239, 68, 68, 0.05)',
+  },
+  cardSelectedFriendly: {
+    borderColor: '#FBBF24',
+    backgroundColor: 'rgba(251, 191, 36, 0.05)',
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACING.md,
     gap: SPACING.md,
+    marginBottom: SPACING.md,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: BORDER_RADIUS.md,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cardTitleContainer: {
+  cardInfo: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   cardTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    fontFamily: FONTS.primary,
-  },
-  cardBadge: {
-    fontSize: 10,
+    fontSize: 20,
     fontWeight: '800',
+    color: '#FFF',
+  },
+  badgeHard: {
+    backgroundColor: '#EF4444',
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    backgroundColor: '#FF0066',
-    color: '#FFFFFF',
-    overflow: 'hidden',
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  badgeFriendly: {
+    backgroundColor: '#FBBF24',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#000',
   },
   cardDescription: {
-    fontSize: FONTS.sizes.sm,
-    color: '#D1D5DB',
+    fontSize: 14,
+    color: '#9CA3AF',
     lineHeight: 20,
-    fontFamily: FONTS.primary,
-  },
-  loader: {
-    position: 'absolute',
-    top: SPACING.md,
-    right: SPACING.md,
-  },
-  hardCard: {
-    borderColor: 'rgba(255, 0, 102, 0.1)',
-  },
-  hardCardSelected: {
-    borderColor: '#FF0066',
-    backgroundColor: 'rgba(255, 0, 102, 0.05)',
-  },
-  softCard: {
-    borderColor: 'rgba(16, 185, 129, 0.1)',
-  },
-  softCardSelected: {
-    borderColor: '#10B981',
-    backgroundColor: 'rgba(16, 185, 129, 0.05)',
   },
   footer: {
-    marginTop: SPACING.xl,
-    alignItems: 'center',
-    paddingBottom: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING['2xl'],
   },
-  footerNote: {
-    color: '#6B7280',
-    fontSize: FONTS.sizes.xs,
-    fontFamily: FONTS.primary,
-    textAlign: 'center',
-    lineHeight: 18,
-    marginTop: SPACING.md,
+  continueButton: {
+    borderRadius: BORDER_RADIUS.xl,
+    overflow: 'hidden',
   },
-  continueBtn: {
-    backgroundColor: '#38BDF8', // sky-400
-    width: '100%',
-    paddingVertical: 18,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOWS.md,
-  },
-  continueBtnDisabled: {
-    backgroundColor: '#333333',
+  buttonDisabled: {
     opacity: 0.5,
   },
-  continueBtnText: {
-    color: '#000000',
-    fontSize: 16,
+  gradient: {
+    height: 64,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  buttonLayout: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  continueButtonText: {
+    fontSize: 18,
     fontWeight: '800',
-    fontFamily: FONTS.primary,
-    letterSpacing: -0.5,
+    color: '#000',
   },
 });

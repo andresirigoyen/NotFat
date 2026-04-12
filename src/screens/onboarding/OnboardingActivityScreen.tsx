@@ -1,22 +1,21 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
+import { useOnboardingStore } from '@/store/onboarding-store';
 import { analytics } from '@/services/analytics';
-import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
-// Sincronizado con Prisma: profiles.steps_goal (Int @default(10000))
 const STEPS_GOALS = [
-  { id: 5000, label: '5,000', description: 'Meta básica' },
-  { id: 8000, label: '8,000', description: 'Meta moderada' },
-  { id: 10000, label: '10,000', description: 'Meta recomendada' },
-  { id: 12000, label: '12,000', description: 'Meta alta' },
-  { id: 15000, label: '15,000', description: 'Meta muy alta' },
+  { id: 5000, label: '5k', description: 'Mínimo' },
+  { id: 8000, label: '8k', description: 'Activo' },
+  { id: 10000, label: '10k', description: 'Ideal' },
+  { id: 12000, label: '12k', description: 'Atleta' },
 ];
 
 export default function OnboardingActivityScreen() {
@@ -27,50 +26,38 @@ export default function OnboardingActivityScreen() {
     {
       id: 'sedentary',
       label: 'Sedentario',
-      description: 'Poco o ningún ejercicio',
-      icon: 'couch' as keyof typeof Ionicons.glyphMap,
-      color: colors.text.muted,
+      description: 'Poco ejercicio',
+      icon: 'bed-outline' as keyof typeof Ionicons.glyphMap,
       image: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400&h=300&fit=crop',
     },
     {
       id: 'light',
       label: 'Ligero',
-      description: '1-2 días por semana',
-      icon: 'walk' as keyof typeof Ionicons.glyphMap,
-      color: colors.primary.sky,
+      description: '1-2 días/sem',
+      icon: 'walk-outline' as keyof typeof Ionicons.glyphMap,
       image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
     },
     {
       id: 'moderate',
       label: 'Moderado',
-      description: '3-4 días por semana',
-      icon: 'bicycle' as keyof typeof Ionicons.glyphMap,
-      color: colors.primary.amber,
+      description: '3-4 días/sem',
+      icon: 'bicycle-outline' as keyof typeof Ionicons.glyphMap,
       image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=400&h=300&fit=crop',
     },
     {
       id: 'active',
       label: 'Activo',
-      description: '5-6 días por semana',
-      icon: 'fitness' as keyof typeof Ionicons.glyphMap,
-      color: colors.status.success,
+      description: '5-6 días/sem',
+      icon: 'fitness-outline' as keyof typeof Ionicons.glyphMap,
       image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
     },
-    {
-      id: 'very_active',
-      label: 'Muy Activo',
-      description: 'Todos los días o ejercicio intenso',
-      icon: 'flame' as keyof typeof Ionicons.glyphMap,
-      color: colors.status.error,
-      image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&h=300&fit=crop',
-    },
-  ], [colors]);
+  ], []);
 
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile, upsertActivityProfile } = useProfile();
+  const { setData: setOnboardingData } = useOnboardingStore();
   
-  // Estados para actividad (sincronizados con Prisma)
   const [selectedWorkout, setSelectedWorkout] = useState<string>('');
   const [selectedStepsGoal, setSelectedStepsGoal] = useState<number>(10000);
   const [isLoading, setIsLoading] = useState(false);
@@ -84,39 +71,38 @@ export default function OnboardingActivityScreen() {
   };
 
   const handleContinue = async () => {
-    if (!selectedWorkout || !user) return;
+    if (!selectedWorkout) return;
 
     setIsLoading(true);
     try {
-      // Mapear workout_frequency a daily_activity_level (user_activity_profile)
       const dailyActivityLevel = (() => {
         switch (selectedWorkout) {
-          case 'sedentary':
-            return 'sedentary';
-          case 'light':
-            return 'lightly_active';
-          case 'moderate':
-            return 'moderately_active';
-          case 'active':
-            return 'very_active';
-          case 'very_active':
-            return 'extra_active';
-          default:
-            return 'moderately_active';
+          case 'sedentary': return 'sedentary';
+          case 'light': return 'lightly_active';
+          case 'moderate': return 'moderately_active';
+          case 'active': return 'very_active';
+          default: return 'moderately_active';
         }
       })();
 
-      await upsertActivityProfile.mutateAsync({
-        daily_activity_level: dailyActivityLevel,
-        does_sport: selectedWorkout !== 'sedentary',
-      } as any);
+      if (user) {
+        await upsertActivityProfile.mutateAsync({
+          daily_activity_level: dailyActivityLevel,
+          does_sport: selectedWorkout !== 'sedentary',
+        } as any);
 
-      // Sincronizado con Prisma: profiles
-      await updateProfile.mutateAsync({
-        workout_frequency: selectedWorkout, // String?
-        steps_goal: selectedStepsGoal, // Int @default(10000)
-        onboarding_step: 'preferences',
-      });
+        await updateProfile.mutateAsync({
+          workout_frequency: selectedWorkout,
+          steps_goal: selectedStepsGoal,
+          onboarding_step: 'preferences',
+        });
+      } else {
+        setOnboardingData({
+          activity_level: selectedWorkout,
+          workout_frequency: selectedWorkout,
+          steps_goal: selectedStepsGoal,
+        });
+      }
 
       analytics.trackOnboardingStep('activity', {
         workout_frequency: selectedWorkout,
@@ -139,30 +125,30 @@ export default function OnboardingActivityScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.text.secondary} />
+            <Ionicons name="chevron-back" size={24} color="#FFF" />
           </TouchableOpacity>
           
-          <View style={styles.progressContainer}>
-            <View style={[styles.progressBar, { width: '75%' }]} />
+          <View style={styles.progressWrapper}>
+             <View style={styles.progressBackground}>
+               <View style={[styles.progressBar, { width: '60%' }]} />
+             </View>
+             <Text style={styles.progressLabel}>PASO 6 DE 10</Text>
           </View>
         </View>
 
-        {/* Content */}
         <View style={styles.content}>
           <View style={styles.titleSection}>
             <Text style={styles.title}>¿Cuál es tu nivel de actividad?</Text>
             <Text style={styles.subtitle}>
-              Esto nos ayuda a ajustar tus metas calóricas y de pasos
+              Esto nos ayuda a ajustar tus metas calóricas y de pasos con precisión.
             </Text>
           </View>
 
-          {/* Workout Frequency */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Frecuencia de Ejercicio</Text>
             <View style={styles.workoutGrid}>
@@ -184,29 +170,24 @@ export default function OnboardingActivityScreen() {
                     <LinearGradient
                       colors={
                         selectedWorkout === workout.id 
-                          ? ['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']
-                          : ['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)']
+                          ? ['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.9)']
+                          : ['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']
                       }
                       style={styles.workoutImageGradient}
                     >
                       <View style={styles.workoutContent}>
                         <View style={[
                           styles.workoutIconContainer,
-                          { backgroundColor: selectedWorkout === workout.id ? workout.color : 'rgba(0, 0, 0, 0.6)' }
+                          { backgroundColor: selectedWorkout === workout.id ? '#FBBF24' : 'rgba(255, 255, 255, 0.1)' }
                         ]}>
                           <Ionicons 
                             name={workout.icon} 
-                            size={24} 
-                            color={colors.text.primary} 
+                            size={20} 
+                            color={selectedWorkout === workout.id ? '#000' : '#FFF'} 
                           />
                         </View>
                         <Text style={styles.workoutLabel}>{workout.label}</Text>
                         <Text style={styles.workoutDescription}>{workout.description}</Text>
-                        {selectedWorkout === workout.id && (
-                          <View style={styles.workoutCheck}>
-                            <Ionicons name="checkmark-circle" size={24} color={workout.color} />
-                          </View>
-                        )}
                       </View>
                     </LinearGradient>
                   </ImageBackground>
@@ -215,95 +196,61 @@ export default function OnboardingActivityScreen() {
             </View>
           </View>
 
-          {/* Steps Goal */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Meta Diaria de Pasos</Text>
-            <View style={styles.stepsContainer}>
-              <View style={styles.stepsHeader}>
-                <Ionicons name="footsteps" size={24} color={colors.primary.sky} />
-                <Text style={styles.stepsTitle}>¿Cuántos pasos diarios?</Text>
-              </View>
-              
-              <View style={styles.stepsGrid}>
-                {STEPS_GOALS.map((goal) => (
-                  <TouchableOpacity
-                    key={goal.id}
-                    style={[
-                      styles.stepsCard,
-                      selectedStepsGoal === goal.id && styles.stepsCardSelected,
-                      { borderColor: selectedStepsGoal === goal.id ? colors.primary.sky : colors.background.border }
-                    ]}
-                    onPress={() => handleStepsGoalSelect(goal.id)}
-                    disabled={isLoading}
-                  >
-                    <Text style={[
-                      styles.stepsValue,
-                      selectedStepsGoal === goal.id && styles.stepsValueSelected
-                    ]}>
-                      {goal.label.toLocaleString()}
-                    </Text>
-                    <Text style={styles.stepsDescription}>{goal.description}</Text>
-                    {selectedStepsGoal === goal.id && (
-                      <View style={styles.stepsCheck}>
-                        <Ionicons name="checkmark-circle" size={20} color={colors.primary.sky} />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
+            <View style={styles.stepsGrid}>
+              {STEPS_GOALS.map((goal) => (
+                <TouchableOpacity
+                  key={goal.id}
+                  style={[
+                    styles.stepsCard,
+                    selectedStepsGoal === goal.id && styles.stepsCardSelected,
+                  ]}
+                  onPress={() => handleStepsGoalSelect(goal.id)}
+                  disabled={isLoading}
+                >
+                  <Text style={[
+                    styles.stepsValue,
+                    selectedStepsGoal === goal.id && styles.stepsValueSelected
+                  ]}>
+                    {goal.label}
+                  </Text>
+                  <Text style={styles.stepsDescription}>{goal.description}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
 
-          {/* Info Cards */}
-          <View style={styles.infoSection}>
-            <View style={styles.infoCard}>
-              <Ionicons name="calculator" size={20} color={colors.primary.amber} />
-              <Text style={styles.infoText}>
-                Calculamos tus calorías basadas en tu nivel de actividad
-              </Text>
-            </View>
-            
-            <View style={styles.infoCard}>
-              <Ionicons name="trophy" size={20} color={colors.status.success} />
-              <Text style={styles.infoText}>
-                Puedes ajustar tus metas en cualquier momento
-              </Text>
-            </View>
-          </View>
-
-          {/* Privacy Note */}
-          <View style={styles.privacyNote}>
-            <Ionicons name="lock-closed" size={16} color={colors.text.muted} />
+          <View style={styles.privacyCard}>
+            <Ionicons name="flash" size={16} color="#FBBF24" />
             <Text style={styles.privacyText}>
-              Tu información de actividad es privada y segura
+              Calculamos tus requerimientos metabólicos basados en estos datos.
             </Text>
           </View>
         </View>
 
-        {/* Continue Button */}
         <View style={styles.footer}>
           <TouchableOpacity
             style={[
               styles.continueButton,
-              !selectedWorkout && styles.continueButtonDisabled,
-              isLoading && styles.continueButtonLoading
+              !selectedWorkout && styles.continueButtonDisabled
             ]}
             onPress={handleContinue}
             disabled={!selectedWorkout || isLoading}
           >
             <LinearGradient
-              colors={selectedWorkout ? [colors.primary.sky, '#0EA5E9'] : [colors.background.border, colors.background.border]}
+              colors={['#FBBF24', '#D97706']}
               style={styles.continueButtonGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
               {isLoading ? (
-                <Text style={styles.continueButtonText}>Guardando...</Text>
+                <ActivityIndicator color="#000" />
               ) : (
-                <>
+                <View style={styles.buttonLayout}>
                   <Text style={styles.continueButtonText}>Continuar</Text>
-                  <Ionicons name="arrow-forward" size={20} color={colors.text.primary} />
-                </>
+                  <Ionicons name="arrow-forward" size={20} color="#000" />
+                </View>
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -316,99 +263,106 @@ export default function OnboardingActivityScreen() {
 const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#000',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: SPACING['3xl'],
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.md,
-    paddingBottom: SPACING.lg,
+    height: 60,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.background.card,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#111',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.background.border,
   },
-  progressContainer: {
+  progressWrapper: {
     flex: 1,
-    height: 4,
-    backgroundColor: colors.background.tertiary,
-    borderRadius: 2,
-    marginLeft: SPACING.md,
+    marginLeft: SPACING.lg,
+  },
+  progressBackground: {
+    height: 6,
+    backgroundColor: '#111',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 4,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: colors.primary.sky,
-    borderRadius: 2,
+    backgroundColor: '#FBBF24',
+    borderRadius: 3,
+  },
+  progressLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#6B7280',
+    letterSpacing: 1,
   },
   content: {
-    flex: 1,
     paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xl,
   },
   titleSection: {
     marginBottom: SPACING.xl,
   },
   title: {
-    fontSize: FONTS.sizes['3xl'],
-    fontWeight: FONTS.weights.bold,
-    color: colors.text.primary,
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFF',
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: FONTS.sizes.base,
-    color: colors.text.secondary,
+    fontSize: 16,
+    color: '#9CA3AF',
     fontFamily: FONTS.primary,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   section: {
     marginBottom: SPACING.xl,
   },
   sectionTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.semibold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
     marginBottom: SPACING.md,
   },
   workoutGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: SPACING.md,
   },
   workoutCard: {
-    width: '48%',
-    height: 140,
-    borderRadius: BORDER_RADIUS.lg,
+    width: '47%',
+    height: 150,
+    borderRadius: BORDER_RADIUS.xl,
     overflow: 'hidden',
-    marginBottom: SPACING.md,
-    borderWidth: 2,
-    borderColor: colors.background.border,
-    ...SHADOWS.sm,
+    borderWidth: 1,
+    borderColor: '#222',
   },
   workoutCardSelected: {
-    borderWidth: 3,
-    ...SHADOWS.md,
+    borderColor: '#FBBF24',
+    borderWidth: 2,
   },
   workoutImageBackground: {
     flex: 1,
-    width: '100%',
   },
   workoutImageStyle: {
-    resizeMode: 'cover',
+    opacity: 0.6,
   },
   workoutImageGradient: {
     flex: 1,
@@ -416,133 +370,71 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     padding: SPACING.md,
   },
   workoutContent: {
-    position: 'relative',
+    gap: 4,
   },
   workoutIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.sm,
+    marginBottom: 4,
   },
   workoutLabel: {
-    fontSize: FONTS.sizes.sm,
-    fontWeight: FONTS.weights.bold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
-    marginBottom: SPACING.xs,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFF',
   },
   workoutDescription: {
-    fontSize: FONTS.sizes.xs,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
-  },
-  workoutCheck: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-  },
-  stepsContainer: {
-    backgroundColor: colors.background.card,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: colors.background.border,
-    ...SHADOWS.sm,
-  },
-  stepsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-    gap: SPACING.sm,
-  },
-  stepsTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.semibold,
-    color: colors.text.primary,
-    fontFamily: FONTS.primary,
+    fontSize: 12,
+    color: '#9CA3AF',
   },
   stepsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: SPACING.sm,
   },
   stepsCard: {
-    width: '31%',
-    backgroundColor: colors.background.tertiary,
-    borderRadius: BORDER_RADIUS.md,
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#111',
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
     borderWidth: 1,
-    marginBottom: SPACING.sm,
-    padding: SPACING.sm,
+    borderColor: '#222',
     alignItems: 'center',
-    position: 'relative',
   },
   stepsCardSelected: {
-    backgroundColor: `${colors.primary.sky}20`,
-    borderWidth: 2,
+    borderColor: '#FBBF24',
+    backgroundColor: 'rgba(251, 191, 36, 0.05)',
   },
   stepsValue: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.bold,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
-    marginBottom: SPACING.xs,
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#6B7280',
   },
   stepsValueSelected: {
-    color: colors.primary.sky,
+    color: '#FFF',
   },
   stepsDescription: {
-    fontSize: FONTS.sizes.xs,
-    color: colors.text.muted,
-    fontFamily: FONTS.primary,
-    textAlign: 'center',
+    fontSize: 12,
+    color: '#6B7280',
   },
-  stepsCheck: {
-    position: 'absolute',
-    top: SPACING.xs,
-    right: SPACING.xs,
-  },
-  infoSection: {
-    marginBottom: SPACING.xl,
-  },
-  infoCard: {
+  privacyCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background.tertiary,
-    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: '#111',
+    borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
-    marginBottom: SPACING.sm,
-  },
-  infoText: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.secondary,
-    fontFamily: FONTS.primary,
-    marginLeft: SPACING.sm,
-    flex: 1,
-    lineHeight: 18,
-  },
-  privacyNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background.tertiary,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
+    borderWidth: 1,
+    borderColor: '#222',
   },
   privacyText: {
-    fontSize: FONTS.sizes.sm,
-    color: colors.text.muted,
-    fontFamily: FONTS.primary,
+    fontSize: 12,
+    color: '#6B7280',
     marginLeft: SPACING.sm,
     flex: 1,
-    lineHeight: 18,
   },
   footer: {
     paddingHorizontal: SPACING.lg,
@@ -550,28 +442,26 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     paddingTop: SPACING.md,
   },
   continueButton: {
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.xl,
     overflow: 'hidden',
-    ...SHADOWS.md,
   },
   continueButtonDisabled: {
     opacity: 0.5,
   },
-  continueButtonLoading: {
-    opacity: 0.8,
-  },
   continueButtonGradient: {
+    height: 64,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonLayout: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.xl,
     gap: SPACING.sm,
   },
   continueButtonText: {
-    fontSize: FONTS.sizes.base,
-    fontWeight: FONTS.weights.semibold,
-    color: colors.text.primary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
     fontFamily: FONTS.primary,
   },
 });

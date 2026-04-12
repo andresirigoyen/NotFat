@@ -15,7 +15,25 @@ export interface OnboardingData {
   workout_frequency?: string;
   fitness_goal?: string;
   goal_pace?: string;
-  coach_style?: 'apoyo' | 'reto' | 'directo';
+  onboarding_step?: string;
+  target_weight_kg?: number;
+  traffic_source?: string;
+  onboarding_metadata?: Record<string, any>;
+  work_schedule?: string;
+  hunger_trigger?: string;
+  weekend_struggle?: string;
+  social_context?: string;
+  previous_failures?: string;
+  commitment_minutes?: number;
+  commitment_days?: number;
+  steps_goal?: number;
+  full_name?: string;
+  preferred_bottle_size?: number;
+  coach_style?: string;
+  preferred_bottle_unit?: string;
+  show_calories?: boolean;
+  show_macros?: boolean;
+  show_hydration?: boolean;
 }
 
 interface OnboardingState {

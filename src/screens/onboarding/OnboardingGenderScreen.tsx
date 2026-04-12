@@ -1,6 +1,6 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -78,37 +78,39 @@ export default function OnboardingGenderScreen() {
       label: 'Masculino',
       icon: 'man' as keyof typeof Ionicons.glyphMap,
       description: 'Metabolismo base masculino',
-      color: '#38BDF8',
+      color: '#FBBF24',
     },
     {
       id: 'female',
       label: 'Femenino',
       icon: 'woman' as keyof typeof Ionicons.glyphMap,
       description: 'Metabolismo base femenino',
-      color: '#F472B6',
+      color: '#FBBF24',
     },
     {
       id: 'non_binary',
       label: 'No Binario',
       icon: 'person' as keyof typeof Ionicons.glyphMap,
-      description: 'Identidad no binarie',
-      color: '#A78BFA',
+      description: 'Cálculo metabólico neutro',
+      color: '#FBBF24',
     },
     {
       id: 'other',
       label: 'Otro / Prefiero no decir',
       icon: 'ellipsis-horizontal-circle' as keyof typeof Ionicons.glyphMap,
-      description: 'Otras identidades',
-      color: colors.text.muted,
+      description: 'Cálculo metabólico estándar',
+      color: '#FBBF24',
     },
-  ], [colors]);
+  ], []);
 
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
-  const { setData: setOnboardingData } = useOnboardingStore();
+  const { data: onboardingData, setData: setOnboardingData } = useOnboardingStore();
   const [selectedGender, setSelectedGender] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const firstName = onboardingData?.onboarding_metadata?.first_name || '';
   
   useEffect(() => {
     analytics.trackScreenView('OnboardingGender');
@@ -173,9 +175,11 @@ export default function OnboardingGenderScreen() {
         {/* Contenido Principal */}
         <View style={styles.content}>
           <View style={styles.titleContainer}>
-            <Text style={styles.title}>¿Cuál es tu sexo?</Text>
+            <Text style={styles.title}>
+              {firstName ? `¡Hola, ${firstName}!` : '¿Cuál es tu sexo?'}
+            </Text>
             <Text style={styles.subtitle}>
-              Establece tu sexo biológico para cálculos metabólicos precisos.
+              Establece tu sexo biológico para calcular tu metabolismo con precisión.
             </Text>
           </View>
 
@@ -221,21 +225,19 @@ export default function OnboardingGenderScreen() {
           disabled={!selectedGender || isLoading}
         >
           <LinearGradient
-            colors={selectedGender ? ['#0EA5E9', '#0284C7'] : [colors.background.tertiary, colors.background.tertiary]}
+            colors={selectedGender ? ['#FBBF24', '#D97706'] : ['#333', '#333']}
             style={styles.continueButtonGradient}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
           >
             {isLoading ? (
-              <Text style={styles.continueButtonText}>Cargando...</Text>
+              <ActivityIndicator color="#000" />
             ) : (
               <View style={styles.buttonLayout}>
-                <Text style={[styles.continueButtonText, !selectedGender && { color: colors.text.muted }]}>
-                  Siguiente
-                </Text>
+                <Text style={styles.continueButtonText}>Siguiente</Text>
                 <Ionicons 
                   name="arrow-forward" 
-                  size={20} 
-                  color={selectedGender ? '#FFFFFF' : colors.text.muted} 
+                  size={22} 
+                  color="#000" 
                 />
               </View>
             )}
@@ -249,14 +251,14 @@ export default function OnboardingGenderScreen() {
 const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: '#000',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: SPACING['2xl'],
+    paddingBottom: SPACING['3xl'],
   },
   header: {
     flexDirection: 'row',
@@ -266,35 +268,33 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     height: 60,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.background.card,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#111',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.background.border,
   },
   progressWrapper: {
     flex: 1,
     marginLeft: SPACING.lg,
   },
   progressBackground: {
-    height: 4,
-    backgroundColor: isDark ? '#1E293B' : '#E2E8F0',
-    borderRadius: 2,
+    height: 6,
+    backgroundColor: '#111',
+    borderRadius: 3,
     overflow: 'hidden',
     marginBottom: 4,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#0EA5E9',
-    borderRadius: 2,
+    backgroundColor: '#FBBF24',
+    borderRadius: 3,
   },
   progressLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: colors.text.muted,
+    color: '#6B7280',
     letterSpacing: 1,
   },
   content: {
@@ -306,16 +306,16 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginBottom: SPACING.xl,
   },
   title: {
-    fontSize: FONTS.sizes['3xl'],
+    fontSize: 32,
     fontWeight: '800',
-    color: colors.text.primary,
+    color: '#FFF',
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: FONTS.sizes.base,
-    color: colors.text.secondary,
+    fontSize: 16,
+    color: '#9CA3AF',
     fontFamily: FONTS.primary,
     lineHeight: 22,
   },
@@ -324,20 +324,19 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   optionCard: {
     borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING.md,
-    backgroundColor: colors.background.card,
+    padding: SPACING.lg,
+    backgroundColor: '#111',
     borderWidth: 1.5,
-    borderColor: colors.background.border,
-    ...SHADOWS.sm,
+    borderColor: '#222',
   },
   optionContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   iconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.md,
@@ -346,15 +345,15 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     flex: 1,
   },
   optionLabel: {
-    fontSize: FONTS.sizes.lg,
+    fontSize: 18,
     fontWeight: '700',
-    color: colors.text.secondary,
+    color: '#FFF',
     fontFamily: FONTS.primary,
     marginBottom: 2,
   },
   optionDescription: {
-    fontSize: FONTS.sizes.xs,
-    color: colors.text.muted,
+    fontSize: 13,
+    color: '#9CA3AF',
     fontFamily: FONTS.primary,
   },
   selectorContainer: {
@@ -365,7 +364,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: colors.background.border,
+    borderColor: '#222',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -377,25 +376,25 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   privacyCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: isDark ? 'rgba(30, 41, 59, 0.4)' : '#F8FAFC',
+    backgroundColor: '#111',
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     marginTop: SPACING.xl,
     borderWidth: 1,
-    borderColor: colors.background.border,
+    borderColor: '#222',
   },
   privacyIconBg: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.md,
   },
   privacyText: {
     fontSize: 12,
-    color: colors.text.muted,
+    color: '#6B7280',
     flex: 1,
   },
   footer: {
@@ -406,7 +405,6 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   continueButton: {
     borderRadius: BORDER_RADIUS.xl,
     overflow: 'hidden',
-    ...SHADOWS.md,
   },
   continueButtonDisabled: {
     opacity: 0.5,
@@ -415,7 +413,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     opacity: 0.8,
   },
   continueButtonGradient: {
-    height: 56,
+    height: 64,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -425,9 +423,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     gap: SPACING.sm,
   },
   continueButtonText: {
-    fontSize: FONTS.sizes.base,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#000',
     fontFamily: FONTS.primary,
   },
 });

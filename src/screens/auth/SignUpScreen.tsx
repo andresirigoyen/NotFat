@@ -109,7 +109,7 @@ export default function SignUpScreen() {
 
         (navigation as any).reset({
           index: 0,
-          routes: [{ name: 'Main' }],
+          routes: [{ name: 'OnboardingGeneratingPlan' }],
         });
       } else {
         // Si requiere confirmación (session es null), mostramos el aviso habitual

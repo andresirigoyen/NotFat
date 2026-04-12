@@ -39,6 +39,10 @@ export default function SplashScreen() {
 
     const step = profile.onboarding_step || 'gender';
     switch (step) {
+      case 'referral':
+        return 'OnboardingReferral';
+      case 'name':
+        return 'OnboardingName';
       case 'gender':
         return 'OnboardingGender';
       case 'birth_date':
@@ -51,10 +55,14 @@ export default function SplashScreen() {
         return 'OnboardingActivity';
       case 'preferences':
         return 'OnboardingPreferences';
+      case 'psychology':
+        return 'OnboardingPsychology';
+      case 'generating_plan':
+        return 'OnboardingGeneratingPlan';
       case 'completed':
         return 'Main';
       default:
-        return 'OnboardingGender';
+        return 'OnboardingReferral';
     }
   }, [profile, profileLoading, route.params?.nextScreen, user]);
 
