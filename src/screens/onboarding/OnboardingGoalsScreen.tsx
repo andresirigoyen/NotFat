@@ -10,298 +10,221 @@ import { useProfile } from '@/hooks/useProfile';
 import { useOnboardingStore } from '@/store/onboarding-store';
 import { analytics } from '@/services/analytics';
 import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 const DIET_TYPES = [
+  { id: 'balanced', label: 'Balanceada', description: 'Equilibrada y variada', icon: 'restaurant' as const },
+  { id: 'vegetarian', label: 'Vegetariana', description: 'Sin carne, con lácteos/huevos', icon: 'leaf' as const },
+  { id: 'vegan', label: 'Vegana', description: 'Sin origen animal', icon: 'flower' as const },
+  { id: 'keto', label: 'Keto', description: 'Baja en carbs, alta en grasa', icon: 'flame' as const },
+  { id: 'paleo', label: 'Paleo', description: 'Alimentos no procesados', icon: 'nutrition' as const },
+  { id: 'mediterranean', label: 'Mediterránea', description: 'Dieta mediterránea', icon: 'sunny' as const },
+];
+
+const NUTRITION_GOALS = [
   {
-    id: 'balanced',
-    label: 'Balanceada',
-    description: 'Dieta equilibrada y variada',
-    icon: 'restaurant' as keyof typeof Ionicons.glyphMap,
+    id: 'lose_weight',
+    label: 'Perder Peso',
+    icon: 'trending-down' as const,
+    description: 'Reducir grasa de forma saludable',
+    image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=500&q=80',
   },
   {
-    id: 'vegetarian',
-    label: 'Vegetariana',
-    description: 'Sin carne pero con lácteos y huevos',
-    icon: 'leaf' as keyof typeof Ionicons.glyphMap,
+    id: 'maintain_weight',
+    label: 'Mantener Peso',
+    icon: 'remove' as const,
+    description: 'Mantener equilibrio y salud',
+    image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=500&q=80',
   },
   {
-    id: 'vegan',
-    label: 'Vegana',
-    description: 'Sin productos de origen animal',
-    icon: 'flower' as keyof typeof Ionicons.glyphMap,
+    id: 'gain_muscle',
+    label: 'Ganar Músculo',
+    icon: 'trending-up' as const,
+    description: 'Aumentar masa y fuerza',
+    image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&q=80',
   },
   {
-    id: 'keto',
-    label: 'Keto',
-    description: 'Baja en carbohidratos, alta en grasas',
-    icon: 'flame' as keyof typeof Ionicons.glyphMap,
-  },
-  {
-    id: 'paleo',
-    label: 'Paleo',
-    description: 'Alimentos no procesados',
-    icon: 'nutrition' as keyof typeof Ionicons.glyphMap,
-  },
-  {
-    id: 'mediterranean',
-    label: 'Mediterránea',
-    description: 'Basada en dieta mediterránea',
-    icon: 'sunny' as keyof typeof Ionicons.glyphMap,
+    id: 'improve_health',
+    label: 'Mejorar Salud',
+    icon: 'heart' as const,
+    description: 'Hábitos y bienestar general',
+    image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=500&q=80',
   },
 ];
 
 export default function OnboardingGoalsScreen() {
   const { colors, isDark } = useThemeColors();
   const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
-
-  const NUTRITION_GOALS = React.useMemo(() => [
-    {
-      id: 'lose_weight',
-      label: 'Perder Peso',
-      icon: 'trending-down' as keyof typeof Ionicons.glyphMap,
-      description: 'Reducir grasa corporal de forma saludable',
-      color: '#FBBF24',
-      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-    },
-    {
-      id: 'maintain_weight',
-      label: 'Mantener Peso',
-      icon: 'remove' as keyof typeof Ionicons.glyphMap,
-      description: 'Mantener peso actual saludable',
-      color: '#FBBF24',
-      image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=300&fit=crop',
-    },
-    {
-      id: 'gain_muscle',
-      label: 'Ganar Músculo',
-      icon: 'trending-up' as keyof typeof Ionicons.glyphMap,
-      description: 'Aumentar masa muscular y fuerza',
-      color: '#FBBF24',
-      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-    },
-    {
-      id: 'improve_health',
-      label: 'Mejorar Salud',
-      icon: 'heart' as keyof typeof Ionicons.glyphMap,
-      description: 'Mejorar hábitos y bienestar general',
-      color: '#FBBF24',
-      image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop',
-    },
-  ], []);
-
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
-  const { setData: setOnboardingData } = useOnboardingStore();
-  const [selectedNutritionGoal, setSelectedNutritionGoal] = useState<string>('');
-  const [selectedDietType, setSelectedDietType] = useState<string>('balanced');
+  const { data: onboardingData, setData: setOnboardingData } = useOnboardingStore();
+  
+  const [selectedGoal, setSelectedGoal] = useState<string>(onboardingData.nutrition_goal || '');
+  const [selectedDiet, setSelectedDiet] = useState<string>(onboardingData.diet_type || 'balanced');
   const [isLoading, setIsLoading] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setOnboardingData({ last_visited_step: 'OnboardingGoals' });
   }, [setOnboardingData]);
 
-  const handleNutritionGoalSelect = (goalId: string) => {
-    setSelectedNutritionGoal(goalId);
-  };
+  const handleContinue = async () => {
+    if (!selectedGoal || isLoading) return;
+    setIsLoading(true);
+    try {
+      if (user) {
+        await updateProfile.mutateAsync({
+          nutrition_goal: selectedGoal,
+          goal: selectedGoal,
+          diet_type: selectedDiet,
+          onboarding_step: 'allergies',
+        });
+      } else {
+        setOnboardingData({
+          nutrition_goal: selectedGoal,
+          diet_type: selectedDiet,
+        });
+      }
 
-  const handleDietTypeSelect = (dietId: string) => {
-    setSelectedDietType(dietId);
-  };
-
-  const persistGoals = async () => {
-    if (!selectedNutritionGoal) return;
-
-    if (user) {
-      await updateProfile.mutateAsync({
-        nutrition_goal: selectedNutritionGoal,
-        goal: selectedNutritionGoal,
-        diet_type: selectedDietType,
-        onboarding_step: 'profile',
+      analytics.trackOnboardingStep('goals', {
+        nutrition_goal: selectedGoal,
+        diet_type: selectedDiet,
       });
-    } else {
-      setOnboardingData({
-        nutrition_goal: selectedNutritionGoal,
-        diet_type: selectedDietType,
-      });
+
+      navigation.navigate('OnboardingAllergies' as never);
+    } catch (e) {
+      console.error('[Onboarding] Error saving goals:', e);
+    } finally {
+      setIsLoading(false);
     }
-
-    analytics.trackOnboardingStep('goals', {
-      nutrition_goal: selectedNutritionGoal,
-      diet_type: selectedDietType,
-    });
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="chevron-back" size={24} color="#FFF" />
+        </TouchableOpacity>
+        <View style={styles.progressWrapper}>
+          <View style={styles.progressBackground}>
+            <View style={[styles.progressBar, { width: '45%' }]} />
+          </View>
+          <Text style={styles.progressLabel}>PASO 4 DE 10</Text>
+        </View>
+      </View>
+
       <ScrollView 
-        style={styles.scrollView} 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="chevron-back" size={24} color="#FFF" />
-          </TouchableOpacity>
-          
-          <View style={styles.progressWrapper}>
-             <View style={styles.progressBackground}>
-               <View style={[styles.progressBar, { width: '50%' }]} />
-             </View>
-             <Text style={styles.progressLabel}>PASO 5 DE 10</Text>
-          </View>
-        </View>
+        <Animated.View entering={FadeInDown.duration(800)} style={styles.titleSection}>
+          <Text style={styles.title}>¿Cuáles son tus metas?</Text>
+          <Text style={styles.subtitle}>
+            Personalizamos tu experiencia según tus objetivos y preferencias alimenticias.
+          </Text>
+        </Animated.View>
 
-        <View style={styles.content}>
-          <View style={styles.titleSection}>
-            <Text style={styles.title}>¿Cuáles son tus metas?</Text>
-            <Text style={styles.subtitle}>
-              Personalizamos tu experiencia según tus objetivos y preferencias.
-            </Text>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tu Objetivo Principal</Text>
-            <View style={styles.goalsContainer}>
-              {NUTRITION_GOALS.map((goal) => (
-                <TouchableOpacity
-                  key={goal.id}
-                  style={[
-                    styles.goalCard,
-                    selectedNutritionGoal === goal.id && styles.goalCardSelected,
-                  ]}
-                  onPress={() => handleNutritionGoalSelect(goal.id)}
-                  disabled={isLoading}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Objetivo Principal</Text>
+          <View style={styles.goalsGrid}>
+            {NUTRITION_GOALS.map((goal, index) => {
+              const isActive = selectedGoal === goal.id;
+              return (
+                <Animated.View 
+                  key={goal.id} 
+                  entering={FadeInUp.delay(index * 100).duration(800)}
                 >
-                  <ImageBackground
-                    source={{ uri: goal.image }}
-                    style={styles.goalImageBackground}
-                    imageStyle={styles.goalImageStyle}
+                  <TouchableOpacity
+                    style={[styles.goalCard, isActive && styles.goalCardActive]}
+                    onPress={() => setSelectedGoal(goal.id)}
+                    activeOpacity={0.8}
                   >
-                    <LinearGradient
-                      colors={
-                        selectedNutritionGoal === goal.id 
-                          ? ['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)']
-                          : ['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']
-                      }
-                      style={styles.goalImageGradient}
+                    <ImageBackground
+                      source={{ uri: goal.image }}
+                      style={styles.goalImage}
+                      imageStyle={styles.goalImageImg}
                     >
-                      <View style={styles.goalContent}>
-                        <View style={[
-                          styles.goalIconContainer,
-                          { backgroundColor: selectedNutritionGoal === goal.id ? '#FBBF24' : 'rgba(255, 255, 255, 0.1)' }
-                        ]}>
-                          <Ionicons 
-                            name={goal.icon} 
-                            size={24} 
-                            color={selectedNutritionGoal === goal.id ? '#000' : '#FFF'} 
-                          />
-                        </View>
+                      <LinearGradient
+                        colors={isActive ? ['rgba(0,0,0,0.1)', 'rgba(251, 191, 36, 0.9)'] : ['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)']}
+                        style={styles.goalGradient}
+                      >
+                        <Ionicons 
+                          name={goal.icon} 
+                          size={24} 
+                          color={isActive ? '#000' : '#FFF'} 
+                        />
                         <View>
-                          <Text style={styles.goalLabelText}>{goal.label}</Text>
-                          <Text style={styles.goalDescriptionText}>{goal.description}</Text>
+                          <Text style={[styles.goalLabel, isActive && styles.goalLabelActive]}>
+                            {goal.label}
+                          </Text>
+                          <Text style={[styles.goalDesc, isActive && styles.goalDescActive]}>
+                            {goal.description}
+                          </Text>
                         </View>
-                        {selectedNutritionGoal === goal.id && (
-                          <View style={styles.goalCheck}>
-                            <Ionicons name="checkmark-circle" size={24} color="#FBBF24" />
+                        {isActive && (
+                          <View style={styles.checkBadge}>
+                            <Ionicons name="checkmark-circle" size={20} color="#000" />
                           </View>
                         )}
-                      </View>
-                    </LinearGradient>
-                  </ImageBackground>
-                </TouchableOpacity>
-              ))}
-            </View>
+                      </LinearGradient>
+                    </ImageBackground>
+                  </TouchableOpacity>
+                </Animated.View>
+              );
+            })}
           </View>
+        </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tipo de Dieta</Text>
-            <View style={styles.dietGrid}>
-              {DIET_TYPES.map((diet) => (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Tipo de Dieta</Text>
+          <View style={styles.dietGrid}>
+            {DIET_TYPES.map((diet) => {
+              const isActive = selectedDiet === diet.id;
+              return (
                 <TouchableOpacity
                   key={diet.id}
-                  style={[
-                    styles.dietCard,
-                    selectedDietType === diet.id && styles.dietCardSelected,
-                  ]}
-                  onPress={() => handleDietTypeSelect(diet.id)}
-                  disabled={isLoading}
+                  style={[styles.dietCard, isActive && styles.dietCardActive]}
+                  onPress={() => setSelectedDiet(diet.id)}
                 >
-                  <View style={[
-                    styles.dietIconContainer,
-                    { backgroundColor: selectedDietType === diet.id ? '#FBBF24' : '#1A1A1A' }
-                  ]}>
-                    <Ionicons 
-                      name={diet.icon} 
-                      size={20} 
-                      color={selectedDietType === diet.id ? '#000' : '#6B7280'} 
-                    />
+                  <View style={[styles.dietIconBox, isActive && styles.dietIconBoxActive]}>
+                    <Ionicons name={diet.icon} size={20} color={isActive ? '#000' : '#6B7280'} />
                   </View>
-                  <Text style={[
-                    styles.dietLabel,
-                    selectedDietType === diet.id && styles.dietLabelSelected
-                  ]}>
+                  <Text style={[styles.dietLabel, isActive && styles.dietLabelActive]}>
                     {diet.label}
                   </Text>
-                  {selectedDietType === diet.id && (
-                    <View style={styles.dietCheck}>
-                      <Ionicons name="checkmark-circle" size={16} color="#000" />
-                    </View>
-                  )}
                 </TouchableOpacity>
-              ))}
-            </View>
+              );
+            })}
           </View>
-
-          <View style={styles.privacyCard}>
-            <Ionicons name="lock-closed" size={16} color="#FBBF24" />
-            <Text style={styles.privacyText}>
-              Usamos tus preferencias para optimizar tus macros y recomendaciones.
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={[
-              styles.continueButton,
-              !selectedNutritionGoal && styles.continueButtonDisabled
-            ]}
-            onPress={async () => {
-              if (!selectedNutritionGoal || isLoading) return;
-              setIsLoading(true);
-              try {
-                await persistGoals();
-                navigation.navigate('OnboardingAllergies' as never);
-              } catch (e) {
-                console.error('Error saving goals:', e);
-              } finally {
-                setIsLoading(false);
-              }
-            }}
-            disabled={!selectedNutritionGoal || isLoading}
-          >
-            <LinearGradient
-              colors={['#FBBF24', '#D97706']}
-              style={styles.continueButtonGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#000" />
-              ) : (
-                <View style={styles.buttonLayout}>
-                  <Text style={styles.continueButtonText}>Continuar</Text>
-                  <Ionicons name="arrow-forward" size={20} color="#000" />
-                </View>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <View style={styles.footer}>
+        <TouchableOpacity 
+          style={[styles.continueButton, (!selectedGoal || isLoading) && styles.buttonDisabled]} 
+          onPress={handleContinue}
+          disabled={!selectedGoal || isLoading}
+        >
+          <LinearGradient
+            colors={['#FBBF24', '#D97706']}
+            style={styles.buttonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <View style={styles.buttonContent}>
+                <Text style={styles.buttonText}>Siguiente</Text>
+                <Ionicons name="arrow-forward" size={20} color="#000" />
+              </View>
+            )}
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -310,13 +233,6 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: SPACING['3xl'],
   },
   header: {
     flexDirection: 'row',
@@ -355,9 +271,10 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: '#6B7280',
     letterSpacing: 1,
   },
-  content: {
-    paddingHorizontal: SPACING.lg,
+  scrollContent: {
+    padding: SPACING.lg,
     paddingTop: SPACING.xl,
+    paddingBottom: SPACING['3xl'],
   },
   titleSection: {
     marginBottom: SPACING.xl,
@@ -368,77 +285,69 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: '#FFF',
     fontFamily: FONTS.primary,
     marginBottom: SPACING.sm,
-    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 16,
     color: '#9CA3AF',
     fontFamily: FONTS.primary,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   section: {
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING['2xl'],
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '800',
     color: '#6B7280',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
     marginBottom: SPACING.md,
   },
-  goalsContainer: {
+  goalsGrid: {
     gap: SPACING.md,
   },
   goalCard: {
-    height: 110,
+    height: 100,
     borderRadius: BORDER_RADIUS.xl,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#222',
+    borderColor: '#1A1A1A',
   },
-  goalCardSelected: {
+  goalCardActive: {
     borderColor: '#FBBF24',
-    borderWidth: 2,
   },
-  goalImageBackground: {
+  goalImage: {
     flex: 1,
   },
-  goalImageStyle: {
-    opacity: 0.6,
+  goalImageImg: {
+    opacity: 0.5,
   },
-  goalImageGradient: {
+  goalGradient: {
     flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: SPACING.lg,
-  },
-  goalContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: SPACING.lg,
     gap: SPACING.md,
   },
-  goalIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  goalLabelText: {
+  goalLabel: {
     fontSize: 18,
     fontWeight: '800',
     color: '#FFF',
-    fontFamily: FONTS.primary,
   },
-  goalDescriptionText: {
-    fontSize: 13,
+  goalLabelActive: {
+    color: '#000',
+  },
+  goalDesc: {
+    fontSize: 12,
     color: '#9CA3AF',
-    fontFamily: FONTS.primary,
   },
-  goalCheck: {
+  goalDescActive: {
+    color: '#000',
+    opacity: 0.8,
+  },
+  checkBadge: {
     position: 'absolute',
-    right: 0,
-    top: 5,
+    right: SPACING.md,
   },
   dietGrid: {
     flexDirection: 'row',
@@ -447,82 +356,62 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   dietCard: {
     width: '48%',
-    backgroundColor: '#111',
+    backgroundColor: '#0A0A0A',
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: '#222',
+    borderColor: '#1A1A1A',
     alignItems: 'center',
-    gap: SPACING.xs,
+    flexDirection: 'row',
+    gap: SPACING.sm,
   },
-  dietCardSelected: {
+  dietCardActive: {
     borderColor: '#FBBF24',
     backgroundColor: 'rgba(251, 191, 36, 0.05)',
   },
-  dietIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  dietIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+  },
+  dietIconBoxActive: {
+    backgroundColor: '#FBBF24',
   },
   dietLabel: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#6B7280',
-    textAlign: 'center',
   },
-  dietLabelSelected: {
+  dietLabelActive: {
     color: '#FFF',
   },
-  dietCheck: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  privacyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#111',
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
-    marginTop: SPACING.sm,
-    borderWidth: 1,
-    borderColor: '#222',
-  },
-  privacyText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginLeft: SPACING.sm,
-    flex: 1,
-  },
   footer: {
-    paddingHorizontal: SPACING.lg,
+    padding: SPACING.lg,
     paddingBottom: SPACING.xl,
-    paddingTop: SPACING.md,
   },
   continueButton: {
     borderRadius: BORDER_RADIUS.xl,
     overflow: 'hidden',
   },
-  continueButtonDisabled: {
+  buttonDisabled: {
     opacity: 0.5,
   },
-  continueButtonGradient: {
+  buttonGradient: {
     height: 64,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  buttonLayout: {
+  buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
   },
-  continueButtonText: {
+  buttonText: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#000',
-    fontFamily: FONTS.primary,
   },
 });

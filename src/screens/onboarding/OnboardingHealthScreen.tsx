@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated as RNAnimated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useOnboardingStore } from '@/store/onboarding-store';
@@ -7,10 +7,12 @@ import { useThemeColors } from '@/hooks/useThemeColors';
 import { SPACING, FONTS, BORDER_RADIUS } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown, SlideInRight } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { healthService } from '@/services/healthService';
 
 export default function OnboardingHealthScreen() {
-  const { isDark } = useThemeColors();
+  const { colors, isDark } = useThemeColors();
+  const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
   const navigation = useNavigation();
   const { data: onboardingData, setData: setOnboardingData } = useOnboardingStore();
   const [isSyncing, setIsSyncing] = useState(false);
@@ -21,18 +23,33 @@ export default function OnboardingHealthScreen() {
 
   const handleSync = async () => {
     setIsSyncing(true);
-    // Simular integración con HealthKit/Google Fit
-    // En un entorno real, aquí se llamarían a los servicios correspondientes
-    setTimeout(() => {
-      setOnboardingData({
-        onboarding_metadata: {
-          ...(onboardingData.onboarding_metadata || {}),
-          health_sync_enabled: true
-        }
-      });
+    try {
+      // Llamada real al servicio de salud
+      const granted = await healthService.requestPermissions();
+      
+      if (granted) {
+        setOnboardingData({
+          onboarding_metadata: {
+            ...(onboardingData.onboarding_metadata || {}),
+            health_sync_enabled: true
+          }
+        });
+        // Pequeña pausa para que el usuario perciba la conexión exitosa
+        setTimeout(() => {
+          setIsSyncing(false);
+          navigation.navigate('OnboardingPreferences' as never);
+        }, 1000);
+      } else {
+        setIsSyncing(false);
+        Alert.alert(
+          'Permiso denegado',
+          'No pudimos sincronizar tus datos. Puedes intentarlo más tarde desde la configuración.'
+        );
+      }
+    } catch (error) {
+      console.error('[Health] Sync error:', error);
       setIsSyncing(false);
-      navigation.navigate('OnboardingPreferences' as never);
-    }, 1500);
+    }
   };
 
   const handleSkip = () => {
@@ -58,53 +75,67 @@ export default function OnboardingHealthScreen() {
           <View style={styles.progressBackground}>
             <View style={[styles.progressBar, { width: '65%' }]} />
           </View>
-          <Text style={styles.progressLabel}>SMART SYNC</Text>
+          <Text style={styles.progressLabel}>PASO 7 DE 10</Text>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <Animated.View entering={FadeInDown.duration(800)}>
-          <Text style={styles.title}>Let's sync with your health data</Text>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View entering={FadeInDown.duration(800)} style={styles.titleSection}>
+          <Text style={styles.title}>Sincroniza tu salud</Text>
           <Text style={styles.subtitle}>
-            Connect with HealthKit to automatically track your steps and activity for a much more precise coaching experience.
+            Conéctate con HealthKit para registrar automáticamente tus pasos y actividad para una experiencia mucho más precisa.
           </Text>
         </Animated.View>
 
-        <View style={styles.card}>
+        <Animated.View entering={FadeInUp.delay(200).duration(800)} style={styles.card}>
           <View style={styles.cardHeader}>
-            <View style={[styles.iconBox, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
-              <Ionicons name="heart" size={32} color="#EF4444" />
+            <View style={styles.iconContainer}>
+              <LinearGradient
+                colors={['rgba(251, 191, 36, 0.2)', 'rgba(217, 119, 6, 0.05)']}
+                style={styles.iconGradient}
+              >
+                <Ionicons name="heart" size={32} color="#FBBF24" />
+              </LinearGradient>
             </View>
-            <Text style={styles.cardTitle}>Everything in one place</Text>
+            <Text style={styles.cardTitle}>Todo en un mismo lugar</Text>
           </View>
-          
-          <View style={styles.bulletList}>
-            <View style={styles.bulletItem}>
-              <Ionicons name="stats-chart" size={16} color="#FBBF24" />
-              <Text style={styles.bulletText}>Real-time activity analysis</Text>
-            </View>
-            <View style={styles.bulletItem}>
-              <Ionicons name="flame" size={16} color="#FBBF24" />
-              <Text style={styles.bulletText}>Automatic calorie adjustment</Text>
-            </View>
-            <View style={styles.bulletItem}>
-              <Ionicons name="checkmark-done" size={16} color="#FBBF24" />
-              <Text style={styles.bulletText}>Better goal predictions</Text>
-            </View>
-          </View>
-        </View>
 
-        <View style={styles.securityInfo}>
-          <Ionicons name="shield-checkmark" size={16} color="#6B7280" />
-          <Text style={styles.securityText}>
-            Your health data is encrypted and never shared. You control your privacy.
+          <View style={styles.featureList}>
+            <View style={styles.featureItem}>
+              <View style={styles.checkCircle}>
+                <Ionicons name="checkmark" size={14} color="#000" />
+              </View>
+              <Text style={styles.featureText}>Análisis de actividad en tiempo real</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <View style={styles.checkCircle}>
+                <Ionicons name="checkmark" size={14} color="#000" />
+              </View>
+              <Text style={styles.featureText}>Ajuste automático de calorías diarias</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <View style={styles.checkCircle}>
+                <Ionicons name="checkmark" size={14} color="#000" />
+              </View>
+              <Text style={styles.featureText}>Predicciones de metas más exactas</Text>
+            </View>
+          </View>
+        </Animated.View>
+
+        <View style={styles.privacySection}>
+          <Ionicons name="shield-checkmark" size={18} color="#6B7280" />
+          <Text style={styles.privacyText}>
+            Tus datos de salud están encriptados y nunca se comparten. Tú controlas tu privacidad.
           </Text>
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
         <TouchableOpacity 
-          style={styles.buttonMain} 
+          style={[styles.mainButton, isSyncing && styles.buttonDisabled]} 
           onPress={handleSync}
           disabled={isSyncing}
         >
@@ -114,25 +145,30 @@ export default function OnboardingHealthScreen() {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <Text style={styles.buttonText}>
-              {isSyncing ? 'Connecting...' : 'Connect Health Data'}
-            </Text>
+            {isSyncing ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <View style={styles.buttonContent}>
+                <Text style={styles.buttonText}>Conectar Datos de Salud</Text>
+                <Ionicons name="pulse" size={20} color="#000" />
+              </View>
+            )}
           </LinearGradient>
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={styles.buttonSecondary}
+          style={styles.skipButton}
           onPress={handleSkip}
           disabled={isSyncing}
         >
-          <Text style={styles.buttonSecondaryText}>I'll do it later</Text>
+          <Text style={styles.skipText}>Lo haré más tarde</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
@@ -174,9 +210,12 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     letterSpacing: 1,
   },
-  content: {
-    padding: SPACING.xl,
+  scrollContent: {
+    padding: SPACING.lg,
     paddingTop: SPACING.xl,
+  },
+  titleSection: {
+    marginBottom: SPACING['2xl'],
   },
   title: {
     fontSize: 32,
@@ -190,27 +229,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#9CA3AF',
     fontFamily: FONTS.primary,
-    lineHeight: 22,
-    marginBottom: SPACING['2xl'],
+    lineHeight: 24,
   },
   card: {
-    backgroundColor: '#111',
-    borderRadius: BORDER_RADIUS.xl,
+    backgroundColor: '#0A0A0A',
+    borderRadius: BORDER_RADIUS['2xl'],
     padding: SPACING.xl,
     borderWidth: 1,
-    borderColor: '#222',
+    borderColor: '#1A1A1A',
+    marginBottom: SPACING.xl,
   },
   cardHeader: {
     alignItems: 'center',
     marginBottom: SPACING.xl,
   },
-  iconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    overflow: 'hidden',
+    marginBottom: SPACING.md,
+  },
+  iconGradient: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.md,
   },
   cardTitle: {
     fontSize: 20,
@@ -218,49 +261,60 @@ const styles = StyleSheet.create({
     color: '#FFF',
     textAlign: 'center',
   },
-  bulletList: {
+  featureList: {
     gap: SPACING.md,
   },
-  bulletItem: {
+  featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
   },
-  bulletText: {
+  checkCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FBBF24',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  featureText: {
     fontSize: 15,
     color: '#D1D5DB',
     fontWeight: '600',
   },
-  securityInfo: {
+  privacySection: {
     flexDirection: 'row',
-    marginTop: SPACING.xl,
-    paddingHorizontal: SPACING.md,
+    alignItems: 'center',
     gap: SPACING.sm,
-    opacity: 0.6,
+    paddingHorizontal: SPACING.sm,
   },
-  securityText: {
+  privacyText: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: '#6B7280',
     flex: 1,
     lineHeight: 18,
   },
   footer: {
     padding: SPACING.lg,
     paddingBottom: SPACING.xl,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
   },
-  buttonMain: {
+  mainButton: {
     borderRadius: BORDER_RADIUS.xl,
     overflow: 'hidden',
     marginBottom: SPACING.sm,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   gradient: {
     height: 64,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
   },
   buttonText: {
     fontSize: 18,
@@ -268,12 +322,12 @@ const styles = StyleSheet.create({
     color: '#000',
     fontFamily: FONTS.primary,
   },
-  buttonSecondary: {
+  skipButton: {
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  buttonSecondaryText: {
+  skipText: {
     fontSize: 14,
     color: '#6B7280',
     fontWeight: '700',

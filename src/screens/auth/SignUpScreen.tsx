@@ -150,6 +150,23 @@ export default function SignUpScreen() {
     }
   };
 
+  const handleAppleSignUp = async () => {
+    setIsLoading(true);
+    try {
+      const result = await (useAuthStore.getState() as any).signInWithApple();
+      if (result.error) {
+        Alert.alert('Error', result.error.message || 'Error al registrarse con Apple');
+        return;
+      }
+      // Navegación automática manejada por el store/listener
+    } catch (error) {
+      console.error('Apple SignUp error:', error);
+      Alert.alert('Error', 'No se pudo completar el registro con Apple');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
@@ -364,6 +381,32 @@ export default function SignUpScreen() {
           >
             <Text style={styles.secondaryBtnText}>Ya tengo cuenta</Text>
           </TouchableOpacity>
+
+          {/* Social Register Section */}
+          <View style={styles.socialSection}>
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>O</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <View style={styles.socialButtonsContainer}>
+              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+                <Ionicons name="logo-google" size={20} color={colors.background.primary} />
+                <Text style={styles.socialButtonText}>Registrarse con Google</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.socialButton} 
+                activeOpacity={0.8}
+                onPress={handleAppleSignUp}
+                disabled={isLoading}
+              >
+                <Ionicons name="logo-apple" size={20} color={colors.background.primary} />
+                <Text style={styles.socialButtonText}>Registrarse con Apple</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
           
           <View style={styles.footerInfo}>
             <Ionicons name="shield-checkmark" size={24} color={colors.text.secondary} style={{ marginRight: SPACING.md }} />
@@ -605,5 +648,43 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontFamily: FONTS.primary,
     color: colors.text.tertiary,
     lineHeight: 16,
+  },
+  socialSection: {
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.md,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.xl,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+  },
+  dividerText: {
+    fontSize: FONTS.sizes.sm,
+    color: colors.text.muted,
+    fontFamily: FONTS.primary,
+    marginHorizontal: SPACING.md,
+  },
+  socialButtonsContainer: {
+    gap: SPACING.md,
+  },
+  socialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary.amber,
+    borderRadius: BORDER_RADIUS.full,
+    height: 56,
+    gap: SPACING.sm,
+  },
+  socialButtonText: {
+    fontSize: FONTS.sizes.base,
+    fontWeight: '600',
+    color: colors.background.primary,
+    fontFamily: FONTS.primary,
   },
 });

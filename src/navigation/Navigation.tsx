@@ -42,6 +42,7 @@ const BarcodeScannerScreen = LazyOverlay(React.lazy(() => import('../screens/mai
 const SubscriptionCenterScreen = LazyOverlay(React.lazy(() => import('../screens/main/SubscriptionCenterScreen')));
 const SubscriptionScreen = LazyOverlay(React.lazy(() => import('../screens/main/SubscriptionScreen')));
 const RecipeDetailScreen = LazyOverlay(React.lazy(() => import('../screens/main/RecipeDetailScreen')));
+const HealthIntegrationScreen = LazyOverlay(React.lazy(() => import('../screens/main/HealthIntegrationScreen')));
 
 const Stack = createStackNavigator();
 
@@ -146,6 +147,7 @@ export default function Navigation() {
         <Stack.Screen name="SubscriptionCenter" component={SubscriptionCenterScreen} />
         <Stack.Screen name="Subscription" component={SubscriptionScreen} />
         <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
+        <Stack.Screen name="HealthIntegration" component={HealthIntegrationScreen} />
 
         {/* Navegador Principal con TabBar */}
         <Stack.Screen

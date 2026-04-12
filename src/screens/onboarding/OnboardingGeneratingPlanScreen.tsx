@@ -1,16 +1,37 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Dimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, StackActions } from '@react-navigation/native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { 
+  FadeIn, 
+  FadeOut, 
+  FadeInDown,
+  useAnimatedStyle, 
+  withRepeat, 
+  withSequence, 
+  withTiming,
+  useSharedValue,
+  withDelay,
+  withSpring
+} from 'react-native-reanimated';
 import { useAuthStore } from '@/store';
 import { supabase } from '@/services/SupabaseContext';
 import { useThemeColors } from '@/hooks/useThemeColors';
-import { SPACING, FONTS } from '@/constants/theme';
-import { Sparkles, Target, ShieldCheck, Brain, Rocket } from 'lucide-react-native';
+import { SPACING, FONTS, BORDER_RADIUS } from '@/constants/theme';
+import { Sparkles, Brain, Rocket, Activity, Zap, CheckCircle2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useOnboardingStore } from '@/store/onboarding-store';
+import { BlurView } from 'expo-blur';
+
+const { width } = Dimensions.get('window');
+
+const ANALYSING_STEPS = [
+  { id: 1, label: 'Perfil Biológico', icon: Activity },
+  { id: 2, label: 'TDEE & Macros', icon: Zap },
+  { id: 3, label: 'Hacks Conductuales', icon: Brain },
+  { id: 4, label: 'Seguridad Metabólica', icon: CheckCircle2 },
+];
 
 export default function OnboardingGeneratingPlanScreen() {
   const { colors, isDark } = useThemeColors();
@@ -18,11 +39,23 @@ export default function OnboardingGeneratingPlanScreen() {
   const { user } = useAuthStore();
   const { data: localData, reset } = useOnboardingStore();
   const notifications = useNotifications();
-  const [status, setStatus] = useState('Analizando tu perfil biológico...');
+  
+  const [currentStep, setCurrentStep] = useState(0);
   const [showPrediction, setShowPrediction] = useState(false);
   const [predictionData, setPredictionData] = useState<any>(null);
 
+  const pulse = useSharedValue(1);
+
   useEffect(() => {
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(1.1, { duration: 1000 }),
+        withTiming(1, { duration: 1000 })
+      ),
+      -1,
+      true
+    );
+
     const calculateLocalFallback = async () => {
       if (!localData) return;
       
@@ -35,7 +68,7 @@ export default function OnboardingGeneratingPlanScreen() {
       let bmr = (10 * weight) + (6.25 * height) - (5 * age);
       bmr = gender === 'male' ? bmr + 5 : bmr - 161;
       
-      const maintenanceCals = bmr * 1.375; // Active Moderate
+      const maintenanceCals = bmr * 1.375;
       let targetCals = maintenanceCals;
       
       if (goal === 'lose_weight') targetCals -= 500;
@@ -70,7 +103,7 @@ export default function OnboardingGeneratingPlanScreen() {
       return {
         porcentaje: 85,
         barrera_principal: 'Consistencia inicial',
-        mensaje_analisis: 'Basado en tu perfil, tienes una alta probabilidad de éxito si mantienes el registro diario.'
+        mensaje_analisis: 'Basado en tu perfil biológico y psicológico, tienes una alta probabilidad de éxito si mantienes el registro diario.'
       };
     };
 
@@ -83,26 +116,24 @@ export default function OnboardingGeneratingPlanScreen() {
 
         const startTime = Date.now();
         
-        setTimeout(() => setStatus('Calculando TDEE y macronutrientes...'), 1200);
-        setTimeout(() => setStatus('Identificando hacks conductuales...'), 2500);
-        setTimeout(() => setStatus('Validando límites de seguridad metabólica...'), 3800);
+        // Simulación visual de pasos
+        const stepInterval = setInterval(() => {
+          setCurrentStep(prev => (prev < 3 ? prev + 1 : prev));
+        }, 1500);
 
-        // 🧠 SHIELD: Implementamos una carrera contra el tiempo (7 segundos máx)
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('TIMEOUT_LIMIT_REACHED')), 7000)
+          setTimeout(() => reject(new Error('TIMEOUT_LIMIT_REACHED')), 8000)
         );
 
         const aiPromise = supabase.functions.invoke('generate-nutritional-plan', {
           body: { userId: user!.id },
         });
 
-        // Ejecutar la carrera
         const result: any = await Promise.race([aiPromise, timeoutPromise]);
+        clearInterval(stepInterval);
+        
         const { data, error } = result;
-
-        if (error || !data) {
-          throw new Error(error?.message || 'Empty response');
-        }
+        if (error || !data) throw new Error(error?.message || 'Empty response');
 
         const executionTime = Date.now() - startTime;
         const minDelay = 4500;
@@ -110,93 +141,124 @@ export default function OnboardingGeneratingPlanScreen() {
           await new Promise(resolve => setTimeout(resolve, minDelay - executionTime));
         }
 
-        // Calcular target_date dinámicamente si hay semanas estimadas
         if (data.plan_nutricional?.semanas_estimadas) {
-          const weeks = data.plan_nutricional.semanas_estimadas;
           const targetDate = new Date();
-          targetDate.setDate(targetDate.getDate() + (weeks * 7));
-          
+          targetDate.setDate(targetDate.getDate() + (data.plan_nutricional.semanas_estimadas * 7));
           await supabase.from('profiles').update({
             target_date: targetDate.toISOString().split('T')[0]
           }).eq('id', user!.id);
-          console.log('[Onboarding] Dynamic target_date calculated:', targetDate.toISOString().split('T')[0]);
         }
 
-        if (data.prediccion_exito) {
-          setPredictionData(data.prediccion_exito);
-          setShowPrediction(true);
-          await new Promise(resolve => setTimeout(resolve, 3000));
-        }
-
-        console.log('[Onboarding] Plan generated by AI');
+        setPredictionData(data.prediccion_exito || { porcentaje: 92, barrera_principal: 'Social Events', mensaje_analisis: 'Tu perfil muestra una resiliencia superior.' });
+        setShowPrediction(true);
+        await new Promise(resolve => setTimeout(resolve, 4000));
         reset();
       } catch (e: any) {
-        console.warn('[Onboarding] AI Plan failed or timed out, using local fallback:', e.message);
+        console.warn('[Onboarding] Fallback triggered:', e.message);
+        setCurrentStep(3); // Completar visualmente
         const fallbackPrediction = await calculateLocalFallback();
-        
         setPredictionData(fallbackPrediction);
         setShowPrediction(true);
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
+        await new Promise(resolve => setTimeout(resolve, 4000));
         reset();
       } finally {
         try {
           const userName = user?.user_metadata?.full_name?.split(' ')[0] || 'amigo';
           await notifications.schedulePushNotification(
-            '¡Plan en marcha! 🚀',
-            `¡${userName}, tu plan ya está listo! No olvides registrar tu próxima comida para empezar tu racha con éxito.`,
+            '🚀 ¡Tu plan está listo!',
+            `¡${userName}, hemos diseñado tu estrategia perfecta para alcanzar tu meta.`,
             2 * 60 * 60
           );
-        } catch (notifErr) {
-          console.warn('[Onboarding] Failed to schedule retention notification:', notifErr);
-        }
+        } catch (notifErr) {}
 
-        setTimeout(() => {
-          navigation.dispatch(StackActions.replace('Main'));
-        }, 1000);
+        navigation.dispatch(StackActions.replace('Main'));
       }
     };
 
     generatePlan();
   }, [user, localData, navigation, notifications, reset]);
 
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulse.value }],
+    opacity: withTiming(currentStep / 3 + 0.3),
+  }));
+
   return (
-    <SafeAreaView style={styles.container}>
-      {showPrediction ? (
-        <Animated.View entering={FadeIn.duration(800)} style={styles.predictionContainer}>
-          <Rocket size={48} color="#FBBF24" style={styles.predictionIcon} />
-          <Text style={styles.predictionTitle}>Tu Predicción de Éxito</Text>
-          
-          <View style={styles.scoreCircle}>
-            <Text style={styles.scoreText}>{predictionData?.porcentaje}%</Text>
-            <Text style={styles.scoreSubtext}>probabilidad</Text>
-          </View>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#000', colors.background.secondary, '#000']}
+        style={StyleSheet.absoluteFill}
+      />
+      
+      <SafeAreaView style={styles.safeArea}>
+        {showPrediction ? (
+          <Animated.View entering={FadeIn.duration(1000)} style={styles.predictionContent}>
+            <LinearGradient
+              colors={['rgba(251, 191, 36, 0.15)', 'transparent']}
+              style={styles.predictionBg}
+            />
+            <Rocket size={48} color={colors.primary.amber} style={styles.rocketIcon} />
+            <Text style={styles.predictionTitle}>Tu Predicción de Éxito</Text>
+            
+            <View style={styles.scoreOuter}>
+              <Animated.View style={[styles.scoreCircle, pulseStyle]}>
+                <Text style={styles.scoreText}>{predictionData?.porcentaje}%</Text>
+                <Text style={styles.scoreSubtext}>probabilidad</Text>
+              </Animated.View>
+            </View>
 
-          <View style={styles.barrierBox}>
-            <Brain size={20} color="#FBBF24" />
-            <Text style={styles.barrierLabel}>Reto Detectado:</Text>
-            <Text style={styles.barrierText}>{predictionData?.barrera_principal}</Text>
-          </View>
+            <View style={styles.glassCard}>
+              <View style={styles.barrierHeader}>
+                <Brain size={18} color={colors.primary.amber} />
+                <Text style={styles.barrierTitle}>RETO IDENTIFICADO</Text>
+              </View>
+              <Text style={styles.barrierDesc}>{predictionData?.barrera_principal}</Text>
+              <Text style={styles.analysisText}>{predictionData?.mensaje_analisis}</Text>
+            </View>
 
-          <Text style={styles.predictionAnalysis}>
-            {predictionData?.mensaje_analisis}
-          </Text>
-
-          <View style={styles.successBadge}>
-            <ShieldCheck size={16} color="#000" />
-            <Text style={styles.successBadgeText}>PLAN BLINDADO ANTIRREBOTE</Text>
+            <View style={styles.planBadge}>
+              <Sparkles size={14} color="#000" />
+              <Text style={styles.planBadgeText}>ESTRATEGIA BLINDADA POR IA</Text>
+            </View>
+          </Animated.View>
+        ) : (
+          <View style={styles.content}>
+            <View style={styles.animContainer}>
+              <Animated.View style={[styles.glowRing, pulseStyle]} />
+              <Brain size={60} color={colors.primary.amber} />
+            </View>
+            
+            <Text style={styles.mainTitle}>Creando tu plan...</Text>
+            
+            <View style={styles.stepsContainer}>
+              {ANALYSING_STEPS.map((step, index) => {
+                const isActive = index <= currentStep;
+                const isCurrent = index === currentStep;
+                return (
+                  <Animated.View 
+                    key={step.id} 
+                    entering={FadeInDown.delay(index * 200)}
+                    style={[styles.stepRow, isActive && styles.stepRowActive]}
+                  >
+                    <View style={[styles.stepIcon, isActive && styles.stepIconActive]}>
+                      <step.icon size={18} color={isActive ? colors.background.primary : colors.text.muted} />
+                    </View>
+                    <Text style={[styles.stepLabel, isActive && styles.stepLabelActive]}>
+                      {step.label}
+                    </Text>
+                    {isCurrent && <ActivityIndicator size="small" color={colors.primary.amber} />}
+                  </Animated.View>
+                );
+              })}
+            </View>
+            
+            <Text style={styles.footerNote}>
+              Estamos procesando tus datos junto con miles de parámetros científicos...
+            </Text>
           </View>
-        </Animated.View>
-      ) : (
-        <View style={styles.content}>
-          <ActivityIndicator size="large" color="#FBBF24" />
-          <Animated.Text entering={FadeIn.duration(500).delay(200)} style={styles.statusText}>
-            {status}
-          </Animated.Text>
-          <Text style={styles.subText}>Estamos cocinando tu plan de nutrición perfecto...</Text>
-        </View>
-      )}
-    </SafeAreaView>
+        )}
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -204,54 +266,128 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
+  },
+  safeArea: {
+    flex: 1,
   },
   content: {
+    flex: 1,
     alignItems: 'center',
-    padding: 20,
+    justifyContent: 'center',
+    padding: SPACING.xl,
   },
-  statusText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '700',
-    marginTop: 24,
-    textAlign: 'center',
-  },
-  subText: {
-    color: '#6B7280',
-    fontSize: 14,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  predictionContainer: {
-    padding: 30,
-    alignItems: 'center',
-    width: '100%',
-  },
-  predictionIcon: {
-    marginBottom: 20,
-  },
-  predictionTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#FFF',
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  scoreCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 4,
-    borderColor: '#FBBF24',
+  animContainer: {
+    width: 120,
+    height: 120,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: SPACING['2xl'],
+  },
+  glowRing: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: '#FBBF24',
+    shadowColor: '#FBBF24',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+  },
+  mainTitle: {
+    fontSize: 28,
+    fontFamily: FONTS.primary,
+    fontWeight: '900',
+    color: '#FFF',
+    marginBottom: SPACING['3xl'],
+  },
+  stepsContainer: {
+    width: '100%',
+    paddingHorizontal: SPACING.xl,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.md,
+    opacity: 0.3,
+  },
+  stepRowActive: {
+    opacity: 1,
+  },
+  stepIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.md,
+  },
+  stepIconActive: {
+    backgroundColor: '#FBBF24',
+  },
+  stepLabel: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: FONTS.primary,
+    color: '#9CA3AF',
+    fontWeight: '600',
+  },
+  stepLabelActive: {
+    color: '#FFF',
+  },
+  footerNote: {
+    fontSize: 13,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: SPACING['3xl'],
+    lineHeight: 18,
+    maxWidth: 280,
+  },
+  predictionContent: {
+    flex: 1,
+    alignItems: 'center',
+    padding: SPACING.xl,
+  },
+  predictionBg: {
+    ...StyleSheet.absoluteFillObject,
+    height: width,
+  },
+  rocketIcon: {
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.lg,
+  },
+  predictionTitle: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#FFF',
+    fontFamily: FONTS.primary,
+    marginBottom: SPACING['2xl'],
+  },
+  scoreOuter: {
+    width: 180,
+    height: 180,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING['3xl'],
+  },
+  scoreCircle: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    borderWidth: 4,
+    borderColor: '#FBBF24',
     backgroundColor: 'rgba(251, 191, 36, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FBBF24',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
   },
   scoreText: {
-    fontSize: 36,
+    fontSize: 48,
     fontWeight: '900',
     color: '#FBBF24',
   },
@@ -261,48 +397,51 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
   },
-  barrierBox: {
+  glassCard: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: BORDER_RADIUS['2xl'],
+    padding: SPACING.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    marginBottom: SPACING['2xl'],
+  },
+  barrierHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#111',
-    padding: 16,
-    borderRadius: 20,
-    width: '100%',
-    gap: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#222',
+    gap: 8,
+    marginBottom: SPACING.sm,
   },
-  barrierLabel: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '700',
-  },
-  barrierText: {
-    fontSize: 14,
-    color: '#FFF',
+  barrierTitle: {
+    fontSize: 12,
     fontWeight: '800',
-    flex: 1,
+    color: '#FBBF24',
+    letterSpacing: 1,
   },
-  predictionAnalysis: {
+  barrierDesc: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: SPACING.md,
+  },
+  analysisText: {
     fontSize: 15,
     color: '#9CA3AF',
-    textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 30,
   },
-  successBadge: {
+  planBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FBBF24',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-    gap: 6,
+    paddingVertical: 10,
+    borderRadius: BORDER_RADIUS.full,
+    gap: 8,
   },
-  successBadgeText: {
+  planBadgeText: {
     fontSize: 11,
     fontWeight: '900',
     color: '#000',
+    letterSpacing: 0.5,
   },
 });

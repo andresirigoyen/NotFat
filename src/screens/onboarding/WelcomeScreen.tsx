@@ -8,6 +8,8 @@ import Animated, { FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimat
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 import { useOnboardingStore } from '@/store/onboarding-store';
+import { useAuthStore } from '@/store';
+import { Alert } from 'react-native';
 
 export default function WelcomeScreen() {
   const { colors, isDark } = useThemeColors();
@@ -15,6 +17,23 @@ export default function WelcomeScreen() {
 
   const navigation = useNavigation();
   const { data: onboardingData } = useOnboardingStore();
+  const { signInWithApple } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleAppleLogin = async () => {
+    setIsLoading(true);
+    try {
+      const result = await signInWithApple();
+      if (result.error) {
+        Alert.alert('Error', result.error.message || 'Error al iniciar sesión con Apple');
+      }
+    } catch (error) {
+      console.error('Welcome Apple Login error:', error);
+      Alert.alert('Error', 'No se pudo completar el inicio de sesión');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -83,6 +102,31 @@ export default function WelcomeScreen() {
                       <Ionicons name="arrow-forward" size={20} color="#000" />
                     </LinearGradient>
                   </TouchableOpacity>
+
+                  {/* Social Login Options */}
+                  <View style={styles.socialContainer}>
+                    <View style={styles.divider}>
+                      <View style={styles.dividerLine} />
+                      <Text style={styles.dividerText}>o también</Text>
+                      <View style={styles.dividerLine} />
+                    </View>
+
+                    <View style={styles.socialButtons}>
+                      <TouchableOpacity 
+                        style={styles.socialBtn}
+                        onPress={handleAppleLogin}
+                        disabled={isLoading}
+                      >
+                        <Ionicons name="logo-apple" size={22} color="#FFF" />
+                        <Text style={styles.socialBtnText}>Apple</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity style={styles.socialBtn}>
+                        <Ionicons name="logo-google" size={22} color="#FFF" />
+                        <Text style={styles.socialBtnText}>Google</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
 
                   <TouchableOpacity 
                     style={styles.secondaryButton}
@@ -188,5 +232,46 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   loginHighlight: {
     color: '#FBBF24',
     fontWeight: '700',
+  },
+  socialContainer: {
+    marginTop: SPACING.xl,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  dividerText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    marginHorizontal: SPACING.md,
+    fontFamily: FONTS.primary,
+  },
+  socialButtons: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+  },
+  socialBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 14,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    gap: SPACING.sm,
+  },
+  socialBtnText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '600',
+    fontFamily: FONTS.primary,
   },
 });

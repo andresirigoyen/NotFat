@@ -113,7 +113,8 @@
             "newArchEnabled": true
           }
         }
-      ]
+      ],
+      "react-native-health"
     ],
     "scheme": "notfat",
     "runtimeVersion": {

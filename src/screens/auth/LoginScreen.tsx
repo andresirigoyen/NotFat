@@ -98,6 +98,23 @@ export default function LoginScreen() {
     }
   };
 
+  const handleAppleLogin = async () => {
+    setIsLoading(true);
+    try {
+      const result = await signInWithApple();
+      if (result.error) {
+        Alert.alert('Error', result.error.message || 'Error al iniciar sesión con Apple');
+        return;
+      }
+      // Navegación automática manejada por el useEffect reactivo
+    } catch (error) {
+      console.error('Apple Login error:', error);
+      Alert.alert('Error', 'No se pudo completar el inicio de sesión con Apple');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Redirección reactiva si el usuario ya está autenticado
   React.useEffect(() => {
     if (user && !loading) {
@@ -233,7 +250,12 @@ export default function LoginScreen() {
                 <Text style={styles.socialButtonText}>Continuar con Google</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+              <TouchableOpacity 
+                style={styles.socialButton} 
+                activeOpacity={0.8}
+                onPress={handleAppleLogin}
+                disabled={isLoading}
+              >
                 <Ionicons name="logo-apple" size={20} color={colors.background.primary} />
                 <Text style={styles.socialButtonText}>Continuar con Apple</Text>
               </TouchableOpacity>

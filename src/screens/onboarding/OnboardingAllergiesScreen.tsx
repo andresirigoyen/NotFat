@@ -11,12 +11,12 @@ import Animated, { FadeInDown, SlideInRight } from 'react-native-reanimated';
 
 const ALLERGIES = [
   { id: 'gluten', label: 'Gluten', icon: '🌾' },
-  { id: 'lactose', label: 'Lactose', icon: '🥛' },
-  { id: 'peanuts', label: 'Peanuts', icon: '🥜' },
-  { id: 'nuts', label: 'Tree Nuts', icon: '🌰' },
-  { id: 'shellfish', label: 'Shellfish', icon: '🦐' },
-  { id: 'soy', label: 'Soy', icon: '🫘' },
-  { id: 'eggs', label: 'Eggs', icon: '🥚' },
+  { id: 'lactose', label: 'Lactosa', icon: '🥛' },
+  { id: 'peanuts', label: 'Maní', icon: '🥜' },
+  { id: 'nuts', label: 'Frutos Secos', icon: '🌰' },
+  { id: 'shellfish', label: 'Mariscos', icon: '🦐' },
+  { id: 'soy', label: 'Soya', icon: '🫘' },
+  { id: 'eggs', label: 'Huevos', icon: '🥚' },
 ];
 
 export default function OnboardingAllergiesScreen() {
@@ -60,15 +60,15 @@ export default function OnboardingAllergiesScreen() {
           <View style={styles.progressBackground}>
             <View style={[styles.progressBar, { width: '40%' }]} />
           </View>
-          <Text style={styles.progressLabel}>SAFETY FIRST</Text>
+          <Text style={styles.progressLabel}>SEGURIDAD ANTE TODO</Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInDown.duration(800)}>
-          <Text style={styles.title}>Any allergies or intolerances?</Text>
+          <Text style={styles.title}>¿Alguna alergia o intolerancia?</Text>
           <Text style={styles.subtitle}>
-            Your safety is our priority. We'll ensure your meal plans are 100% safe for you.
+            Tu seguridad es nuestra prioridad. Nos aseguraremos de que tus planes de comidas sean 100% seguros para ti.
           </Text>
         </Animated.View>
 
@@ -107,7 +107,7 @@ export default function OnboardingAllergiesScreen() {
             handleContinue();
           }}
         >
-          <Text style={styles.skipText}>I don't have any allergies</Text>
+          <Text style={styles.skipText}>No tengo ninguna alergia</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -122,7 +122,7 @@ export default function OnboardingAllergiesScreen() {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <Text style={styles.buttonText}>Continue</Text>
+            <Text style={styles.buttonText}>Continuar</Text>
             <Ionicons name="arrow-forward" size={20} color="#000" />
           </LinearGradient>
         </TouchableOpacity>

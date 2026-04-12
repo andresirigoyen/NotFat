@@ -17,6 +17,7 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<{ error: any; user?: User | null; session?: Session | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any; user?: User | null; session?: Session | null }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
+  signInWithApple: () => Promise<{ error: any; user?: User | null; session?: Session | null }>;
   initializeAuth: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -146,6 +147,45 @@ export const useAuthStore = create<AuthState>()(
           const { error } = await supabase.auth.resetPasswordForEmail(email);
           return { error };
         } catch (error) {
+          return { error };
+        }
+      },
+
+      signInWithApple: async () => {
+        try {
+          set({ loading: true });
+          
+          // Importación dinámica para evitar crash si la librería no está instalada
+          let AppleAuthentication;
+          try {
+            AppleAuthentication = await import('expo-apple-authentication');
+          } catch (e) {
+            throw new Error('La librería expo-apple-authentication no está instalada. Ejecuta: npx expo install expo-apple-authentication');
+          }
+
+          const appleAuthRequest = await AppleAuthentication.signInAsync({
+            requestedScopes: [
+              AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+              AppleAuthentication.AppleAuthenticationScope.EMAIL,
+            ],
+          });
+
+          if (!appleAuthRequest.identityToken) {
+            throw new Error('No se recibió el identityToken de Apple');
+          }
+
+          const { data, error } = await supabase.auth.signInWithIdToken({
+            provider: 'apple',
+            token: appleAuthRequest.identityToken,
+          });
+
+          if (error) throw error;
+          
+          set({ user: data.user, session: data.session, loading: false });
+          return { error: null, user: data.user, session: data.session };
+        } catch (error: any) {
+          set({ loading: false });
+          console.error('[AuthStore] Apple SignIn error:', error);
           return { error };
         }
       },
