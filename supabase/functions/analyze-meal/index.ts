@@ -74,7 +74,7 @@ serve(async (req) => {
     }
 
     // Usar gemini-2.0-flash para máxima velocidad y precisión visual
-    const model = 'gemini-1.5-flash'
+    const model = 'gemini-2.5-flash'
     const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`
 
     const prompt = `Actúa como un Analista Nutricional Visual de Precisión con capacidad de detección espacial. Tu objetivo es identificar EXACTAMENTE lo que hay en la imagen y su ubicación.
