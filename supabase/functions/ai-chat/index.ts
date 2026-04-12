@@ -44,9 +44,9 @@ serve(async (req) => {
       )
     }
 
-    // Usar gemini-2.5-flash que es la versión estable y actual
-    const model = Deno.env.get('DEFAULT_LLM_MODEL') || 'gemini-2.5-flash'
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
+    // Usar gemini-1.5-flash que es la versión estable y actual
+    const model = Deno.env.get('DEFAULT_LLM_MODEL') || 'gemini-1.5-flash'
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
     console.log(`🌐 Calling Gemini API (${model})...`)
 
     const prompt = `Eres NotFat AI, un asistente nutricional experto. Responde de manera clara y concisa (máximo 100 palabras).

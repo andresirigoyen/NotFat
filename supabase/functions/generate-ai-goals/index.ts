@@ -25,7 +25,7 @@ serve(async (req) => {
     const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
     if (!apiKey) throw new Error('GOOGLE_GEMINI_API_KEY is not configured')
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
 
     const prompt = `As an expert nutritionist, calculate personalized goals for this profile:
     - Age: ${profileData.age || 'Unknown'}
