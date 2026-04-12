@@ -12,7 +12,7 @@ export default function LoginScreen() {
   const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
   const navigation = useNavigation();
-  const { signIn, resetPassword, user, loading } = useAuthStore();
+  const { signIn, signInWithApple, resetPassword, user, loading } = useAuthStore();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
