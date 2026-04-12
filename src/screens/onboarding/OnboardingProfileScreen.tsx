@@ -193,6 +193,18 @@ export default function OnboardingProfileScreen() {
                 ))}
               </View>
             </View>
+            
+            <View style={styles.presets}>
+              {(heightUnit === 'cm' ? ['150', '160', '170', '180', '190'] : ['60', '65', '70', '75']).map(val => (
+                <TouchableOpacity 
+                  key={val} 
+                  style={[styles.presetBtn, heightValue === val && styles.presetBtnSelected]}
+                  onPress={() => setHeightValue(val)}
+                >
+                  <Text style={[styles.presetText, heightValue === val && styles.presetTextSelected]}>{val}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
           <View style={styles.measurementCard}>
@@ -229,6 +241,18 @@ export default function OnboardingProfileScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
+            </View>
+
+            <View style={styles.presets}>
+              {(weightUnit === 'kg' ? ['60', '70', '80', '90', '100'] : ['140', '160', '180', '200', '220']).map(val => (
+                <TouchableOpacity 
+                  key={val} 
+                  style={[styles.presetBtn, weightValue === val && styles.presetBtnSelected]}
+                  onPress={() => setWeightValue(val)}
+                >
+                  <Text style={[styles.presetText, weightValue === val && styles.presetTextSelected]}>{val}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
 
@@ -402,6 +426,35 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   unitTextSelected: {
     color: '#000',
+  },
+  presets: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
+  },
+  presetBtn: {
+    flex: 1,
+    minWidth: 50,
+    height: 40,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: '#1A1A1A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  presetBtnSelected: {
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    borderColor: '#FBBF24',
+  },
+  presetText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  presetTextSelected: {
+    color: '#FBBF24',
   },
   privacyCard: {
     flexDirection: 'row',
