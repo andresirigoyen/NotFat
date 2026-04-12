@@ -105,7 +105,7 @@ serve(async (req) => {
     const model = 'gemini-1.5-flash'
     console.log('Using model:', model)
     
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`
 
     // OPTIMIZACIÓN: Detectar si es una consulta simple que no necesita IA
     const simpleResponses: Record<string, string> = {
