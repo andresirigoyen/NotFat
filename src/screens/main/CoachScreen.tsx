@@ -38,22 +38,15 @@ export default function CoachScreen({ route }: any) {
   const [input, setInput] = useState('');
   const scrollRef = useRef<ScrollView>(null);
   const [showRecommendations, setShowRecommendations] = useState(true);
+  const [showFullHistory, setShowFullHistory] = useState(false);
   
   const { data: messages, isLoading: messagesLoading } = useCoachMessages(profile?.id || '');
   const { data: totals } = useDailyTotals(new Date());
   const { mutate: sendMessage, isPending: sending } = useSendMessage();
   const { mutate: clearChatHistory } = useClearChatHistory();
 
-  // Clear chat history when screen loads (fresh session)
-  useEffect(() => {
-    // Only clear on mount once
-    const userId = profile?.id;
-    if (userId) {
-      clearChatHistory();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+  // No longer clearing chat history on mount to preserve conversations
+  
   const { isFriendly, triggerHaptic: coachHaptic } = useCoachMessage();
 
   const getDynamicRecommendation = () => {
@@ -278,13 +271,37 @@ export default function CoachScreen({ route }: any) {
 
           {/* Chat History */}
           <View style={styles.chatHistory}>
+            {messages && messages.filter(msg => {
+              if (!msg.content) return false;
+              const trimmed = msg.content.trim();
+              if (trimmed.startsWith('{') || trimmed.includes('"title":') || trimmed.includes('"role":')) return false;
+              return true;
+            }).length > 4 && (
+              <TouchableOpacity 
+                style={styles.historyToggle} 
+                onPress={() => {
+                  setShowFullHistory(!showFullHistory);
+                  coachHaptic();
+                }}
+              >
+                <Ionicons 
+                  name={showFullHistory ? "eye-off-outline" : "chatbubbles-outline"} 
+                  size={14} 
+                  color="rgba(255,255,255,0.4)" 
+                />
+                <Text style={styles.historyToggleText}>
+                  {showFullHistory ? "Ocultar historial" : "Ver mensajes anteriores"}
+                </Text>
+              </TouchableOpacity>
+            )}
+
             {messages?.filter(msg => {
               if (!msg.content) return false;
               const trimmed = msg.content.trim();
               if (trimmed.startsWith('{') || trimmed.includes('"title":') || trimmed.includes('"role":')) return false;
               return true;
             })
-            .slice(-6) // Mantener solo las últimas 3 conversaciones (6 mensajes)
+            .slice(showFullHistory ? 0 : -4) // Mostrar todo o solo los últimos 4
             .map((msg) => (
                 <View
                   key={msg.id}
@@ -639,6 +656,24 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderTopRightRadius: 5,
     borderWidth: 1,
     borderColor: 'rgba(251, 191, 36, 0.3)',
+  },
+  historyToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    marginBottom: 20,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  historyToggleText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.4)',
+    letterSpacing: 0.5,
   },
   assistantText: {
     color: '#FFF',

@@ -21,31 +21,43 @@ export default function OnboardingHealthScreen() {
     setOnboardingData({ last_visited_step: 'OnboardingHealth' });
   }, [setOnboardingData]);
 
+  const isAppleSynced = onboardingData.onboarding_metadata?.health_sync_enabled;
+  const isSamsungSynced = onboardingData.onboarding_metadata?.samsung_health_enabled;
+  const isGoogleSynced = onboardingData.onboarding_metadata?.google_fit_enabled;
+  const isAnySynced = isAppleSynced || isSamsungSynced || isGoogleSynced;
+
   const handleSync = async () => {
+    if (isAnySynced) {
+      navigation.navigate('OnboardingPreferences' as never);
+      return;
+    }
+
     setIsSyncing(true);
     try {
-      // Llamada real al servicio de salud
-      const granted = await healthService.requestPermissions();
-      
-      if (granted) {
+      if (Platform.OS === 'ios') {
+        const granted = await healthService.requestPermissions();
+        if (granted) {
+          setOnboardingData({
+            onboarding_metadata: {
+              ...(onboardingData.onboarding_metadata || {}),
+              health_sync_enabled: true
+            }
+          });
+        }
+      } else {
+        // Simulación para Android (Samsung / Google Fit)
+        await new Promise(resolve => setTimeout(resolve, 1500));
         setOnboardingData({
           onboarding_metadata: {
             ...(onboardingData.onboarding_metadata || {}),
-            health_sync_enabled: true
+            google_fit_enabled: true
           }
         });
-        // Pequeña pausa para que el usuario perciba la conexión exitosa
-        setTimeout(() => {
-          setIsSyncing(false);
-          navigation.navigate('OnboardingPreferences' as never);
-        }, 1000);
-      } else {
-        setIsSyncing(false);
-        Alert.alert(
-          'Permiso denegado',
-          'No pudimos sincronizar tus datos. Puedes intentarlo más tarde desde la configuración.'
-        );
       }
+      
+      setTimeout(() => {
+        setIsSyncing(false);
+      }, 1500);
     } catch (error) {
       console.error('[Health] Sync error:', error);
       setIsSyncing(false);
@@ -125,6 +137,45 @@ export default function OnboardingHealthScreen() {
           </View>
         </Animated.View>
 
+        <View style={styles.platformsSection}>
+          <Text style={styles.platformsTitle}>PLATAFORMAS CONECTADAS</Text>
+          <View style={styles.platformsList}>
+            {isAppleSynced && (
+              <Animated.View entering={FadeInDown} style={styles.platformBadge}>
+                <Ionicons name="logo-apple" size={18} color="#FFF" />
+                <Text style={styles.platformName}>Apple Health</Text>
+                <View style={styles.connectedDot} />
+                <Text style={styles.connectedText}>Conectado</Text>
+              </Animated.View>
+            )}
+            
+            {isSamsungSynced && (
+              <Animated.View entering={FadeInDown} style={[styles.platformBadge, { borderColor: 'rgba(5, 107, 255, 0.3)' }]}>
+                <Ionicons name="fitness" size={18} color="#056BFF" />
+                <Text style={styles.platformName}>Samsung Health</Text>
+                <View style={[styles.connectedDot, { backgroundColor: '#056BFF', shadowColor: '#056BFF' }]} />
+                <Text style={[styles.connectedText, { color: '#056BFF' }]}>Conectado</Text>
+              </Animated.View>
+            )}
+
+            {isGoogleSynced && (
+              <Animated.View entering={FadeInDown} style={[styles.platformBadge, { borderColor: 'rgba(52, 168, 83, 0.3)' }]}>
+                <Ionicons name="heart-outline" size={18} color="#34A853" />
+                <Text style={styles.platformName}>Google Fit</Text>
+                <View style={[styles.connectedDot, { backgroundColor: '#34A853', shadowColor: '#34A853' }]} />
+                <Text style={[styles.connectedText, { color: '#34A853' }]}>Conectado</Text>
+              </Animated.View>
+            )}
+
+            {!isAnySynced && (
+              <View style={styles.emptyPlatforms}>
+                <Ionicons name="information-circle-outline" size={20} color="#6B7280" />
+                <Text style={styles.emptyPlatformsText}>No hay plataformas conectadas todavía</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
         <View style={styles.privacySection}>
           <Ionicons name="shield-checkmark" size={18} color="#6B7280" />
           <Text style={styles.privacyText}>
@@ -149,20 +200,28 @@ export default function OnboardingHealthScreen() {
               <ActivityIndicator color="#000" />
             ) : (
               <View style={styles.buttonContent}>
-                <Text style={styles.buttonText}>Conectar Datos de Salud</Text>
-                <Ionicons name="pulse" size={20} color="#000" />
+                <Text style={styles.buttonText}>
+                  {isAnySynced ? 'Continuar' : 'Conectar Datos de Salud'}
+                </Text>
+                <Ionicons 
+                  name={isAnySynced ? 'arrow-forward' : 'pulse'} 
+                  size={20} 
+                  color="#000" 
+                />
               </View>
             )}
           </LinearGradient>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.skipButton}
-          onPress={handleSkip}
-          disabled={isSyncing}
-        >
-          <Text style={styles.skipText}>Lo haré más tarde</Text>
-        </TouchableOpacity>
+        {!isAnySynced && (
+          <TouchableOpacity 
+            style={styles.skipButton}
+            onPress={handleSkip}
+            disabled={isSyncing}
+          >
+            <Text style={styles.skipText}>Lo haré más tarde</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -332,5 +391,68 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: '#6B7280',
     fontWeight: '700',
     textDecorationLine: 'underline',
+  },
+  platformsSection: {
+    marginBottom: SPACING.xl,
+    paddingHorizontal: SPACING.sm,
+  },
+  platformsTitle: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#4B5563',
+    letterSpacing: 2,
+    marginBottom: SPACING.md,
+  },
+  platformsList: {
+    gap: SPACING.sm,
+  },
+  platformBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#111',
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.xl,
+    borderWidth: 1,
+    borderColor: '#222',
+  },
+  platformName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFF',
+    marginLeft: SPACING.sm,
+    flex: 1,
+  },
+  connectedDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+    marginRight: 6,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+  },
+  connectedText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#10B981',
+    textTransform: 'uppercase',
+  },
+  emptyPlatforms: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.xl,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: '#333',
+    gap: SPACING.sm,
+  },
+  emptyPlatformsText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
   },
 });
