@@ -50,26 +50,39 @@ serve(async (req) => {
     const model = 'gemini-2.0-flash'
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
-    const prompt = `Analiza esta imagen y actúa como un experto nutricionista visual. Identifica todos los alimentos presentes.
+    const prompt = `Actúa como un Analista Nutricional Visual de Precisión con capacidad de detección espacial. Tu objetivo es identificar EXACTAMENTE lo que hay en la imagen y su ubicación.
     
-    INSTRUCCIONES CLAVE:
-    1. Si no estás seguro al 100%, haz tu mejor estimación basada en colores y texturas (ej. "Proteína cocida", "Vegetales mixtos").
-    2. NUNCA devuelvas 0 calorías si ves comida. Estima valores realistas.
-    3. Si la imagen es borrosa o difícil, identifica el plato principal (ej. "Plato de carne", "Ensalada variada").
+    PASOS DE ANÁLISIS:
+    1. Identifica las formas y texturas principales.
+    2. Determina el alimento basado en la evidencia visual.
+    3. Para cada ingrediente principal, estima sus coordenadas espaciales exactas en la imagen.
+    
+    REGLAS DE COORDENADAS (box_2d):
+    - Usa valores NORMALIZADOS de 0 a 1000.
+    - Formato: [ymin, xmin, ymax, xmax]
+    - [0, 0, 1000, 1000] representa toda la imagen.
+    - ymin/ymax son verticales (0 superior, 1000 inferior).
+    - xmin/xmax son horizontales (0 izquierda, 1000 derecha).
     
     FORMATO DE RESPUESTA (JSON):
     {
-      "name": "Nombre descriptivo del plato",
-      "calories": 450,
-      "protein": 25,
-      "carbs": 35,
-      "fat": 15,
+      "name": "Nombre descriptivo y honesto",
+      "calories": 0,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0,
       "ingredients": [
-        {"name": "Ingrediente 1", "calories": 200, "protein": 15, "carbs": 5, "fat": 8},
-        {"name": "Ingrediente 2", "calories": 250, "protein": 10, "carbs": 30, "fat": 7}
+        {
+          "name": "Ingrediente", 
+          "calories": 0, 
+          "protein": 0, 
+          "carbs": 0, 
+          "fat": 0,
+          "box_2d": [ymin, xmin, ymax, xmax]
+        }
       ]
     }
-    IMPORTANTE: Solo JSON. Sin explicaciones.`
+    IMPORTANTE: Solo JSON. Los valores de "box_2d" deben ser precisos para dibujar etiquetas flotantes sobre los alimentos.`
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -89,8 +102,8 @@ serve(async (req) => {
           ]
         }],
         generationConfig: {
-          temperature: 0.4, // Menor temperatura para análisis más preciso
-          topP: 0.9,
+          temperature: 0.1, // Mínima temperatura para evitar alucinaciones
+          topP: 0.95,
           responseMimeType: "application/json"
         },
         safetySettings: [

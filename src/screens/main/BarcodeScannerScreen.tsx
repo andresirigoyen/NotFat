@@ -105,12 +105,23 @@ const BarcodeScannerScreen = ({ navigation }: any) => {
     );
   }
 
-  const handleScan = ({ data }: { data: string }) => {
+  const handleScan = async ({ data }: { data: string }) => {
     if (isLimitReached) return;
     Vibration.vibrate();
     stopScanning();
     incrementScan();
-    handleBarCodeScanned({ data } as any);
+    try {
+      const productData = await handleBarCodeScanned({ data } as any);
+      if (productData) {
+        navigation.navigate('AnalysisResult', { 
+          barcodeProduct: productData.product,
+          barcode: data,
+          source: 'barcode'
+        });
+      }
+    } catch (error) {
+      startScanning();
+    }
   };
 
   return (

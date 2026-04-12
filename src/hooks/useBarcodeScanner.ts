@@ -96,29 +96,7 @@ export function useBarcodeScanner() {
       const productData = await queryProductMutation.mutateAsync(data);
       const processingTime = Date.now() - startTime;
 
-      if (productData.found) {
-        // Producto encontrado - mostrar información
-        Alert.alert(
-          'Producto Encontrado',
-          `${productData.product.name}\nCalorías: ${productData.product.calories || 'N/A'}`,
-          [
-            { text: 'Cancelar', onPress: () => setIsScanning(true), style: 'cancel' },
-            { text: 'Agregar a Comida', onPress: () => addToMeal(productData) }
-          ]
-        );
-      } else {
-        // Producto no encontrado - ofrecer contribuir
-        Alert.alert(
-          'Producto No Encontrado',
-          '¿Deseas contribuir con una foto de este producto para nuestra base de datos?',
-          [
-            { text: 'No', onPress: () => setIsScanning(true), style: 'cancel' },
-            { text: 'Contribuir', onPress: () => requestContribution(data) }
-          ]
-        );
-      }
-
-      // Actualizar evento con resultado (usando el ID del evento)
+      // Actualizar evento con resultado
       await supabase
         .from('scan_events')
         .update({
@@ -129,14 +107,15 @@ export function useBarcodeScanner() {
         })
         .eq('id', scanEvent.id);
 
+      return productData;
+
     } catch (error) {
       console.error('Error scanning barcode:', error);
-      Alert.alert('Error', 'No se pudo procesar el código de barras');
-      setIsScanning(true);
+      throw error;
+    } finally {
+      // Resetear lastScanned después de 5 segundos para permitir mismo producto
+      setTimeout(() => setLastScanned(null), 5000);
     }
-
-    // Resetear lastScanned después de 5 segundos para permitir mismo producto
-    setTimeout(() => setLastScanned(null), 5000);
   }, [isScanning, lastScanned, registerScanMutation, queryProductMutation]);
 
   const addToMeal = async (productData: any) => {

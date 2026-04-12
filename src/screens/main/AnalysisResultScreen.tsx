@@ -40,7 +40,7 @@ export default function AnalysisResultScreen() {
 
   const navigation = useNavigation();
   const route = useRoute<any>();
-  const { imageUri, mealType = 'snack', mealDate } = route.params ?? {};
+  const { imageUri, mealType = 'snack', mealDate, barcodeProduct, source } = route.params ?? {};
   
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [analyzing, setAnalyzing] = useState(true);
@@ -50,6 +50,23 @@ export default function AnalysisResultScreen() {
   const { mutateAsync: createMeal } = useCreateMealWithItems();
 
   useEffect(() => {
+    // Si venimos de un código de barras, ya tenemos los datos
+    if (barcodeProduct) {
+      console.log('[AnalysisResult] Using barcode product data');
+      const mappedIngredient: Ingredient = {
+        id: '0',
+        name: barcodeProduct.name || 'Producto Escaneado',
+        calories: Math.round(Number(barcodeProduct.calories) || 0),
+        protein: parseFloat(String(barcodeProduct.protein || 0)).toFixed(1) as any,
+        carbs: parseFloat(String(barcodeProduct.carbs || 0)).toFixed(1) as any,
+        fat: parseFloat(String(barcodeProduct.fat || 0)).toFixed(1) as any,
+        confirmed: true,
+      };
+      setIngredients([mappedIngredient]);
+      setAnalyzing(false);
+      return;
+    }
+
     console.log('[AnalysisResult] Image URI:', imageUri);
     
     if (!imageUri || imageUri === 'undefined' || imageUri === 'null') {
@@ -114,7 +131,7 @@ export default function AnalysisResultScreen() {
     };
 
     analyzeImage();
-  }, [imageUri, analyzeMealImage]);
+  }, [imageUri, barcodeProduct, analyzeMealImage]);
 
   const toggleIngredient = (id: string) => {
     setIngredients((prev) =>
@@ -186,7 +203,9 @@ export default function AnalysisResultScreen() {
     <SafeAreaView style={styles.container}>
       <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={22} color={colors.text.primary} />
-        <Text style={styles.backLabel}>Resultado del análisis</Text>
+        <Text style={styles.backLabel}>
+          {source === 'barcode' ? 'Producto escaneado' : 'Resultado del análisis'}
+        </Text>
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -194,16 +213,36 @@ export default function AnalysisResultScreen() {
           <View style={styles.thumbnailContainer}>
             {imageUri ? (
               <Image source={{ uri: imageUri }} style={styles.thumbnailImage} />
+            ) : barcodeProduct?.image_url ? (
+              <Image source={{ uri: barcodeProduct.image_url }} style={styles.thumbnailImage} />
             ) : (
               <View style={styles.thumbnailPlaceholder}>
-                <Ionicons name="image-outline" size={40} color="rgba(255,255,255,0.15)" />
-                <Text style={styles.thumbnailLabel}>Foto analizada</Text>
+                <Ionicons 
+                  name={source === 'barcode' ? "barcode-outline" : "image-outline"} 
+                  size={40} 
+                  color="rgba(255,255,255,0.15)" 
+                />
+                <Text style={styles.thumbnailLabel}>
+                  {source === 'barcode' ? 'Sin imagen' : 'Foto analizada'}
+                </Text>
               </View>
             )}
           </View>
-          <View style={styles.aiChip}>
-            <Ionicons name="sparkles" size={14} color={colors.primary.amber} />
-            <Text style={styles.aiChipText}>Gemini Vision</Text>
+          <View style={[
+            styles.aiChip, 
+            source === 'barcode' && { backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.25)' }
+          ]}>
+            <Ionicons 
+              name={source === 'barcode' ? "barcode" : "sparkles"} 
+              size={14} 
+              color={source === 'barcode' ? colors.status.info : colors.primary.amber} 
+            />
+            <Text style={[
+              styles.aiChipText, 
+              source === 'barcode' && { color: colors.status.info }
+            ]}>
+              {source === 'barcode' ? 'Open Food Facts' : 'Gemini Vision'}
+            </Text>
           </View>
         </View>
 
