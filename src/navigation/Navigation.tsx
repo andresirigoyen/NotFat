@@ -25,12 +25,15 @@ const OnboardingNameScreen = LazyOverlay(React.lazy(() => import('../screens/onb
 const OnboardingGenderScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingGenderScreen')));
 const OnboardingBirthDateScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingBirthDateScreen')));
 const OnboardingGoalsScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingGoalsScreen')));
+const OnboardingAllergiesScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingAllergiesScreen')));
 const OnboardingProfileScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingProfileScreen')));
 const OnboardingActivityScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingActivityScreen')));
+const OnboardingHealthScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingHealthScreen')));
 const OnboardingPreferencesScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingPreferencesScreen')));
 const OnboardingAIGoalsScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingAIGoalsScreen')));
 const OnboardingModeSelectionScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingModeSelectionScreen')));
 const OnboardingPsychologyScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingPsychologyScreen')));
+const OnboardingNotificationScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingNotificationScreen')));
 const OnboardingGeneratingPlanScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingGeneratingPlanScreen')));
 const LoginScreen = LazyOverlay(React.lazy(() => import('../screens/auth/LoginScreen')));
 const SignUpScreen = LazyOverlay(React.lazy(() => import('../screens/auth/SignUpScreen')));
@@ -127,11 +130,14 @@ export default function Navigation() {
         <Stack.Screen name="OnboardingGender" component={OnboardingGenderScreen} />
         <Stack.Screen name="OnboardingBirthDate" component={OnboardingBirthDateScreen} />
         <Stack.Screen name="OnboardingGoals" component={OnboardingGoalsScreen} />
+        <Stack.Screen name="OnboardingAllergies" component={OnboardingAllergiesScreen} />
         <Stack.Screen name="OnboardingAIGoals" component={OnboardingAIGoalsScreen} />
         <Stack.Screen name="OnboardingProfile" component={OnboardingProfileScreen} />
         <Stack.Screen name="OnboardingActivity" component={OnboardingActivityScreen} />
+        <Stack.Screen name="OnboardingHealth" component={OnboardingHealthScreen} />
         <Stack.Screen name="OnboardingPreferences" component={OnboardingPreferencesScreen} />
         <Stack.Screen name="OnboardingPsychology" component={OnboardingPsychologyScreen} />
+        <Stack.Screen name="OnboardingNotification" component={OnboardingNotificationScreen} />
         <Stack.Screen name="OnboardingModeSelection" component={OnboardingModeSelectionScreen} />
         <Stack.Screen name="OnboardingGeneratingPlan" component={OnboardingGeneratingPlanScreen} />
 

@@ -31,7 +31,7 @@ export default function OnboardingBirthDateScreen() {
 
   useEffect(() => {
     setOnboardingData({ last_visited_step: 'OnboardingBirthDate' });
-  }, []);
+  }, [setOnboardingData]);
 
   const calculateAge = (date: Date) => {
     const today = new Date();

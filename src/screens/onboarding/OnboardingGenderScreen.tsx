@@ -115,7 +115,7 @@ export default function OnboardingGenderScreen() {
   useEffect(() => {
     analytics.trackScreenView('OnboardingGender');
     setOnboardingData({ last_visited_step: 'OnboardingGender' });
-  }, []);
+  }, [setOnboardingData]);
 
   const handleGenderSelect = (genderId: string) => {
     setSelectedGender(genderId);

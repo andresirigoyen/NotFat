@@ -11,24 +11,28 @@ import { Ionicons } from '@expo/vector-icons';
 export default function OnboardingNameScreen() {
   const { colors } = useThemeColors();
   const navigation = useNavigation();
-  const { setData: setOnboardingData } = useOnboardingStore();
-  const [name, setName] = useState('');
+  const { data: onboardingData, setData: setOnboardingData } = useOnboardingStore();
+  const [name, setName] = useState(onboardingData.full_name || '');
   const [isFocused, setIsFocused] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setOnboardingData({ last_visited_step: 'OnboardingName' });
-  }, []);
+  }, [setOnboardingData]);
 
   const handleContinue = () => {
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       Alert.alert('Espera', 'Por favor dinos tu nombre para personalizar tu experiencia.');
       return;
     }
     
-    const firstName = name.trim().split(' ')[0];
+    const firstName = trimmedName.split(' ')[0];
     setOnboardingData({ 
-        full_name: name.trim(),
-        onboarding_metadata: { first_name: firstName } 
+        full_name: trimmedName,
+        onboarding_metadata: { 
+          ...(onboardingData.onboarding_metadata || {}),
+          first_name: firstName 
+        } 
     });
     
     navigation.navigate('OnboardingGender' as never);

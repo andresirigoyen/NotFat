@@ -33,7 +33,7 @@ export default function OnboardingAIGoalsScreen() {
 
   useEffect(() => {
     setOnboardingData({ last_visited_step: 'OnboardingAIGoals' });
-  }, []);
+  }, [setOnboardingData]);
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiGoals, setAiGoals] = useState<AIGeneratedGoals | null>(null);
@@ -42,7 +42,7 @@ export default function OnboardingAIGoalsScreen() {
 
   useEffect(() => {
     analytics.trackScreenView('OnboardingAIGoals');
-  }, []);
+  }, []); // El objeto analytics es una constante global, no necesita estar en el array
 
   const generateAIGoals = async () => {
     if (!user) return;

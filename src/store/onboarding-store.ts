@@ -30,11 +30,16 @@ export interface OnboardingData {
   full_name?: string;
   preferred_bottle_size?: number;
   coach_style?: string;
-  preferred_bottle_unit?: string;
+  preferred_bottle_unit?: 'ml' | 'oz';
   show_calories?: boolean;
   show_macros?: boolean;
   show_hydration?: boolean;
   last_visited_step?: string;
+  notification_settings?: {
+    meals: boolean;
+    water: boolean;
+    motivation: boolean;
+  };
 }
 
 interface OnboardingState {

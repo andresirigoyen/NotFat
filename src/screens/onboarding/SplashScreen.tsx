@@ -28,16 +28,16 @@ export default function SplashScreen() {
     // Explicit override (used by Welcome close button)
     if (route.params?.nextScreen) return route.params.nextScreen;
 
-    // If no user, we start with onboarding directly (anonymous data collection)
-    if (!user) return 'OnboardingGender';
+    // If no user, we start with Welcome
+    if (!user) return 'Welcome';
     
     // Si todavía estamos cargando el perfil, no tomamos una decisión definitiva
     if (profileLoading) return 'Splash';
 
-    if (!profile) return 'OnboardingGender';
+    if (!profile) return 'Welcome';
     if (profile.onboarding_completed) return 'Main';
 
-    const step = profile.onboarding_step || 'gender';
+    const step = profile.onboarding_completed ? 'completed' : (profile.onboarding_step || 'referral');
     switch (step) {
       case 'referral':
         return 'OnboardingReferral';
@@ -62,7 +62,7 @@ export default function SplashScreen() {
       case 'completed':
         return 'Main';
       default:
-        return 'OnboardingReferral';
+        return 'Welcome';
     }
   }, [profile, profileLoading, route.params?.nextScreen, user]);
 

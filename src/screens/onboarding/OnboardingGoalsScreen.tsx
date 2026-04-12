@@ -99,7 +99,7 @@ export default function OnboardingGoalsScreen() {
 
   React.useEffect(() => {
     setOnboardingData({ last_visited_step: 'OnboardingGoals' });
-  }, []);
+  }, [setOnboardingData]);
 
   const handleNutritionGoalSelect = (goalId: string) => {
     setSelectedNutritionGoal(goalId);
@@ -275,7 +275,7 @@ export default function OnboardingGoalsScreen() {
               setIsLoading(true);
               try {
                 await persistGoals();
-                navigation.navigate('OnboardingProfile' as never);
+                navigation.navigate('OnboardingAllergies' as never);
               } catch (e) {
                 console.error('Error saving goals:', e);
               } finally {

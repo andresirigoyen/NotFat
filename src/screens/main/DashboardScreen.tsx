@@ -115,14 +115,14 @@ export default function DashboardScreen() {
         friction: 7,
       }).start();
     });
-  }, [waterCupsFilled]);
+  }, [waterCupsFilled, cupAnims]);
 
   // Clear pending water when totals actually update from server
   useEffect(() => {
     if (totals?.water !== undefined && pendingWater > 0) {
       setPendingWater(0);
     }
-  }, [totals?.water]);
+  }, [totals?.water, pendingWater]);
 
   // Liquid refill animation
   useEffect(() => {
@@ -135,7 +135,7 @@ export default function DashboardScreen() {
         friction: 6,
       }).start();
     }
-  }, [waterMl, waterGoal, barWidth]);
+  }, [waterMl, waterGoal, barWidth, waterProgressAnim]);
 
   // Generate calendar days for the month view
   const generateCalendarDays = (date: Date) => {

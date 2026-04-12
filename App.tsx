@@ -163,7 +163,7 @@ export default function App() {
     return () => {
       authListenerUnsubscribe();
     };
-  }, []); // Array vacío = Ejecución única absoluta al montar la app
+  }, [notifications]); 
 
   if (!fontsLoaded) {
     return null;

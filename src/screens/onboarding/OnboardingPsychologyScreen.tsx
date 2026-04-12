@@ -19,13 +19,29 @@ export default function OnboardingPsychologyScreen() {
   const [weekendStruggle, setWeekendStruggle] = useState('');
   const [targetWeight, setTargetWeight] = useState('');
 
+  const HUNGER_OPTIONS = [
+    { label: 'Estrés 😫', value: 'Estrés' },
+    { label: 'Aburrimiento 🥱', value: 'Aburrimiento' },
+    { label: 'Ansiedad 😰', value: 'Ansiedad' },
+    { label: 'Cansancio 😴', value: 'Cansancio' },
+    { label: 'Social 🍻', value: 'Social' },
+  ];
+
+  const WEEKEND_OPTIONS = [
+    { label: 'Salidas 🌯', value: 'Salidas/Restaurantes' },
+    { label: 'Alcohol 🍷', value: 'Alcohol' },
+    { label: 'Familia 👨‍👩‍👧', value: 'Eventos Familiares' },
+    { label: 'Sin Horarios ⏰', value: 'Falta de Rutina' },
+    { label: 'Cine/Snacks 🍿', value: 'Snacking Inconsciente' },
+  ];
+
   React.useEffect(() => {
     setOnboardingData({ last_visited_step: 'OnboardingPsychology' });
-  }, []);
+  }, [setOnboardingData]);
 
   const handleContinue = () => {
-    if (!targetWeight || !hungerTrigger) {
-      Alert.alert('Espera', 'Por favor cuéntanos un poco más para personalizar tu plan.');
+    if (!targetWeight || !hungerTrigger || !weekendStruggle) {
+      Alert.alert('Espera', 'Por favor completa todos los campos para personalizar tu plan.');
       return;
     }
 
@@ -94,11 +110,24 @@ export default function OnboardingPsychologyScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>¿Qué dispara tu hambre?</Text>
+              <View style={styles.chipsRow}>
+                {HUNGER_OPTIONS.map((opt) => (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.chip, hungerTrigger === opt.value && styles.chipActive]}
+                    onPress={() => setHungerTrigger(opt.value)}
+                  >
+                    <Text style={[styles.chipText, hungerTrigger === opt.value && styles.chipTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
               <View style={styles.inputWrapper}>
                 <Ionicons name="flash-outline" size={20} color="#FBBF24" />
                 <TextInput
                   style={styles.input}
-                  placeholder="Ej. Estrés, aburrimiento..."
+                  placeholder="U otro: Estrés, aburrimiento..."
                   placeholderTextColor="#4B5563"
                   value={hungerTrigger}
                   onChangeText={setHungerTrigger}
@@ -108,11 +137,24 @@ export default function OnboardingPsychologyScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Reto de Fin de Semana</Text>
+              <View style={styles.chipsRow}>
+                {WEEKEND_OPTIONS.map((opt) => (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.chip, weekendStruggle === opt.value && styles.chipActive]}
+                    onPress={() => setWeekendStruggle(opt.value)}
+                  >
+                    <Text style={[styles.chipText, weekendStruggle === opt.value && styles.chipTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
               <View style={styles.inputWrapper}>
                 <Ionicons name="calendar-outline" size={20} color="#FBBF24" />
                 <TextInput
                   style={styles.input}
-                  placeholder="Ej. Cenas fuera, alcohol..."
+                  placeholder="U otro: Cenas fuera, alcohol..."
                   placeholderTextColor="#4B5563"
                   value={weekendStruggle}
                   onChangeText={setWeekendStruggle}
@@ -132,10 +174,10 @@ export default function OnboardingPsychologyScreen() {
             <TouchableOpacity 
               style={[
                 styles.button,
-                (!targetWeight || !hungerTrigger) && styles.buttonDisabled
+                (!targetWeight || !hungerTrigger || !weekendStruggle) && styles.buttonDisabled
               ]} 
               onPress={handleContinue}
-              disabled={!targetWeight || !hungerTrigger}
+              disabled={!targetWeight || !hungerTrigger || !weekendStruggle}
             >
               <LinearGradient
                 colors={['#FBBF24', '#D97706']}
@@ -230,6 +272,32 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: SPACING.xl,
+  },
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: SPACING.md,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  chipActive: {
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+    borderColor: '#FBBF24',
+  },
+  chipText: {
+    color: '#9CA3AF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  chipTextActive: {
+    color: '#FBBF24',
   },
   label: {
     fontSize: 14,

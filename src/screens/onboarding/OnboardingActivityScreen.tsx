@@ -56,15 +56,15 @@ export default function OnboardingActivityScreen() {
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile, upsertActivityProfile } = useProfile();
-  const { setData: setOnboardingData } = useOnboardingStore();
+  const { data: onboardingData, setData: setOnboardingData } = useOnboardingStore();
   
-  const [selectedWorkout, setSelectedWorkout] = useState<string>('');
-  const [selectedStepsGoal, setSelectedStepsGoal] = useState<number>(10000);
+  const [selectedWorkout, setSelectedWorkout] = useState<string>(onboardingData.workout_frequency || '');
+  const [selectedStepsGoal, setSelectedStepsGoal] = useState<number>(onboardingData.steps_goal || 10000);
   const [isLoading, setIsLoading] = useState(false);
 
   React.useEffect(() => {
     setOnboardingData({ last_visited_step: 'OnboardingActivity' });
-  }, []);
+  }, [setOnboardingData]);
 
   const handleWorkoutSelect = (workoutId: string) => {
     setSelectedWorkout(workoutId);
@@ -114,7 +114,7 @@ export default function OnboardingActivityScreen() {
         daily_activity_level: dailyActivityLevel,
       });
 
-      navigation.navigate('OnboardingPreferences' as never);
+      navigation.navigate('OnboardingHealth' as never);
     } catch (error) {
       console.error('Error updating activity:', error);
     } finally {

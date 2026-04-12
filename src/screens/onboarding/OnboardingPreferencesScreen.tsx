@@ -30,17 +30,17 @@ export default function OnboardingPreferencesScreen() {
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
   const { mutateAsync: createNotificationPreference } = useCreateNotificationPreference();
-  const { setData: setOnboardingData } = useOnboardingStore();
+  const { data: onboardingData, setData: setOnboardingData } = useOnboardingStore();
   
-  const [preferredBottleUnit, setPreferredBottleUnit] = useState<'ml' | 'oz'>('ml');
-  const [preferredBottleSize, setPreferredBottleSize] = useState<number>(1000);
-  const [showCalories, setShowCalories] = useState<boolean>(true);
-  const [showHydration, setShowHydration] = useState<boolean>(true);
+  const [preferredBottleUnit, setPreferredBottleUnit] = useState<'ml' | 'oz'>(onboardingData.preferred_bottle_unit || 'ml');
+  const [preferredBottleSize, setPreferredBottleSize] = useState<number>(onboardingData.preferred_bottle_size || 1000);
+  const [showCalories, setShowCalories] = useState<boolean>(onboardingData.show_calories ?? true);
+  const [showHydration, setShowHydration] = useState<boolean>(onboardingData.show_hydration ?? true);
   const [isLoading, setIsLoading] = useState(false);
 
   React.useEffect(() => {
     setOnboardingData({ last_visited_step: 'OnboardingPreferences' });
-  }, []);
+  }, [setOnboardingData]);
 
   const availableBottleSizes = BOTTLE_SIZES[preferredBottleUnit];
 

@@ -30,21 +30,19 @@ export default function OnboardingProfileScreen() {
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile } = useProfile();
-  const { setData: setOnboardingData } = useOnboardingStore();
+  const { data: onboardingData, setData: setOnboardingData } = useOnboardingStore();
   
   // Estados para los campos del perfil (sincronizados con Prisma)
-  // Estados para los campos del perfil (sincronizados con Prisma)
-  const [heightValue, setHeightValue] = useState('');
-  const [heightUnit, setHeightUnit] = useState<'cm' | 'in'>('cm');
-  const [weightValue, setWeightValue] = useState('');
-  const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
+  const [heightValue, setHeightValue] = useState(onboardingData.height_value?.toString() || '');
+  const [heightUnit, setHeightUnit] = useState<'cm' | 'in'>(onboardingData.height_unit || 'cm');
+  const [weightValue, setWeightValue] = useState(onboardingData.weight_value?.toString() || '');
+  const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>(onboardingData.weight_unit || 'kg');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     setOnboardingData({ last_visited_step: 'OnboardingProfile' });
-  }, []);
+  }, [setOnboardingData]);
 
-  const { data: onboardingData } = useOnboardingStore();
   const userName = onboardingData?.onboarding_metadata?.first_name || '';
 
   const validateInputs = () => {

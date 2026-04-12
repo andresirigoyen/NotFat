@@ -71,7 +71,7 @@ export default function WelcomeScreen() {
                   <TouchableOpacity 
                     style={styles.primaryButton}
                     activeOpacity={0.9}
-                    onPress={() => navigation.navigate('OnboardingName' as never)}
+                    onPress={() => navigation.navigate('OnboardingReferral' as never)}
                   >
                     <LinearGradient
                       colors={['#FBBF24', '#D97706']}

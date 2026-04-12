@@ -87,10 +87,18 @@ export default function OnboardingGeneratingPlanScreen() {
         setTimeout(() => setStatus('Identificando hacks conductuales...'), 2500);
         setTimeout(() => setStatus('Validando límites de seguridad metabólica...'), 3800);
 
-        const { data, error } = await supabase.functions.invoke('generate-nutritional-plan', {
+        // 🧠 SHIELD: Implementamos una carrera contra el tiempo (7 segundos máx)
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('TIMEOUT_LIMIT_REACHED')), 7000)
+        );
+
+        const aiPromise = supabase.functions.invoke('generate-nutritional-plan', {
           body: { userId: user!.id },
-          headers: { 'x-timeout': '5000' }
         });
+
+        // Ejecutar la carrera
+        const result: any = await Promise.race([aiPromise, timeoutPromise]);
+        const { data, error } = result;
 
         if (error || !data) {
           throw new Error(error?.message || 'Empty response');

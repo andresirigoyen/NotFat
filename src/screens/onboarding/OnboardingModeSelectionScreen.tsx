@@ -22,7 +22,7 @@ export default function OnboardingModeSelectionScreen() {
 
   React.useEffect(() => {
     setOnboardingData({ last_visited_step: 'OnboardingModeSelection' });
-  }, []);
+  }, [setOnboardingData]);
 
   const handleConfirm = async () => {
     if (!selectedMode) return;
@@ -49,7 +49,7 @@ export default function OnboardingModeSelectionScreen() {
           coach_style: coachStyle
         });
         analytics.trackOnboardingStep('coach_mode_selected_anonymous', { mode: selectedMode });
-        navigation.navigate('SignUp' as never);
+        navigation.navigate('OnboardingNotification' as never);
       }
     } catch (e: any) {
       console.error('Selection confirm error:', e);

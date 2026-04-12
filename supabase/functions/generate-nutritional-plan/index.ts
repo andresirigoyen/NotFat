@@ -27,8 +27,17 @@ serve(async (req) => {
     }
 
     // 2. Prepare AI Prompt
+    const calculateAge = (birthDate: string) => {
+      const birth = new Date(birthDate);
+      const now = new Date();
+      let age = now.getFullYear() - birth.getFullYear();
+      const m = now.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+      return age;
+    };
+
     const full_name = profile.full_name || 'Usuario';
-    const age = profile.age || 30;
+    const age = profile.birth_date ? calculateAge(profile.birth_date) : 30;
     const gender = profile.gender || 'otro';
     const height_cm = profile.height_value || 170;
     const current_weight_kg = profile.weight_value || 70;
@@ -39,21 +48,28 @@ serve(async (req) => {
     const work_schedule = profile.work_schedule || 'horario regular';
     const hunger_trigger = profile.hunger_trigger || 'hambre fisiológica';
     const weekend_struggle = profile.weekend_struggle || 'vida social';
+    
+    // Captura de datos de seguridad y atribución
+    const allergies = profile.onboarding_metadata?.allergies || [];
+    const traffic_source = profile.traffic_source || 'directo';
 
     const systemPrompt = `Actúa como un Nutricionista Clínico y experto en Psicología Conductual. Tu tarea es procesar los datos de un nuevo usuario para generar un plan de nutrición y hábitos que sea científicamente preciso y psicológicamente motivador. `;
     
     const userPrompt = `
 User Inputs (Extraídos de Supabase):
 Nombre: ${full_name}
+Atribución: El usuario llegó vía ${traffic_source}.
 Físico: ${age} años, ${gender}, ${height_cm}cm, ${current_weight_kg}kg.
 Objetivo: ${goal_type} para llegar a ${target_weight_kg}kg.
 Estilo de Vida: ${activity_level}, dieta ${diet_type}, trabaja en ${work_schedule}.
+SEGURIDAD CLÍNICA (Alergias): ${allergies.length > 0 ? allergies.join(', ') : 'Ninguna'}.
 Barreras Identificadas: Come por ${hunger_trigger}, le cuesta los fines de semana: ${weekend_struggle}.
 
 Requerimientos de Salida (JSON Estricto):
 1. Cálculos: TDEE (Mifflin-St Jeor), objetivo calórico diario (ajustado +/- 15% según meta) y macros (P/C/F).
-2. Informe de Predicción de Éxito: Basado en su perfil psicológico, calcula un % de probabilidad de éxito y define su barrera principal.
-3. Insights Conductuales: 3 consejos prácticos basados específicamente en sus disparadores (triggers) y entorno social.
+2. SEGURIDAD: Los consejos NUNCA deben sugerir alimentos que coincidan con las alergias del usuario.
+3. Informe de Predicción de Éxito: Basado en su perfil psicológico, calcula un % de probabilidad de éxito. En "mensaje_analisis", menciona específicamente cómo su compromiso con sus metas y su canal de origen (${traffic_source}) influyen positivamente.
+4. Insights Conductuales: 3 consejos prácticos basados específicamente en sus disparadores (triggers).
 
 Responde ÚNICAMENTE con un JSON en este formato:
 {
@@ -96,20 +112,40 @@ Responde ÚNICAMENTE con un JSON en este formato:
       aiResponse.plan_nutricional.nota_seguridad = `Se ha ajustado tu objetivo calórico al mínimo de seguridad metabólica (${minCals} kcal) para proteger tu salud y asegurar energía suficiente.`;
     }
 
-    // 3. Save result back to profiles
+    // 3. Save result back to profiles and goals tables
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
         nutritional_plan: aiResponse,
         onboarding_completed: true,
         onboarding_step: 'completed',
-        // Update top-level values for quick access
-        steps_goal: profile.steps_goal || 10000,
         daily_calorie_target: aiResponse.plan_nutricional.calorias_objetivo
       })
-      .eq('id', userId)
+      .eq('id', userId);
 
-    if (updateError) throw updateError
+    if (updateError) throw updateError;
+
+    // 🧠 SYNC: Insert record into nutrition_goals for Dashboard visibility
+    await supabase.from('nutrition_goals').insert({
+      user_id: userId,
+      calories: aiResponse.plan_nutricional.calorias_objetivo,
+      protein: aiResponse.plan_nutricional.macros.proteina_g,
+      carbs: aiResponse.plan_nutricional.macros.carbos_g,
+      fat: aiResponse.plan_nutricional.macros.grasas_g,
+      fiber: Math.round(aiResponse.plan_nutricional.calorias_objetivo * 0.012),
+      is_active: true,
+      start_date: new Date().toISOString(),
+      source: 'ia'
+    });
+
+    // 🧠 SYNC: Insert record into hydration_goals
+    const hydrationTarget = Math.round((current_weight_kg || 70) * 35);
+    await supabase.from('hydration_goals').insert({
+      user_id: userId,
+      target: hydrationTarget,
+      target_unit: 'ml',
+      start_date: new Date().toISOString()
+    });
 
     return new Response(JSON.stringify(aiResponse), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -117,8 +153,9 @@ Responde ÚNICAMENTE con un JSON en este formato:
     })
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error generating plan:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })

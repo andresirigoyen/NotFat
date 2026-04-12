@@ -19,19 +19,18 @@ export default function SignUpScreen() {
   const { signUp } = useAuthStore();
   const { data: onboardingData, reset: resetOnboarding } = useOnboardingStore();
 
+  const [fullName, setFullName] = React.useState(onboardingData.full_name || '');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
   const [acceptTerms, setAcceptTerms] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [focused, setFocused] = React.useState<'email' | 'password' | 'confirm' | null>(null);
+  const [focused, setFocused] = React.useState<'name' | 'email' | 'password' | 'confirm' | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   const handleSignUp = async () => {
-    const name = onboardingData.full_name || 'Usuario';
-
-    if (!email || !password || !confirmPassword) {
+    if (!fullName || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Por favor completa todos los campos');
       return;
     }
@@ -61,7 +60,7 @@ export default function SignUpScreen() {
       setIsLoading(true);
       console.log('[SignUp] Attempting to create account for:', email.trim());
 
-      const { error, session, user } = await signUp(email.trim(), password, name.trim());
+      const { error, session, user } = await signUp(email.trim(), password, fullName.trim());
 
       if (error) {
         console.error('[SignUp] Error de Supabase:', error);
@@ -80,10 +79,27 @@ export default function SignUpScreen() {
             .upsert({
               id: session.user.id,
               email: email.trim(),
-              full_name: name.trim(),
-              first_name: name.trim().split(' ')[0],
-              last_name: name.trim().split(' ').slice(1).join(' '),
-              ...onboardingData,
+              full_name: fullName.trim(),
+              first_name: fullName.trim().split(' ')[0],
+              last_name: fullName.trim().split(' ').slice(1).join(' '),
+              traffic_source: onboardingData.traffic_source,
+              gender: onboardingData.gender,
+              birth_date: onboardingData.birth_date,
+              weight_value: onboardingData.weight_value,
+              height_value: onboardingData.height_value,
+              weight_unit: onboardingData.weight_unit,
+              height_unit: onboardingData.height_unit,
+              nutrition_goal: onboardingData.nutrition_goal,
+              diet_type: onboardingData.diet_type,
+              activity_level: onboardingData.activity_level,
+              workout_frequency: onboardingData.workout_frequency,
+              target_weight_kg: onboardingData.target_weight_kg,
+              onboarding_metadata: {
+                ...(onboardingData.onboarding_metadata || {}),
+                hunger_trigger: onboardingData.hunger_trigger,
+                weekend_struggle: onboardingData.weekend_struggle,
+                notification_settings: onboardingData.notification_settings,
+              },
               onboarding_completed: true,
               onboarding_step: 'completed',
               updated_at: new Date().toISOString(),
@@ -194,9 +210,22 @@ export default function SignUpScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Datos de acceso</Text>
 
-            <View style={styles.nameConfirm}>
-              <Text style={styles.nameLabel}>Registrando como:</Text>
-              <Text style={styles.nameValue}>{onboardingData.full_name || 'Usuario'}</Text>
+            <View style={styles.field}>
+              <Text style={styles.label}>Nombre completo</Text>
+              <View style={[styles.inputWrap, focused === 'name' && styles.inputWrapFocused]}>
+                <Ionicons name="person-outline" size={20} color={focused === 'name' ? colors.primary.amber : colors.text.muted} />
+                <TextInput
+                  style={styles.input}
+                  value={fullName}
+                  onChangeText={setFullName}
+                  placeholder="Tu nombre y apellido"
+                  placeholderTextColor={colors.text.muted}
+                  autoCapitalize="words"
+                  onFocus={() => setFocused('name')}
+                  onBlur={() => setFocused(null)}
+                  editable={!isLoading}
+                />
+              </View>
             </View>
 
             <View style={styles.field}>
