@@ -15,7 +15,18 @@ import { useProfile } from '@/hooks/useProfile';
 import { PremiumGuard } from '@/components/ui/PremiumGuard';
 import { Target, TrendingUp, BrainCircuit } from 'lucide-react-native';
 
-const { width } = Dimensions.get('window');
+// Pool of random ingredient combos to ensure variety
+const PROMPT_SEEDS = [
+  'pollo y verduras de temporada', 'salmón y espárragos', 'lentejas y espinacas',
+  'atún y aguacate', 'tofu y brócoli', 'huevo y champiñones', 'garbanzos y pimiento',
+  'pavo y batata', 'quinoa y pepino', 'camarones y limón', 'berenjenas y tomate',
+  'avena y frutas rojas', 'requesón y nueces', 'sardinas y alcaparras',
+  'carne magra y zanahorias', 'res magra y arroz integral',
+];
+
+const MEAL_EMOJIS: Record<string, string> = {
+  Desayuno: '🌅', Almuerzo: '🍽️', Cena: '🌙', Snack: '🥗',
+};
 
 const NoFatScreen = () => {
   const { colors, isDark } = useThemeColors();
@@ -69,19 +80,6 @@ const NoFatScreen = () => {
     prompt: string;
     emoji: string;
   }
-
-  // Pool of random ingredient combos to ensure variety
-  const PROMPT_SEEDS = [
-    'pollo y verduras de temporada', 'salmón y espárragos', 'lentejas y espinacas',
-    'atún y aguacate', 'tofu y brócoli', 'huevo y champiñones', 'garbanzos y pimiento',
-    'pavo y batata', 'quinoa y pepino', 'camarones y limón', 'berenjenas y tomate',
-    'avena y frutas rojas', 'requesón y nueces', 'sardinas y alcaparras',
-    'carne magra y zanahorias', 'res magra y arroz integral',
-  ];
-
-  const MEAL_EMOJIS: Record<string, string> = {
-    Desayuno: '🌅', Almuerzo: '🍽️', Cena: '🌙', Snack: '🥗',
-  };
 
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestedRecipe[]>([]);
   const [loadingAI, setLoadingAI] = useState(false);
@@ -156,7 +154,7 @@ const NoFatScreen = () => {
     } finally {
       setLoadingAI(false);
     }
-  }, [isPro, maxAiSuggestionsOnLoad, getTodayMessages, incrementMessage]);
+  }, [isPro, maxAiSuggestionsOnLoad, getTodayMessages, incrementMessage, canRefreshAiSuggestions, navigation, processPrompt]);
 
   // Generate on mount
   React.useEffect(() => {

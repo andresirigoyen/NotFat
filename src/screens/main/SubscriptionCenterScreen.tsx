@@ -128,7 +128,7 @@ export default function SubscriptionCenterScreen() {
     // Refresh local state
     fetchSubscription();
     fetchPayments();
-  }, [route.params?.result]);
+  }, [route.params?.result, fetchSubscription, fetchPayments]);
 
   const handleSelectPlan = (planId: string) => {
     setSelectedPlan(planId);

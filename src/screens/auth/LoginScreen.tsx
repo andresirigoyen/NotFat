@@ -123,6 +123,7 @@ export default function LoginScreen() {
         routes: [{ name: 'Main' as never }],
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loading]);
 
   return (

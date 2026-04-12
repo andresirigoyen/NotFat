@@ -20,7 +20,9 @@ try {
   } else {
     console.warn('expo-av is not supported in this Expo Go environment.');
   }
-} catch (e) {}
+} catch (e) {
+  // Ignorado de forma segura
+}
 
 interface VoiceInputState {
   isRecording: boolean;
@@ -208,6 +210,7 @@ const cancelRecording = useCallback(async () => {
         recording.stopAndUnloadAsync().catch(() => {});
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

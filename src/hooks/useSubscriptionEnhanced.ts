@@ -55,6 +55,7 @@ export const useSubscriptionEnhanced = () => {
       // ✅ FIX #16: Cargar ambos en paralelo con un único estado de carga compartido
       loadAllData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const loadAllData = async () => {

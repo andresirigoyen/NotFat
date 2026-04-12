@@ -123,6 +123,7 @@ const HydrationScreen = () => {
       easing: Easing.out(Easing.back(1.5)),
       useNativeDriver: false,
     }).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [percentage]);
 
   return (

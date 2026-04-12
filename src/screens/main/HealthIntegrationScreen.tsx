@@ -66,7 +66,7 @@ export default function HealthIntegrationScreen({ navigation }: any) {
   const handleConnect = async (platformId: string) => {
     try {
       switch (platformId) {
-        case 'apple_health':
+        case 'apple_health': {
           let AppleHealthKit: any;
           try {
             // AppleHealthKit = require('react-native-health').default || require('react-native-health');
@@ -112,6 +112,7 @@ export default function HealthIntegrationScreen({ navigation }: any) {
             Alert.alert('Error', 'Apple Health no está disponible.');
           }
           break;
+        }
         case 'google_fit':
           // Conexión con Google Fit
           Alert.alert('Google Fit', 'Funcionalidad de Google Fit en desarrollo');
