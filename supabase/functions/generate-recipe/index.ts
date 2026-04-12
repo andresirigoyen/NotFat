@@ -48,7 +48,7 @@ serve(async (req) => {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.8,
-          responseMimeType: "application/json"
+          response_mime_type: "application/json"
         }
       })
     })
