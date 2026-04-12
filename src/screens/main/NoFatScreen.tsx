@@ -86,7 +86,7 @@ const NoFatScreen = () => {
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestedRecipe[]>([]);
   const [loadingAI, setLoadingAI] = useState(false);
 
-  const generateAISuggestions = async (isRefresh = false) => {
+  const generateAISuggestions = React.useCallback(async (isRefresh = false) => {
     // Check tier capabilities for refresh
     if (isRefresh && !canRefreshAiSuggestions) {
       Alert.alert(
@@ -156,12 +156,12 @@ const NoFatScreen = () => {
     } finally {
       setLoadingAI(false);
     }
-  };
+  }, [isPro, maxAiSuggestionsOnLoad, getTodayMessages, incrementMessage]);
 
   // Generate on mount
   React.useEffect(() => {
     generateAISuggestions(false);
-  }, []);
+  }, [generateAISuggestions]);
 
   const handleCategoryPress = async (category: typeof categories[0]) => {
     if (isMessageLimitReached) {

@@ -35,7 +35,7 @@ export default function OnboardingGeneratingPlanScreen() {
       let bmr = (10 * weight) + (6.25 * height) - (5 * age);
       bmr = gender === 'male' ? bmr + 5 : bmr - 161;
       
-      let maintenanceCals = bmr * 1.375; // Active Moderate
+      const maintenanceCals = bmr * 1.375; // Active Moderate
       let targetCals = maintenanceCals;
       
       if (goal === 'lose_weight') targetCals -= 500;
@@ -138,7 +138,7 @@ export default function OnboardingGeneratingPlanScreen() {
     };
 
     generatePlan();
-  }, [user]);
+  }, [user, localData, navigation, notifications, reset]);
 
   return (
     <SafeAreaView style={styles.container}>
