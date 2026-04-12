@@ -46,8 +46,8 @@ serve(async (req) => {
       throw new Error('GOOGLE_GEMINI_API_KEY is not configured')
     }
 
-    // Usar gemini-1.5-flash para consistencia y rendimiento
-    const model = 'gemini-1.5-flash'
+    // Usar gemini-1.5-flash-latest para máxima compatibilidad
+    const model = 'gemini-1.5-flash-latest'
     const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`
 
     const prompt = `Actúa como un Analista Nutricional Visual de Precisión con capacidad de detección espacial. Tu objetivo es identificar EXACTAMENTE lo que hay en la imagen y su ubicación.

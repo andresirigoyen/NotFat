@@ -102,7 +102,7 @@ serve(async (req) => {
       throw new Error('GOOGLE_GEMINI_API_KEY is not configured. Please set the secret.')
     }
 
-    const model = 'gemini-1.5-flash'
+    const model = 'gemini-1.5-flash-latest'
     console.log('Using model:', model)
     
     const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`
@@ -182,13 +182,16 @@ serve(async (req) => {
     let responseText = '';
     let aiResponse;
     try {
-      console.log('Calling Gemini API with systemInstruction...');
+      console.log('Calling Gemini API (v1)...');
+      
+      // Combinamos instrucción de sistema con el mensaje para máxima compatibilidad
+      const promptContext = `INSTRUCCIÓN DE SISTEMA:\n${systemInstruction.parts[0].text}\n\n---\n\n${userMessagePart}`;
+
       aiResponse = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          system_instruction: systemInstruction,
-          contents: [{ parts: [{ text: userMessagePart }] }],
+          contents: [{ parts: [{ text: promptContext }] }],
           generationConfig: {
             temperature: coachStyle === 'apoyo' ? 0.7 : 0.9,
             topP: 0.95,
