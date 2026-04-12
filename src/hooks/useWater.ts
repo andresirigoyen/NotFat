@@ -68,7 +68,7 @@ export function useWater() {
           user_id: user.id,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as WaterLog;
@@ -89,7 +89,7 @@ export function useWater() {
         .from('water_logs')
         .select('user_id')
         .eq('id', waterLogId)
-        .single();
+        .maybeSingle();
       
       if (fetchError || !log) throw new Error('Log no encontrado');
       if (log.user_id !== user.id) throw new Error('No autorizado');

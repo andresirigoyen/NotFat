@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useOnboardingStore } from '@/store/onboarding-store';
 import { useThemeColors } from '@/hooks/useThemeColors';
-import { SPACING, FONTS, BORDER_RADIUS } from '@/constants/theme';
+import { SPACING, FONTS, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -190,27 +190,20 @@ export default function OnboardingHealthScreen() {
           onPress={handleSync}
           disabled={isSyncing}
         >
-          <LinearGradient
-            colors={['#FBBF24', '#D97706']}
-            style={styles.gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            {isSyncing ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <View style={styles.buttonContent}>
-                <Text style={styles.buttonText}>
-                  {isAnySynced ? 'Continuar' : 'Conectar Datos de Salud'}
-                </Text>
-                <Ionicons 
-                  name={isAnySynced ? 'arrow-forward' : 'pulse'} 
-                  size={20} 
-                  color="#000" 
-                />
-              </View>
-            )}
-          </LinearGradient>
+          {isSyncing ? (
+            <ActivityIndicator color="#000" />
+          ) : (
+            <View style={styles.buttonContent}>
+              <Text style={styles.buttonText}>
+                {isAnySynced ? 'Continuar' : 'Conectar Datos de Salud'}
+              </Text>
+              <Ionicons 
+                name={isAnySynced ? 'arrow-forward' : 'pulse'} 
+                size={20} 
+                color="#000" 
+              />
+            </View>
+          )}
         </TouchableOpacity>
 
         {!isAnySynced && (
@@ -358,17 +351,17 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     paddingBottom: SPACING.xl,
   },
   mainButton: {
-    borderRadius: BORDER_RADIUS.xl,
-    overflow: 'hidden',
+    backgroundColor: '#FBBF24',
+    height: 64,
+    borderRadius: BORDER_RADIUS['2xl'],
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: SPACING.sm,
+    overflow: 'hidden',
+    ...SHADOWS.md,
   },
   buttonDisabled: {
     opacity: 0.7,
-  },
-  gradient: {
-    height: 64,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   buttonContent: {
     flexDirection: 'row',

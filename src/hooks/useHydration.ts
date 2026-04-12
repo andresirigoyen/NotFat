@@ -70,7 +70,7 @@ export const useHydration = () => {
         .from('hydration_goals')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (goalError) {
         if (goalError.code === 'PGRST116') {
@@ -114,7 +114,7 @@ export const useHydration = () => {
           reminder_enabled: true
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       setHydrationGoal(data);
@@ -141,7 +141,7 @@ export const useHydration = () => {
           .from('hydration_goals')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
         
         if (goal) {
           setHydrationGoal(goal);
@@ -181,7 +181,7 @@ export const useHydration = () => {
           date: (loggedAt ? new Date(loggedAt) : new Date()).toISOString().split('T')[0]
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (insertError) throw insertError;
 
@@ -240,7 +240,7 @@ export const useHydration = () => {
         .eq('id', hydrationGoal.id)
         .eq('user_id', user.id)
         .select()
-        .single();
+        .maybeSingle();
 
       setHydrationGoal(data);
       

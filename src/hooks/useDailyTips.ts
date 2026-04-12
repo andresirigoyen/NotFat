@@ -47,7 +47,7 @@ export const useTodaysTip = (userId: string) => {
         `)
         .eq('user_id', userId)
         .eq('used_at', today)
-        .single();
+        .maybeSingle();
 
       if (usedError && usedError.code !== 'PGRST116') {
         throw usedError;
@@ -134,7 +134,7 @@ export const useMarkTipAsUsed = () => {
           used_at: today,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -186,7 +186,7 @@ export const useCreateDailyTip = () => {
           description: tipData.description,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as DailyTip;
@@ -213,7 +213,7 @@ export const useUpdateDailyTip = () => {
         .update(updates)
         .eq('id', tipId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as DailyTip;
@@ -287,7 +287,7 @@ export const usePersonalizedTips = (userId: string) => {
     queryKey: ['personalized_tips', userId],
     queryFn: async () => {
       const [profileResult, mealsResult, healthResult] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', userId).single(),
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
         supabase
           .from('meals')
           .select('meal_at, food_items(calories, protein)')

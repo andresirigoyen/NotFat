@@ -28,53 +28,53 @@ const fetchRecipes = async () => {
   return [
     { 
       id: '1', 
-      title: 'Mexican Bowl Elite', 
+      title: 'Bowl Mexicano Élite', 
       calories: 450, 
       protein: 30, 
       carbs: 45, 
       fats: 15, 
       imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/mexican_bowl_premium_1775943324584.png',
-      desc: 'Packed with flavor, Mexican food is a favorite for many.'
+      desc: 'Cargado de sabor, el bowl mexicano es el favorito de muchos.'
     },
     { 
       id: '2', 
-      title: 'Grilled Salmon Quinoa', 
+      title: 'Salmón a la Plancha con Quinoa', 
       calories: 650, 
       protein: 45, 
       carbs: 30, 
       fats: 25, 
       imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/salmon_quinoa_elite_1775943337546.png',
-      desc: 'High protein meal for muscle recovery.'
+      desc: 'Comida alta en proteína para la recuperación muscular.'
     },
     { 
       id: '3', 
-      title: 'Creamy Asparagus Soup', 
+      title: 'Crema de Espárragos Nutritiva', 
       calories: 200, 
       protein: 5, 
       carbs: 20, 
       fats: 8, 
       imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/asparagus_soup_minimalist_1775943352603.png',
-      desc: 'Light and nutritious seasonal soup.'
+      desc: 'Sopa de temporada ligera y llena de vitaminas.'
     },
     { 
       id: '4', 
-      title: 'Asian Fusion Tofu Bowl', 
+      title: 'Bowl de Tofu Asian Fusion', 
       calories: 550, 
       protein: 35, 
       carbs: 50, 
       fats: 18, 
       imageURL: 'file:///Users/andresirigoyen/.gemini/antigravity/brain/08d09c4b-0330-47c9-b881-ce1f1c2a8fa5/asian_fusion_bowl_vibrant_1775943365926.png',
-      desc: 'Umami flavors with high nutritional value.'
+      desc: 'Sabores umami con un valor nutricional excepcional.'
     },
   ];
 };
 
 const CATEGORIES = [
-  { id: '1', name: 'Breakfast', icon: '☕' },
-  { id: '2', name: 'Lunch', icon: '🍱' },
-  { id: '3', name: 'Dinner', icon: '🍽️' },
-  { id: '4', name: 'High Protein', icon: '🍳' },
-  { id: '5', name: 'Low Carb', icon: '🥜' },
+  { id: '1', name: 'Desayuno', icon: '☕' },
+  { id: '2', name: 'Almuerzo', icon: '🍱' },
+  { id: '3', name: 'Cena', icon: '🍽️' },
+  { id: '4', name: 'Alta Proteína', icon: '🍳' },
+  { id: '5', name: 'Baja en Carbos', icon: '🥜' },
 ];
 
 import { PremiumGuard } from '@/components/ui/PremiumGuard';
@@ -83,7 +83,7 @@ const RecipesScreen = () => {
   const { colors, isDark } = useThemeColors();
   const styles = getStyles(colors, isDark);
   const navigation = useNavigation<any>();
-  const [activeTab, setActiveTab] = useState('Discover');
+  const [activeTab, setActiveTab] = useState('Descubrir');
   const { user } = useAuthStore();
   const { isPro, mealHistoryCutoffDate } = useTierPermissions();
 
@@ -166,7 +166,7 @@ const RecipesScreen = () => {
         <TouchableOpacity style={styles.headerIcon}>
           <Ionicons name="basket-outline" size={24} color={colors.primary.sky} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Recipes</Text>
+        <Text style={styles.headerTitle}>Recetas</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerIcon}>
             <Ionicons name="search-outline" size={24} color={colors.primary.sky} />
@@ -179,7 +179,7 @@ const RecipesScreen = () => {
 
       {/* Tabs */}
       <View style={styles.tabContainer}>
-        {['Discover', 'My Favorites'].map((tab) => (
+        {['Descubrir', 'Mis Favoritos'].map((tab) => (
           <TouchableOpacity 
             key={tab} 
             style={[styles.tab, activeTab === tab && styles.activeTab]}
@@ -193,11 +193,11 @@ const RecipesScreen = () => {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {activeTab === 'Discover' ? (
+        {activeTab === 'Descubrir' ? (
           <>
             {/* Popular Categories */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Popular Categories</Text>
+              <Text style={styles.sectionTitle}>Categorías Populares</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
                 {CATEGORIES.map((cat) => (
                   <TouchableOpacity key={cat.id} style={styles.categoryCard}>
@@ -212,7 +212,7 @@ const RecipesScreen = () => {
 
             {/* Dynamic Recipes Grid */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>For You ({coachMode} mode)</Text>
+              <Text style={styles.sectionTitle}>Para Ti (modo {coachMode})</Text>
               <View style={styles.recipeGrid}>
                 {discoverRecipes.map((recipe, index) => (
                   index < 2 ? renderRecipeCard(recipe) : (
@@ -226,7 +226,7 @@ const RecipesScreen = () => {
 
             {/* Special Occasions - Wide Cards */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Featured Collections (Pro)</Text>
+              <Text style={styles.sectionTitle}>Colecciones Destacadas (Pro)</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
                 {discoverRecipes.slice(0, 2).map(recipe => (
                   <PremiumGuard key={recipe.id + '_featured'} style={{ marginRight: 12 }}>

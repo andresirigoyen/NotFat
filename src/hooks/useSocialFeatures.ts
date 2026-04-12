@@ -91,7 +91,7 @@ export const useLikePost = () => {
         .select('id')
         .eq('post_id', postId)
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (existingLike) {
         // Unlike
@@ -146,7 +146,7 @@ export const useCreatePost = () => {
           meal_data: mealData,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -181,7 +181,7 @@ export const useAddComment = () => {
           *,
           user:profiles(id, first_name, last_name, avatar_url)
         `)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as SocialComment;
@@ -231,7 +231,7 @@ export const useJoinSocialChallenge = () => {
           joined_at: new Date().toISOString(),
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -275,7 +275,7 @@ export const useCreateSocialChallenge = () => {
           active: true,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -319,7 +319,7 @@ export const useSendFriendRequest = () => {
           status: 'pending',
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;

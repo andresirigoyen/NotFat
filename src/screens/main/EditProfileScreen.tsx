@@ -376,18 +376,11 @@ const EditProfileScreen = ({ navigation }: any) => {
                 onPress={handleSave}
                 disabled={updateProfile.isPending || uploadAvatar.isPending}
               >
-                <LinearGradient
-                  colors={['#0EA5E9', '#0284C7']}
-                  style={styles.saveBtnGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  {updateProfile.isPending ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <Text style={styles.saveBtnText}>Guardar Cambios</Text>
-                  )}
-                </LinearGradient>
+                {updateProfile.isPending ? (
+                  <ActivityIndicator color="#000" size="small" />
+                ) : (
+                  <Text style={styles.saveBtnText}>Guardar Cambios</Text>
+                )}
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.cancelLink}
@@ -478,7 +471,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#0EA5E9',
+    backgroundColor: colors.primary.amber,
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -490,7 +483,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   changePhotoText: {
     marginTop: SPACING.lg,
-    color: '#0EA5E9',
+    color: colors.primary.amber,
     fontSize: 14,
     fontWeight: '700',
     fontFamily: FONTS.primary,
@@ -595,25 +588,29 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.primary.sky,
+    backgroundColor: colors.primary.amber,
   },
   footer: {
     gap: SPACING.md,
   },
   saveBtn: {
-    borderRadius: BORDER_RADIUS['2xl'],
-    overflow: 'hidden',
-    ...SHADOWS.md,
-  },
-  saveBtnGradient: {
     height: 64,
+    backgroundColor: '#FBBF24',
+    borderRadius: 24,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: SPACING.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
   saveBtnText: {
-    fontSize: FONTS.sizes.base,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#000',
     fontFamily: FONTS.primary,
   },
   cancelLink: {

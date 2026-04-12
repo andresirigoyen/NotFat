@@ -48,7 +48,7 @@ export const useAddHealthSnapshot = () => {
           onConflict: 'user_id,date',
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;

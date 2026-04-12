@@ -57,7 +57,7 @@ export const useCreateFavoriteMeal = () => {
           user_id: user.id,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (favoriteError) throw favoriteError;
 
@@ -105,7 +105,7 @@ export const useAddMealToFavorites = () => {
           food_items (*)
         `)
         .eq('id', mealId)
-        .single();
+        .maybeSingle();
 
       if (mealError) throw mealError;
 
@@ -121,7 +121,7 @@ export const useAddMealToFavorites = () => {
           user_id: user.id,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (favoriteError) throw favoriteError;
 
@@ -198,7 +198,7 @@ export const useCreateMealFromFavorite = () => {
           favorite_meal_items (*)
         `)
         .eq('id', favoriteMealId)
-        .single();
+        .maybeSingle();
 
       if (favoriteError) throw favoriteError;
 
@@ -214,7 +214,7 @@ export const useCreateMealFromFavorite = () => {
           user_id: user.id,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (mealError) throw mealError;
 

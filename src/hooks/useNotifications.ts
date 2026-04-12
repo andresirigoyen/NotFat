@@ -218,7 +218,7 @@ export const useNotifications = () => {
       .from('notification_preferences')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       return {
@@ -339,7 +339,7 @@ export const useCreateNotificationPreference = () => {
           user_id: user.id,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -389,7 +389,7 @@ export const useLogNotification = () => {
           user_id: user.id,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;

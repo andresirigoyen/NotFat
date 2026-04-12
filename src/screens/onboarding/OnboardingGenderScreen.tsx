@@ -225,24 +225,18 @@ export default function OnboardingGenderScreen() {
           onPress={handleContinue}
           disabled={!selectedGender || isLoading}
         >
-          <LinearGradient
-            colors={selectedGender ? ['#FBBF24', '#D97706'] : ['#333', '#333']}
-            style={styles.continueButtonGradient}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <View style={styles.buttonLayout}>
-                <Text style={styles.continueButtonText}>Siguiente</Text>
-                <Ionicons 
-                  name="arrow-forward" 
-                  size={22} 
-                  color="#000" 
-                />
-              </View>
-            )}
-          </LinearGradient>
+          {isLoading ? (
+            <ActivityIndicator color="#000" />
+          ) : (
+            <View style={styles.buttonLayout}>
+              <Text style={styles.continueButtonText}>Siguiente</Text>
+              <Ionicons 
+                name="arrow-forward" 
+                size={22} 
+                color="#000" 
+              />
+            </View>
+          )}
         </Pressable>
       </View>
     </SafeAreaView>
@@ -404,19 +398,24 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     paddingTop: SPACING.md,
   },
   continueButton: {
-    borderRadius: BORDER_RADIUS.xl,
-    overflow: 'hidden',
+    height: 64,
+    backgroundColor: '#FBBF24',
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
   continueButtonDisabled: {
-    opacity: 0.5,
+    backgroundColor: '#333333',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   continueButtonLoading: {
     opacity: 0.8,
-  },
-  continueButtonGradient: {
-    height: 64,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   buttonLayout: {
     flexDirection: 'row',

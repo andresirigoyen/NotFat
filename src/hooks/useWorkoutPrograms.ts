@@ -153,7 +153,7 @@ export const useWorkoutProgram = (programId: string) => {
           )
         `)
         .eq('id', programId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as WorkoutProgram;
@@ -212,7 +212,7 @@ export const useActiveUserProgram = (userId: string) => {
         `)
         .eq('user_id', userId)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
       return data as UserProgram;
@@ -225,11 +225,11 @@ export const useStartProgram = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      userId, 
-      programId 
-    }: { 
-      userId: string; 
+    mutationFn: async ({
+      userId,
+      programId
+    }: {
+      userId: string;
       programId: string;
     }) => {
       // Get program details to calculate total sessions
@@ -237,7 +237,7 @@ export const useStartProgram = () => {
         .from('workout_programs')
         .select('duration_weeks, sessions_per_week')
         .eq('id', programId)
-        .single();
+        .maybeSingle();
 
       if (!program) throw new Error('Program not found');
 
@@ -270,7 +270,7 @@ export const useStartProgram = () => {
             )
           )
         `)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as UserProgram;
@@ -286,11 +286,11 @@ export const useUpdateProgramProgress = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      userProgramId, 
-      updates 
-    }: { 
-      userProgramId: string; 
+    mutationFn: async ({
+      userProgramId,
+      updates
+    }: {
+      userProgramId: string;
       updates: Partial<UserProgram>;
     }) => {
       const { data, error } = await supabase
@@ -298,7 +298,7 @@ export const useUpdateProgramProgress = () => {
         .update(updates)
         .eq('id', userProgramId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as UserProgram;
@@ -314,12 +314,12 @@ export const useCompleteWorkoutSession = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      userProgramId, 
-      sessionId, 
-      sessionLog 
-    }: { 
-      userProgramId: string; 
+    mutationFn: async ({
+      userProgramId,
+      sessionId,
+      sessionLog
+    }: {
+      userProgramId: string;
       sessionId: string;
       sessionLog: Omit<WorkoutSessionLog, 'id' | 'user_program_id' | 'session_id'>;
     }) => {
@@ -328,7 +328,7 @@ export const useCompleteWorkoutSession = () => {
         .from('user_programs')
         .select('completed_sessions, total_sessions, current_week, current_day')
         .eq('id', userProgramId)
-        .single();
+        .maybeSingle();
 
       if (!currentProgram) throw new Error('User program not found');
 
@@ -341,7 +341,7 @@ export const useCompleteWorkoutSession = () => {
           ...sessionLog,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (logError) throw logError;
 
@@ -412,10 +412,10 @@ export const useCreateWorkoutProgram = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      programData, 
-      weeks 
-    }: { 
+    mutationFn: async ({
+      programData,
+      weeks
+    }: {
       programData: Omit<WorkoutProgram, 'id' | 'created_at' | 'workout_program_weeks'>;
       weeks: Array<{
         week_number: number;
@@ -450,7 +450,7 @@ export const useCreateWorkoutProgram = () => {
           is_public: false,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (programError) throw programError;
 
@@ -465,7 +465,7 @@ export const useCreateWorkoutProgram = () => {
             rest_days: weekData.rest_days,
           })
           .select()
-          .single();
+          .maybeSingle();
 
         if (weekError) throw weekError;
 
@@ -482,7 +482,7 @@ export const useCreateWorkoutProgram = () => {
               duration_minutes: sessionData.duration_minutes,
             })
             .select()
-            .single();
+            .maybeSingle();
 
           if (sessionError) throw sessionError;
 
@@ -519,7 +519,7 @@ export const useWorkoutRecommendations = (userId: string) => {
         .from('profiles')
         .select('workout_frequency, fitness_level, goals, equipment_available')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       // Get recent activity
       const { data: recentActivity } = await supabase
@@ -597,7 +597,7 @@ export const useWorkoutAnalytics = (userId: string) => {
       });
 
       const favoritePrograms = Object.entries(programStats)
-        .sort(([,a], [,b]) => b.count - a.count)
+        .sort(([, a], [, b]) => b.count - a.count)
         .slice(0, 5)
         .map(([name, stats]) => ({ name, count: stats.count }));
 

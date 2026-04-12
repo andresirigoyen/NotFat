@@ -40,7 +40,7 @@ export const useAddWorkout = () => {
           workout_date: workoutData.workout_date || new Date().toISOString().split('T')[0],
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;

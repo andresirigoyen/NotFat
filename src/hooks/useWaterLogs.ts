@@ -46,7 +46,7 @@ export const useAddWater = () => {
           date: new Date().toISOString().split('T')[0]
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as WaterLog;

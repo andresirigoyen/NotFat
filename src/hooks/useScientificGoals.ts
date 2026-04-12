@@ -60,7 +60,7 @@ export function useScientificGoals() {
         .from('profiles')
         .select('height_value, weight_value, birth_date, gender, activity_level')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError || !profile) {
         throw new Error('Perfil del usuario no encontrado');
@@ -157,7 +157,7 @@ export function useScientificGoals() {
         .from('nutrition_goals')
         .insert(goalsData)
         .select()
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error('Save Nutrition Goals Error:', error);

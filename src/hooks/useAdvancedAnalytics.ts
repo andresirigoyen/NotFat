@@ -146,8 +146,9 @@ export const useNutritionAnalytics = (userId: string, startDate?: Date, endDate?
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
+
+      const nutritionGoal = nutritionGoals?.[0] || null;
 
       if (!meals || meals.length === 0) {
         return {
@@ -220,8 +221,8 @@ export const useNutritionAnalytics = (userId: string, startDate?: Date, endDate?
       };
 
       // Calculate goal adherence
-      const calorieGoalAdherence = nutritionGoals?.calories ? 
-        Math.min(100, (avgDailyCalories / nutritionGoals.calories) * 100) : 0;
+      const calorieGoalAdherence = nutritionGoal?.calories ? 
+        Math.min(100, (avgDailyCalories / nutritionGoal.calories) * 100) : 0;
 
       // Get top food categories
       const topFoodCategories = Object.entries(foodCategories)
@@ -239,8 +240,8 @@ export const useNutritionAnalytics = (userId: string, startDate?: Date, endDate?
           let score = 50; // Base score
           
           // Calorie adherence
-          if (nutritionGoals?.calories) {
-            const adherence = Math.abs(totals.calories - nutritionGoals.calories) / nutritionGoals.calories;
+          if (nutritionGoal?.calories) {
+            const adherence = Math.abs(totals.calories - nutritionGoal.calories) / nutritionGoal.calories;
             score += Math.max(-20, 20 - adherence * 40);
           }
 
@@ -575,8 +576,7 @@ export const usePredictiveAnalytics = (userId: string) => {
           .select('calories, protein, carbs, fat')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .single(),
+          .limit(1),
       ]);
 
       // ✅ FIX #3: supabase.functions.invoke() con auth automática
@@ -586,7 +586,7 @@ export const usePredictiveAnalytics = (userId: string) => {
           meals: mealsResult.data || [],
           healthSnapshots: healthResult.data || [],
           waterLogs: waterResult.data || [],
-          goals: goalsResult.data || null,
+          goals: goalsResult.data?.[0] || null,
         },
       });
 
@@ -657,11 +657,11 @@ export const useGenerateAnalyticsReport = () => {
           generated_at: new Date().toISOString(),
         })
         .select()
-        .single();
+        .limit(1);
 
       if (error) throw error;
 
-      return data;
+      return data?.[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['analytics_reports'] });

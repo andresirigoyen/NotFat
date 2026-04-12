@@ -43,7 +43,7 @@ export const useCreateMealWithItems = () => {
           status: 'complete',
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (mealError) throw mealError;
 

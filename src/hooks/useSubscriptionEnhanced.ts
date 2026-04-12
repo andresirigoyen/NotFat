@@ -77,7 +77,7 @@ export const useSubscriptionEnhanced = () => {
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         throw error;
@@ -118,7 +118,7 @@ export const useSubscriptionEnhanced = () => {
           start_date: new Date().toISOString(),
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       setSubscription(data);
@@ -190,7 +190,7 @@ export const useSubscriptionEnhanced = () => {
         .eq('user_id', user!.id)
         .eq('status', 'active')
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       
@@ -214,7 +214,7 @@ export const useSubscriptionEnhanced = () => {
           last_modified: new Date().toISOString(),
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       
@@ -233,7 +233,7 @@ export const useSubscriptionEnhanced = () => {
         .select('*')
         .eq('code', promoCode.toUpperCase())
         .eq('active', true)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         throw new Error('Código promocional inválido');

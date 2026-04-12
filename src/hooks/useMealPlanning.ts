@@ -117,7 +117,7 @@ export const useActiveMealPlan = (userId: string) => {
         `)
         .eq('user_id', userId)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
       return data as MealPlan;
@@ -167,7 +167,7 @@ export const useCreateMealPlan = () => {
           is_active: false,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (planError) throw planError;
 
@@ -255,7 +255,7 @@ export const useUpdatePlannedMeal = () => {
         .update(updates)
         .eq('id', mealId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as PlannedMeal;
@@ -285,7 +285,7 @@ export const useAddPlannedMealItem = () => {
           ...item,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as PlannedMealItem;
@@ -337,14 +337,15 @@ export const useGenerateShoppingList = () => {
           )
         `)
         .eq('id', mealPlanId)
-        .single();
+        .maybeSingle();
 
       if (planError) throw planError;
+      if (!mealPlan) throw new Error('Meal plan not found');
 
       // Aggregate items by name and calculate total quantities
       const itemMap = new Map<string, ShoppingListItem>();
 
-      mealPlan.meal_plan_days.forEach((day: any) => {
+      mealPlan.meal_plan_days?.forEach((day: any) => {
         day.planned_meals.forEach((meal: any) => {
           meal.planned_meal_items.forEach((item: any) => {
             const key = item.name.toLowerCase();
@@ -412,7 +413,7 @@ export const useUpdateShoppingListItem = () => {
         .update(updates)
         .eq('id', itemId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as ShoppingListItem;

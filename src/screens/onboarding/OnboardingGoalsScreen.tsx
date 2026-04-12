@@ -208,21 +208,14 @@ export default function OnboardingGoalsScreen() {
           onPress={handleContinue}
           disabled={!selectedGoal || isLoading}
         >
-          <LinearGradient
-            colors={['#FBBF24', '#D97706']}
-            style={styles.buttonGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <View style={styles.buttonContent}>
-                <Text style={styles.buttonText}>Siguiente</Text>
-                <Ionicons name="arrow-forward" size={20} color="#000" />
-              </View>
-            )}
-          </LinearGradient>
+          {isLoading ? (
+            <ActivityIndicator color="#000" />
+          ) : (
+            <View style={styles.buttonContent}>
+              <Text style={styles.buttonText}>Siguiente</Text>
+              <Ionicons name="arrow-forward" size={20} color="#000" />
+            </View>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -393,16 +386,21 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     paddingBottom: SPACING.xl,
   },
   continueButton: {
-    borderRadius: BORDER_RADIUS.xl,
-    overflow: 'hidden',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonGradient: {
     height: 64,
+    backgroundColor: '#FBBF24',
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  buttonDisabled: {
+    backgroundColor: '#333333',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   buttonContent: {
     flexDirection: 'row',

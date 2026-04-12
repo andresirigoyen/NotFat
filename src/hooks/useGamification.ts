@@ -62,7 +62,7 @@ export const useUserPoints = (userId: string) => {
         .from('user_points')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
       return data as UserPoints;
@@ -110,7 +110,7 @@ export const useJoinChallenge = () => {
           joined_at: new Date().toISOString(),
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -145,7 +145,7 @@ export const useUpdateChallengeProgress = () => {
         .eq('challenge_id', challengeId)
         .eq('user_id', userId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -176,7 +176,7 @@ export const useUnlockAchievement = () => {
           unlocked_at: new Date().toISOString(),
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;

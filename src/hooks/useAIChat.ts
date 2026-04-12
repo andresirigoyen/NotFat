@@ -56,7 +56,7 @@ export const useAIChat = () => {
             .from('profiles')
             .select('id, first_name, diet_type, nutrition_goal, workout_frequency, gender, height_value, weight_value, height_unit, weight_unit')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
           
           if (profile) {
             setUserProfile(profile);

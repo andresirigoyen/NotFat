@@ -65,7 +65,7 @@ export function useVoiceInput() {
         .from('task_queue')
         .insert(taskData)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as TaskQueue;

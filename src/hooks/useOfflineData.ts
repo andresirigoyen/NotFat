@@ -209,7 +209,7 @@ export const useOfflineMealLogging = () => {
           .from('meals')
           .insert(mealData)
           .select()
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
 
@@ -295,7 +295,7 @@ export const useOfflineWaterLogging = () => {
           .from('water_logs')
           .insert(waterData)
           .select()
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
 

@@ -1,3 +1,5 @@
+import { analytics } from '@/services/analytics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import React, { useState, useEffect } from 'react';
 import {
@@ -15,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAIAnalysis } from '@/hooks/useAIAnalysis';
 import { useCreateMealWithItems } from '@/hooks/useMeals';
-import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 
 type Ingredient = {
   id: string;
@@ -364,20 +366,20 @@ export default function AnalysisResultScreen() {
       </ScrollView>
 
       <View style={styles.ctaContainer}>
-        <TouchableOpacity
-          style={styles.confirmButton}
+        <TouchableOpacity 
+          style={styles.confirmButton} 
           onPress={handleSaveMeal}
           disabled={saving || analyzing}
-          activeOpacity={0.85}
+          activeOpacity={0.8}
         >
           {saving ? (
-            <ActivityIndicator size="small" color={colors.background.primary} />
+            <ActivityIndicator color="#000" />
           ) : (
-            <Ionicons name="cloud-upload" size={20} color={colors.background.primary} />
+            <View style={styles.buttonLayout}>
+              <Text style={styles.confirmButtonText}>Confirmar Registro</Text>
+              <Ionicons name="arrow-forward" size={20} color="#000" />
+            </View>
           )}
-          <Text style={styles.confirmButtonText}>
-            {saving ? 'Guardando en la nube...' : 'Confirmar Registro'}
-          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -468,7 +470,22 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   errorText: { color: colors.text.secondary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.base, textAlign: 'center', lineHeight: 22 },
   retryButton: { backgroundColor: colors.background.card, paddingHorizontal: SPACING.xl, paddingVertical: SPACING.md, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: colors.status.error, marginTop: SPACING.lg },
   retryButtonText: { color: colors.status.error, fontFamily: FONTS.primary, fontWeight: '700' },
-  ctaContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.xl, paddingBottom: SPACING['3xl'], backgroundColor: colors.background.primary, borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' },
-  confirmButton: { backgroundColor: colors.primary.amber, borderRadius: BORDER_RADIUS.full, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: SPACING.lg, gap: SPACING.sm },
-  confirmButtonText: { color: colors.background.primary, fontFamily: FONTS.primary, fontWeight: '700', fontSize: FONTS.sizes.base },
+  ctaContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: SPACING.xl, paddingBottom: SPACING['3xl'], paddingTop: SPACING.lg, backgroundColor: colors.background.primary, borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' },
+  confirmButton: { 
+    height: 64,
+    backgroundColor: '#FBBF24',
+    borderRadius: 24,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  buttonLayout: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+  confirmButtonText: { color: '#000', fontFamily: FONTS.primary, fontWeight: '800', fontSize: 18 },
+
 });

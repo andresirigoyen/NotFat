@@ -91,15 +91,8 @@ export default function OnboardingNameScreen() {
             onPress={handleContinue}
             disabled={!name.trim()}
           >
-            <LinearGradient
-              colors={['#FBBF24', '#D97706']}
-              style={styles.gradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Text style={styles.buttonText}>Continuar</Text>
-              <Ionicons name="arrow-forward" size={20} color="#000" />
-            </LinearGradient>
+            <Text style={styles.buttonText}>Continuar</Text>
+            <Ionicons name="arrow-forward" size={22} color="#000" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -195,19 +188,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   button: {
-    marginBottom: SPACING.md,
-    borderRadius: BORDER_RADIUS.xl,
-    overflow: 'hidden',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  gradient: {
     height: 64,
+    backgroundColor: '#FBBF24',
+    borderRadius: 24,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: SPACING.sm,
+    marginBottom: SPACING.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
   buttonText: {
     fontSize: 18,

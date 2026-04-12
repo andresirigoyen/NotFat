@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ChevronLeft } from 'lucide-react-native';
-import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 import { useHealthSettings } from '@/hooks/useHealthSettings';
 import { useAuthStore } from '@/store';
 
@@ -190,7 +190,7 @@ export default function HealthIntegrationScreen({ navigation }: any) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Sincronización de Datos</Text>
           
-          <View style={styles.syncRow}>
+          <View style={styles.syncContainer}>
             <View style={styles.syncItem}>
               <Text style={styles.syncLabel}>Última sincronización</Text>
               <Text style={styles.syncValue}>
@@ -208,7 +208,7 @@ export default function HealthIntegrationScreen({ navigation }: any) {
                 // Aquí iría la lógica de sincronización
               }}
             >
-              <Ionicons name="sync-outline" size={20} color={colors.text.primary} />
+              <Ionicons name="sync-outline" size={20} color="#000" />
               <Text style={styles.syncBtnText}>Sincronizar ahora</Text>
             </TouchableOpacity>
           </View>
@@ -358,14 +358,15 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: colors.text.secondary,
     textAlign: 'right',
   },
-  syncRow: {
+  syncContainer: {
+    paddingVertical: SPACING.md,
+    gap: SPACING.lg,
+  },
+  syncItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: SPACING.md,
-  },
-  syncItem: {
-    flex: 1,
+    paddingBottom: SPACING.sm,
   },
   syncLabel: {
     fontFamily: FONTS.primary,
@@ -381,17 +382,23 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   syncBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary.amber,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: BORDER_RADIUS.md,
+    justifyContent: 'center',
+    backgroundColor: '#FBBF24',
+    height: 64,
+    borderRadius: 24,
+    gap: SPACING.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
   syncBtnText: {
     fontFamily: FONTS.primary,
-    fontSize: FONTS.sizes.sm,
-    fontWeight: FONTS.weights.semibold,
-    color: colors.background.primary,
-    marginLeft: SPACING.sm,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#000',
+
   },
   privacyRow: {
     flexDirection: 'row',

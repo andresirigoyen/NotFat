@@ -130,29 +130,39 @@ export function useHealthScore(date?: string) {
     queryFn: async (): Promise<HealthScore | null> => {
       if (!user?.id) return null;
 
+      const startDate = new Date(targetDate);
+      startDate.setHours(0, 0, 0, 0);
+      
+      const endDate = new Date(targetDate);
+      endDate.setHours(23, 59, 59, 999);
+
       const { data, error } = await supabase
         .from('coach_insights')
         .select('*')
         .eq('user_id', user.id)
-        .gte('generated_at', targetDate)
-        .lt('generated_at', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()) // Hoy
+        .gte('generated_at', startDate.toISOString())
+        .lt('generated_at', endDate.toISOString())
         .order('generated_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+      if (error) {
+        console.error('Error fetching health score insight:', error);
+        return null;
+      }
 
-      if (data && data.insights) {
-        const insights = data.insights as any;
+      const insight = data?.[0];
+
+      if (insight && insight.metadata) {
+        const metadata = insight.metadata as any;
         return {
-          score: insights.score || 0,
-          grade: insights.grade || 'C',
-          insights: insights.insights || [],
-          recommendations: insights.recommendations || [],
-          strengths: insights.strengths || [],
-          weaknesses: insights.weaknesses || [],
-          generated_at: data.generated_at,
-          expires_at: data.expires_at,
+          score: metadata.score || 0,
+          grade: metadata.grade || 'C',
+          insights: metadata.insights || [],
+          recommendations: metadata.recommendations || [],
+          strengths: metadata.strengths || [],
+          weaknesses: metadata.weaknesses || [],
+          generated_at: insight.generated_at,
+          expires_at: insight.expires_at || new Date(new Date(insight.generated_at).getTime() + 24*60*60*1000).toISOString(),
         };
       }
 

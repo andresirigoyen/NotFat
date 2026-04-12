@@ -21,7 +21,7 @@ export function useThemeColors() {
   return {
     colors: {
       ...baseColors,
-      accent: isFriendly ? (baseColors as any).mint || '#AAF0D1' : baseColors.primary.sky,
+      accent: isFriendly ? (baseColors as any).mint || '#AAF0D1' : baseColors.primary.amber,
     },
     isDark,
     isFriendly,

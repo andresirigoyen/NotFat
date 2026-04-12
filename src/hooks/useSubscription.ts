@@ -49,7 +49,7 @@ export const useSubscription = () => {
       .from('profiles')
       .select('subscription_status, subscription_ends_at')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
     
     if (error) throw error;
     return data;

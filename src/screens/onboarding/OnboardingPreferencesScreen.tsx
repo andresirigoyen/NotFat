@@ -212,25 +212,21 @@ export default function OnboardingPreferencesScreen() {
 
         <View style={styles.footer}>
           <TouchableOpacity
-            style={styles.continueButton}
+            style={[
+              styles.continueButton,
+              isLoading && styles.continueButtonLoading
+            ]}
             onPress={handleContinue}
             disabled={isLoading}
           >
-            <LinearGradient
-              colors={['#FBBF24', '#D97706']}
-              style={styles.continueButtonGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#000" />
-              ) : (
-                <View style={styles.buttonLayout}>
-                  <Text style={styles.continueButtonText}>Finalizar Configuración</Text>
-                  <Ionicons name="arrow-forward" size={20} color="#000" />
-                </View>
-              )}
-            </LinearGradient>
+            {isLoading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <View style={styles.buttonLayout}>
+                <Text style={styles.continueButtonText}>Finalizar Configuración</Text>
+                <Ionicons name="arrow-forward" size={22} color="#000" />
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -437,13 +433,19 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     paddingTop: SPACING.md,
   },
   continueButton: {
-    borderRadius: BORDER_RADIUS.xl,
-    overflow: 'hidden',
-  },
-  continueButtonGradient: {
     height: 64,
+    backgroundColor: '#FBBF24',
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  continueButtonLoading: {
+    opacity: 0.8,
   },
   buttonLayout: {
     flexDirection: 'row',

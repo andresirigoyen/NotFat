@@ -63,7 +63,7 @@ export const useCreateRecipe = () => {
         .from('recipes')
         .insert({ ...recipe, user_id: user.id })
         .select()
-        .single();
+        .maybeSingle();
 
       if (recipeError) throw recipeError;
 
@@ -105,7 +105,7 @@ export const useRecommendationSession = () => {
           user_id: user.id,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;

@@ -40,7 +40,7 @@ export function useBarcodeScanner() {
         .from('scan_events')
         .insert(scanData)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as ScanEvent;
@@ -74,7 +74,7 @@ export function useBarcodeScanner() {
         .from('contribution_queue')
         .insert(contributionData)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -145,7 +145,7 @@ export function useBarcodeScanner() {
           prompt_version: '1.0',
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (mealError) throw mealError;
 

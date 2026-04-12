@@ -76,45 +76,29 @@ export const useHealthSettings = () => {
         .from('health_settings')
         .select('*')
         .eq('user_id', user!.id)
-        .single();
+        .maybeSingle();
 
-      if (error?.code === 'PGRST116') {
-        const { data: newData, error: createErr } = await supabase
+      if (error) throw error;
+
+      if (!data) {
+        // No settings found, create default ones
+        const { data: newData, error: createError } = await supabase
           .from('health_settings')
           .insert({
             user_id: user!.id,
+            health_platform: null,
             eat_back_exercise_calories: false,
             eat_back_neat_calories: false,
             sync_weight: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           })
           .select()
-          .single();
-        if (createErr) throw createErr;
+          .maybeSingle();
+
+        if (createError) throw createError;
         setHealthSettings(newData);
         return;
-      }
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No settings found, create default ones
-          const { data: newData, error: createError } = await supabase
-            .from('health_settings')
-            .insert({
-              user_id: user!.id,
-              health_platform: null,
-              eat_back_exercise_calories: false,
-              eat_back_neat_calories: false,
-              sync_weight: false,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-
-          if (createError) throw createError;
-          setHealthSettings(newData);
-          return;
-        }
-        throw error;
       }
       setHealthSettings(data);
     } catch (error) {
@@ -180,7 +164,7 @@ export const useHealthSettings = () => {
           updated_at: new Date().toISOString(),
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       setHealthSettings(data);
@@ -201,7 +185,7 @@ export const useHealthSettings = () => {
           disconnected_at: null,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       setHealthSettings(data);
@@ -221,7 +205,7 @@ export const useHealthSettings = () => {
         })
         .eq('user_id', user!.id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       setHealthSettings(data);
@@ -240,7 +224,7 @@ export const useHealthSettings = () => {
           ...workout,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       setManualWorkouts(prev => [data, ...prev]);
@@ -259,7 +243,7 @@ export const useHealthSettings = () => {
           ...sport,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       setUserSports(prev => [...prev, data]);

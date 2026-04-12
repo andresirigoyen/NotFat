@@ -82,7 +82,7 @@ export const useConnectDevice = () => {
           last_sync_at: new Date().toISOString(),
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as Device;
@@ -204,7 +204,7 @@ export const useImportWorkoutSession = () => {
           user_id: userId,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as WorkoutSession;

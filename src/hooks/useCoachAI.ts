@@ -120,13 +120,14 @@ export const useGenerateCoachInsights = () => {
 
   return useMutation({
     mutationFn: async (userId: string) => {
-      const { data: profile, error: profileError } = await supabase
+      const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .limit(1);
 
       if (profileError) throw new Error('Error fetching profile');
+      const profile = profiles?.[0] || null;
 
       const { data: recentMeals, error: mealsError } = await supabase
         .from('meals')
@@ -207,22 +208,23 @@ export const useGenerateCoachRecommendations = () => {
       userId: string; 
       category?: 'nutrition' | 'fitness' | 'lifestyle' | 'mental_health';
     }) => {
-      const { data: profile, error: profileError } = await supabase
+      const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .limit(1);
 
       if (profileError) throw new Error('Error fetching profile');
+      const profile = profiles?.[0] || null;
 
       const { data: nutritionGoals, error: goalsError } = await supabase
         .from('nutrition_goals')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
+      const nutritionGoal = nutritionGoals?.[0] || null;
       // It's OK if goals don't exist, continue without them
       const { data: recentActivity } = await supabase
         .from('health_daily_snapshots')
@@ -233,7 +235,7 @@ export const useGenerateCoachRecommendations = () => {
 
       // ✅ FIX #3: supabase.functions.invoke() con auth automática
       const { data: recommendations, error: fnError } = await supabase.functions.invoke('generate-coach-recommendations', {
-        body: { userId, category, profile, nutritionGoals, recentActivity },
+        body: { userId, category, profile, nutritionGoals: nutritionGoal, recentActivity },
       });
 
       if (fnError) throw fnError;
@@ -321,7 +323,7 @@ export const useCoachProgressTracking = (userId: string) => {
     queryFn: async () => {
       // Get comprehensive progress data
       const [profileResult, mealsResult, healthResult, goalsResult] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', userId).single(),
+        supabase.from('profiles').select('*').eq('id', userId).limit(1),
         supabase
           .from('meals')
           .select('meal_at, status, food_items(calories, protein, carbs, fat)')
@@ -337,8 +339,7 @@ export const useCoachProgressTracking = (userId: string) => {
           .select('*')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .single(),
+          .limit(1),
       ]);
 
       if (profileResult.error || mealsResult.error || healthResult.error || goalsResult.error) {
@@ -358,13 +359,13 @@ export const useCoachProgressTracking = (userId: string) => {
       const avgSteps = healthResult.data?.reduce((sum: number, day: any) => sum + (day.steps || 0), 0) / Math.max(30, 1);
 
       return {
-        profile: profileResult.data,
+        profile: profileResult.data?.[0] || null,
         mealCompletionRate,
         avgDailyCalories,
         avgSteps,
         totalMeals,
         completedMeals,
-        goals: goalsResult.data,
+        goals: goalsResult.data?.[0] || null,
         healthData: healthResult.data,
         mealsData: mealsResult.data,
       };
@@ -403,7 +404,7 @@ export const useCoachPersonalization = (userId: string) => {
           onConflict: 'user_id'
         })
         .select()
-        .single();
+        .limit(1);
 
       if (error) throw error;
 
@@ -418,7 +419,7 @@ export const useCoachPersonalization = (userId: string) => {
           onConflict: 'user_id'
         });
 
-      return data;
+      return data?.[0];
     },
   });
 };
@@ -448,16 +449,17 @@ export const useCoachFeedback = () => {
           created_at: new Date().toISOString(),
         })
         .select()
-        .single();
+        .limit(1);
 
       if (error) throw error;
+      const feedbackData = data?.[0];
 
       // ✅ FIX #3: supabase.functions.invoke() con auth automática
       await supabase.functions.invoke('update-coach-model', {
         body: { userId, messageId, feedback, rating },
       });
 
-      return data;
+      return feedbackData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['coach_feedback'] });

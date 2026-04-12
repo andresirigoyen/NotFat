@@ -106,7 +106,7 @@ export const useFavorites = () => {
           fat: mealData.fat
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (favoriteError) throw favoriteError;
 

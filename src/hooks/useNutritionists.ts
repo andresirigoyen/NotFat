@@ -191,7 +191,7 @@ export const useCreateNutritionGuideline = () => {
           status: 'draft',
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -226,7 +226,7 @@ export const useConnectWithNutritionist = () => {
           nutritionists (*),
           nutrition_guidelines (*)
         `)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -291,7 +291,7 @@ export const useCreateGuidelineDay = () => {
         .from('guideline_days')
         .insert(dayData)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -320,7 +320,7 @@ export const useCreateGuidelineMeal = () => {
         .from('guideline_meals')
         .insert(mealData)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -354,7 +354,7 @@ export const useCreateGuidelineMealItem = () => {
         .from('guideline_meal_items')
         .insert(itemData)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -403,7 +403,7 @@ export const useSubmitFeedback = () => {
           user_id: user?.id || null,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;

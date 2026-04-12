@@ -21,10 +21,10 @@ export const useProfile = () => {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .maybeSingle();
+        .limit(1);
       
       if (error) throw error;
-      return data;
+      return data?.[0] || null;
     },
     enabled: !!user?.id,
   });
@@ -73,12 +73,10 @@ export const useProfile = () => {
         .from('user_activity_profile')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .limit(1);
 
-      // If missing row, treat as null
-      if (error && (error as any).code === 'PGRST116') return null;
       if (error) throw error;
-      return data as UserActivityProfileRow;
+      return (data?.[0] || null) as UserActivityProfileRow;
     },
     enabled: !!user?.id,
   });
@@ -95,10 +93,10 @@ export const useProfile = () => {
           updated_at: new Date().toISOString() 
         }, { onConflict: 'id' })
         .select()
-        .single();
+        .limit(1);
       
       if (error) throw error;
-      return data;
+      return data?.[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
@@ -149,10 +147,10 @@ export const useProfile = () => {
           source: (goals as any).source || 'manual',
         })
         .select()
-        .single();
+        .limit(1);
       
       if (error) throw error;
-      return data;
+      return data?.[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['nutrition_goals', user?.id] });
@@ -170,10 +168,10 @@ export const useProfile = () => {
           start_date: new Date().toISOString().split('T')[0],
         })
         .select()
-        .single();
+        .limit(1);
       
       if (error) throw error;
-      return data;
+      return data?.[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hydration_goals', user?.id] });
@@ -192,10 +190,10 @@ export const useProfile = () => {
           ...payload,
         } as any)
         .select()
-        .single();
+        .limit(1);
 
       if (error) throw error;
-      return data as UserActivityProfileRow;
+      return (data?.[0] || null) as UserActivityProfileRow;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user_activity_profile', user?.id] });

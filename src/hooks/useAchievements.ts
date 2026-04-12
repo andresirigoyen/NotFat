@@ -93,7 +93,7 @@ export const useAchievements = () => {
         .eq('user_id', user.id)
         .eq('achievement_type', achievementId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (unlockError) throw unlockError;
 
@@ -125,7 +125,7 @@ export const useAchievements = () => {
         .eq('user_id', user.id)
         .eq('achievement_type', achievementId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (progressError) throw progressError;
 
