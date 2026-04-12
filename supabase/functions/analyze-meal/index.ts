@@ -142,26 +142,31 @@ serve(async (req) => {
       }
     }
 
-    // 2. Increment daily usage counter in DB
+    // 2. Increment daily usage counter in DB (Optional, don't crash analysis if fails)
     try {
-      await supabase.rpc('increment_user_usage', { 
+      console.log(`[analyze-meal] Incrementing usage for ${userId}`);
+      const { error: rpcError } = await supabase.rpc('increment_user_usage', { 
         target_user_id: userId, 
         column_name: 'scans_count' 
       });
-      console.log('✅ Usage counter (scan) incremented for user:', userId);
+      if (rpcError) console.error('[analyze-meal] RPC Error:', rpcError);
     } catch (e) {
-      console.error('Failed to increment usage counter:', e);
+      console.warn('[analyze-meal] Usage counter increment failed (non-critical):', e);
     }
 
     // Solo devolvemos el análisis al frontend para que el usuario confirme
+    console.log('[analyze-meal] Returning analysis result to client');
     return new Response(JSON.stringify(analysis), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error: any) {
-    console.error('Error in analyze-meal:', error)
+    console.error('🛑 ERROR in analyze-meal:', error.message)
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal Server Error' }), 
+      JSON.stringify({ 
+        error: error.message || 'Internal Server Error',
+        details: 'Revisa los logs de Supabase para más información.'
+      }), 
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
