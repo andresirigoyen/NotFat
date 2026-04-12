@@ -19,8 +19,8 @@ serve(async (req) => {
     // 1. Fetch user tier and usage in parallel for efficiency
     const today = new Date().toISOString().split('T')[0];
     const [profileRes, usageRes] = await Promise.all([
-      supabase.from('profiles').select('subscription_tier').eq('id', userId).single(),
-      supabase.from('user_usage').select('scans_count').eq('user_id', userId).eq('usage_date', today).single()
+      supabase.from('profiles').select('subscription_tier').eq('id', userId).maybeSingle(),
+      supabase.from('user_usage').select('scans_count').eq('user_id', userId).eq('usage_date', today).maybeSingle()
     ]);
 
     const isPro = profileRes.data?.subscription_tier === 'pro';
