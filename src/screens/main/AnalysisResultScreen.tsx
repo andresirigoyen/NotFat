@@ -209,28 +209,59 @@ export default function AnalysisResultScreen() {
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.photoBadgeRow}>
-          <View style={styles.thumbnailContainer}>
-            {imageUri ? (
-              <Image source={{ uri: imageUri }} style={styles.thumbnailImage} />
-            ) : barcodeProduct?.image_url ? (
-              <Image source={{ uri: barcodeProduct.image_url }} style={styles.thumbnailImage} />
-            ) : (
-              <View style={styles.thumbnailPlaceholder}>
-                <Ionicons 
-                  name={source === 'barcode' ? "barcode-outline" : "image-outline"} 
-                  size={40} 
-                  color="rgba(255,255,255,0.15)" 
-                />
-                <Text style={styles.thumbnailLabel}>
-                  {source === 'barcode' ? 'Sin imagen' : 'Foto analizada'}
-                </Text>
-              </View>
-            )}
-          </View>
+        <View style={styles.photoContainer}>
+          {imageUri ? (
+            <View style={styles.mainImageWrapper}>
+              <Image source={{ uri: imageUri }} style={styles.mainImage} resizeMode="cover" />
+              
+              {/* Overlay de Etiquetas Espaciales (Solo si no está analizando) */}
+              {!analyzing && ingredients.map((ing: any) => {
+                if (!ing.box_2d || !ing.confirmed) return null;
+                
+                // Gemini devuelve [ymin, xmin, ymax, xmax] de 0-1000
+                const [ymin, xmin, ymax, xmax] = ing.box_2d;
+                const top = `${ymin / 10}%`;
+                const left = `${xmin / 10}%`;
+                
+                return (
+                  <View 
+                    key={`badge-${ing.id}`}
+                    style={[styles.spatialBadge, { top, left } as any]}
+                  >
+                    <View style={styles.badgeLine} />
+                    <View style={styles.badgeContent}>
+                      <Text style={styles.badgeKcal}>{ing.calories} kcal</Text>
+                      <View style={styles.badgeMacros}>
+                        <Text style={styles.badgeMacroText}>P: {ing.protein}g</Text>
+                        <View style={styles.badgeDot} />
+                        <Text style={styles.badgeMacroText}>C: {ing.carbs}g</Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+
+              {analyzing && (
+                <View style={styles.scanningOverlay}>
+                  <View style={styles.scanningLine} />
+                </View>
+              )}
+            </View>
+          ) : barcodeProduct?.image_url ? (
+            <Image source={{ uri: barcodeProduct.image_url }} style={styles.mainImage} resizeMode="contain" />
+          ) : (
+            <View style={styles.thumbnailPlaceholder}>
+              <Ionicons 
+                name={source === 'barcode' ? "barcode-outline" : "image-outline"} 
+                size={80} 
+                color="rgba(255,255,255,0.1)" 
+              />
+            </View>
+          )}
+
           <View style={[
-            styles.aiChip, 
-            source === 'barcode' && { backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.25)' }
+            styles.aiChipFloating, 
+            source === 'barcode' && { backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(59, 130, 246, 0.4)' }
           ]}>
             <Ionicons 
               name={source === 'barcode' ? "barcode" : "sparkles"} 
@@ -241,7 +272,7 @@ export default function AnalysisResultScreen() {
               styles.aiChipText, 
               source === 'barcode' && { color: colors.status.info }
             ]}>
-              {source === 'barcode' ? 'Open Food Facts' : 'Gemini Vision'}
+              {source === 'barcode' ? 'Open Food Facts' : 'Gemini 2.0 Flash'}
             </Text>
           </View>
         </View>
@@ -249,69 +280,74 @@ export default function AnalysisResultScreen() {
         {analyzing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary.amber} />
-            <Text style={styles.loadingText}>Analizando imagen con IA...</Text>
+            <Text style={styles.loadingText}>Escaneando estructura nutricional...</Text>
           </View>
         ) : (
           <>
-            <Text style={styles.sectionTitle}>Ingredientes detectados</Text>
-            <Text style={styles.sectionSub}>Confirma o descarta lo que Gemini identificó</Text>
+            <View style={styles.resultHeader}>
+              <Text style={styles.sectionTitle}>Identificación Exacta</Text>
+              <Text style={styles.sectionSub}>Hemos detectado {ingredients.length} componentes nutricionales</Text>
+            </View>
 
-        <View style={styles.ingredientsList}>
-          {ingredients.map((ing) => (
-            <TouchableOpacity
-              key={ing.id}
-              style={[styles.ingredientCard, !ing.confirmed && styles.ingredientCardUnchecked]}
-              onPress={() => toggleIngredient(ing.id)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.cardHeader}>
-                <View style={[styles.checkbox, ing.confirmed && styles.checkboxChecked]}>
-                  {ing.confirmed && <Ionicons name="checkmark" size={12} color={colors.background.primary} />}
-                </View>
-                <Text style={styles.macroKcal}>🔥 {ing.calories}</Text>
-              </View>
-
-              <View style={styles.ingredientInfo}>
-                <Text 
-                  style={[styles.ingredientName, !ing.confirmed && { color: colors.text.secondary }]}
-                  numberOfLines={1}
+            <View style={styles.ingredientsList}>
+              {ingredients.map((ing) => (
+                <TouchableOpacity
+                  key={ing.id}
+                  style={[styles.ingredientCard, !ing.confirmed && styles.ingredientCardUnchecked]}
+                  onPress={() => toggleIngredient(ing.id)}
+                  activeOpacity={0.8}
                 >
-                  {ing.name}
-                </Text>
-                <View style={styles.macroGrid}>
-                  <Text style={styles.macroMini}>P: {ing.protein}g</Text>
-                  <Text style={styles.macroMini}>C: {ing.carbs}g</Text>
-                  <Text style={styles.macroMini}>G: {ing.fat}g</Text>
+                  <View style={styles.cardHeader}>
+                    <View style={[styles.checkbox, ing.confirmed && styles.checkboxChecked]}>
+                      {ing.confirmed && <Ionicons name="checkmark" size={12} color={colors.background.primary} />}
+                    </View>
+                    <Text style={styles.macroKcal}>🔥 {ing.calories} kcal</Text>
+                  </View>
+
+                  <View style={styles.ingredientInfo}>
+                    <Text 
+                      style={[styles.ingredientName, !ing.confirmed && { color: colors.text.secondary }]}
+                      numberOfLines={1}
+                    >
+                      {ing.name}
+                    </Text>
+                    <View style={styles.macroGrid}>
+                      <Text style={styles.macroMini}>PROT: {ing.protein}g</Text>
+                      <Text style={styles.macroMini}>CARB: {ing.carbs}g</Text>
+                      <Text style={styles.macroMini}>FAT: {ing.fat}g</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryHeader}>
+                <Ionicons name="stats-chart" size={18} color={colors.primary.amber} />
+                <Text style={styles.summaryTitle}>VALOR NUTRICIONAL TOTAL</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryBlock}>
+                  <Text style={styles.summaryNumber}>{totalCalories}</Text>
+                  <Text style={styles.summaryLabel}>kcal</Text>
+                </View>
+                <View style={styles.summaryDivider} />
+                <View style={styles.summaryBlock}>
+                  <Text style={styles.summaryNumber}>{totalProtein.toFixed(0)}g</Text>
+                  <Text style={styles.summaryLabel}>Proteína</Text>
+                </View>
+                <View style={styles.summaryDivider} />
+                <View style={styles.summaryBlock}>
+                  <Text style={styles.summaryNumber}>{totalCarbs.toFixed(0)}g</Text>
+                  <Text style={styles.summaryLabel}>Carbos</Text>
+                </View>
+                <View style={styles.summaryDivider} />
+                <View style={styles.summaryBlock}>
+                  <Text style={styles.summaryNumber}>{totalFat.toFixed(0)}g</Text>
+                  <Text style={styles.summaryLabel}>Grasas</Text>
                 </View>
               </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Resumen total ({confirmed.length} ingredientes)</Text>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryBlock}>
-              <Text style={styles.summaryNumber}>{totalCalories}</Text>
-              <Text style={styles.summaryLabel}>kcal</Text>
             </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryBlock}>
-              <Text style={styles.summaryNumber}>{totalProtein.toFixed(0)}g</Text>
-              <Text style={styles.summaryLabel}>Proteína</Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryBlock}>
-              <Text style={styles.summaryNumber}>{totalCarbs.toFixed(0)}g</Text>
-              <Text style={styles.summaryLabel}>Carbos</Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryBlock}>
-              <Text style={styles.summaryNumber}>{totalFat.toFixed(0)}g</Text>
-              <Text style={styles.summaryLabel}>Grasas</Text>
-            </View>
-          </View>
-        </View>
           </>
         )}
       </ScrollView>
@@ -326,10 +362,10 @@ export default function AnalysisResultScreen() {
           {saving ? (
             <ActivityIndicator size="small" color={colors.background.primary} />
           ) : (
-            <Ionicons name="checkmark-circle" size={22} color={colors.background.primary} />
+            <Ionicons name="cloud-upload" size={20} color={colors.background.primary} />
           )}
           <Text style={styles.confirmButtonText}>
-            {saving ? 'Guardando...' : 'Confirmar y Guardar'}
+            {saving ? 'Guardando en la nube...' : 'Confirmar Registro'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -339,14 +375,25 @@ export default function AnalysisResultScreen() {
 
 const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background.primary },
-  backBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.xl, paddingVertical: SPACING.lg, gap: SPACING.sm },
-  backLabel: { color: colors.text.primary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.base, fontWeight: '600' },
-  content: { paddingHorizontal: SPACING.xl, paddingBottom: 120 },
-  photoBadgeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.lg, marginBottom: SPACING.xl },
-  thumbnailContainer: { width: '28%', aspectRatio: 1, maxWidth: 120, borderRadius: BORDER_RADIUS.xl, overflow: 'hidden' },
-  thumbnailImage: { width: '100%', height: '100%', borderRadius: BORDER_RADIUS.xl },
-  thumbnailPlaceholder: { width: '100%', aspectRatio: 1, maxWidth: 120, backgroundColor: colors.background.card, borderRadius: BORDER_RADIUS.xl, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)', gap: 6 },
-  thumbnailLabel: { color: colors.text.secondary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.xs },
+  backBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.xl, paddingVertical: SPACING.lg, gap: SPACING.sm, zIndex: 10 },
+  backLabel: { color: colors.text.primary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.base, fontWeight: '700' },
+  content: { paddingBottom: 120 },
+  photoContainer: { width: '100%', aspectRatio: 1.1, marginBottom: SPACING.xl, position: 'relative' },
+  mainImageWrapper: { width: '100%', height: '100%', overflow: 'hidden', backgroundColor: '#000' },
+  mainImage: { width: '100%', height: '100%' },
+  thumbnailPlaceholder: { width: '100%', height: '100%', backgroundColor: colors.background.card, justifyContent: 'center', alignItems: 'center' },
+  aiChipFloating: { position: 'absolute', top: SPACING.md, right: SPACING.md, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: BORDER_RADIUS.full, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, gap: 6, borderWidth: 1, borderColor: 'rgba(255,252,211,0.2)', zIndex: 10 },
+  aiChipText: { color: colors.primary.amber, fontFamily: FONTS.primary, fontSize: FONTS.sizes.xs, fontWeight: '700' },
+  spatialBadge: { position: 'absolute', zIndex: 20, alignItems: 'center' },
+  badgeLine: { width: 2, height: 15, backgroundColor: '#fff', opacity: 0.8 },
+  badgeContent: { backgroundColor: '#fff', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+  badgeKcal: { color: '#000', fontSize: 13, fontWeight: '900', textAlign: 'center' },
+  badgeMacros: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 },
+  badgeMacroText: { color: '#666', fontSize: 9, fontWeight: '700' },
+  badgeDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#ddd' },
+  scanningOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(16,185,129,0.05)', justifyContent: 'center' },
+  scanningLine: { width: '100%', height: 2, backgroundColor: '#10B981', shadowColor: '#10B981', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 10, elevation: 15 },
+  resultHeader: { paddingHorizontal: SPACING.xl, marginBottom: SPACING.lg },
   loadingContainer: { 
     flex: 1, 
     justifyContent: 'center', 
@@ -361,8 +408,6 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     textAlign: 'center',
     marginTop: SPACING.md 
   },
-  aiChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(252,211,77,0.1)', borderRadius: BORDER_RADIUS.full, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, gap: 6, borderWidth: 1, borderColor: 'rgba(252,211,77,0.25)', alignSelf: 'flex-start' },
-  aiChipText: { color: colors.primary.amber, fontFamily: FONTS.primary, fontSize: FONTS.sizes.xs, fontWeight: '700' },
   sectionTitle: { color: colors.text.primary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.xl, fontWeight: '700', marginBottom: 4 },
   sectionSub: { color: colors.text.secondary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.sm, marginBottom: SPACING.lg },
   ingredientsList: { 
@@ -392,8 +437,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   macroMini: { fontSize: 10, color: colors.text.tertiary, fontFamily: FONTS.primary },
   macroRow: { flexDirection: 'row', gap: SPACING.sm, flexWrap: 'wrap' },
   macro: { fontSize: FONTS.sizes.xs, color: colors.text.secondary, fontFamily: FONTS.primary },
-  summaryCard: { backgroundColor: '#111', borderRadius: BORDER_RADIUS.xl, padding: SPACING.xl, borderWidth: 1, borderColor: 'rgba(252,211,77,0.15)' },
-  summaryTitle: { color: colors.text.secondary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.sm, marginBottom: SPACING.lg },
+  summaryCard: { backgroundColor: '#111', borderRadius: BORDER_RADIUS.xl, padding: SPACING.xl, borderWidth: 1, borderColor: 'rgba(252,211,77,0.15)', marginHorizontal: SPACING.xl },
+  summaryHeader: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.md },
+  summaryTitle: { color: colors.text.secondary, fontFamily: FONTS.primary, fontSize: 11, fontWeight: '800', letterSpacing: 1 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   summaryBlock: { alignItems: 'center', flex: 1 },
   summaryNumber: { color: colors.primary.amber, fontFamily: FONTS.primary, fontWeight: '800', fontSize: FONTS.sizes['2xl'] },
