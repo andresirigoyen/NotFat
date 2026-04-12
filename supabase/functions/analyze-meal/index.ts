@@ -46,8 +46,8 @@ serve(async (req) => {
       throw new Error('GOOGLE_GEMINI_API_KEY is not configured')
     }
 
-    // Usar gemini-2.5-flash para consistencia
-    const model = 'gemini-2.5-flash'
+    // Usar gemini-2.0-flash para consistencia y rendimiento
+    const model = 'gemini-2.0-flash'
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
     const prompt = `Analiza esta imagen y actúa como un experto nutricionista visual. Identifica todos los alimentos presentes.

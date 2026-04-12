@@ -29,12 +29,31 @@ CREATE TABLE IF NOT EXISTS coach_messages (
   metadata JSONB DEFAULT '{}'::jsonb
 );
 
+-- If coach_insights is missing, create it
+CREATE TABLE IF NOT EXISTS coach_insights (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  insight_type TEXT,
+  title TEXT,
+  content TEXT,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  generated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 ALTER TABLE coach_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE coach_insights ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Users can view own coach messages" ON coach_messages;
 CREATE POLICY "Users can view own coach messages" ON coach_messages FOR SELECT USING (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Users can insert own coach messages" ON coach_messages;
 CREATE POLICY "Users can insert own coach messages" ON coach_messages FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can view own coach insights" ON coach_insights;
+CREATE POLICY "Users can view own coach insights" ON coach_insights FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own coach insights" ON coach_insights;
+CREATE POLICY "Users can insert own coach insights" ON coach_insights FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 NOTIFY pgrst, 'reload schema';

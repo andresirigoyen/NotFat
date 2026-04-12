@@ -33,9 +33,46 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   render() {
     if (this.state.hasError) {
       return (
-        <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-          <Text style={{ fontSize: 24, color: '#fff', fontWeight: 'bold' }}>Algo salió mal 🦦</Text>
-          {__DEV__ && <Text style={{ color: 'red', marginTop: 10 }}>{this.state.error?.message}</Text>}
+        <View style={{ 
+          flex: 1, 
+          backgroundColor: '#000', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          padding: 40 
+        }}>
+          <Text style={{ 
+            fontSize: 32, 
+            color: '#fff', 
+            fontWeight: '700', 
+            textAlign: 'center',
+            marginBottom: 16,
+            fontFamily: 'Montserrat_700Bold'
+          }}>
+            Ups, algo no va bien
+          </Text>
+          <Text style={{ 
+            fontSize: 16, 
+            color: '#666', 
+            textAlign: 'center',
+            lineHeight: 24,
+            fontFamily: 'Montserrat_400Regular'
+          }}>
+            Estamos trabajando para que todo vuelva a la normalidad lo antes posible.
+          </Text>
+          {__DEV__ && (
+            <View style={{ 
+              marginTop: 32, 
+              padding: 16, 
+              backgroundColor: '#111', 
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#222'
+            }}>
+              <Text style={{ color: '#ff4444', fontFamily: 'monospace', fontSize: 12 }}>
+                {this.state.error?.message}
+              </Text>
+            </View>
+          )}
         </View>
       );
     }
