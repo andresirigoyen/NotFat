@@ -19,18 +19,19 @@ export default function SignUpScreen() {
   const { signUp } = useAuthStore();
   const { data: onboardingData, reset: resetOnboarding } = useOnboardingStore();
 
-  const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
   const [acceptTerms, setAcceptTerms] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [focused, setFocused] = React.useState<'name' | 'email' | 'password' | 'confirm' | null>(null);
+  const [focused, setFocused] = React.useState<'email' | 'password' | 'confirm' | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   const handleSignUp = async () => {
-    if (!name || !email || !password || !confirmPassword) {
+    const name = onboardingData.full_name || 'Usuario';
+
+    if (!email || !password || !confirmPassword) {
       Alert.alert('Error', 'Por favor completa todos los campos');
       return;
     }
@@ -191,24 +192,11 @@ export default function SignUpScreen() {
 
           {/* Form card */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Tus datos</Text>
+            <Text style={styles.cardTitle}>Datos de acceso</Text>
 
-            <View style={styles.field}>
-              <Text style={styles.label}>Nombre</Text>
-              <View style={[styles.inputWrap, focused === 'name' && styles.inputWrapFocused]}>
-                <Ionicons name="person-outline" size={20} color={focused === 'name' ? colors.primary.amber : colors.text.muted} />
-                <TextInput
-                  style={styles.input}
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="Ej. Juan Pérez"
-                  placeholderTextColor={colors.text.muted}
-                  onFocus={() => setFocused('name')}
-                  onBlur={() => setFocused(null)}
-                  autoCorrect={false}
-                  editable={!isLoading}
-                />
-              </View>
+            <View style={styles.nameConfirm}>
+              <Text style={styles.nameLabel}>Registrando como:</Text>
+              <Text style={styles.nameValue}>{onboardingData.full_name || 'Usuario'}</Text>
             </View>
 
             <View style={styles.field}>
@@ -432,6 +420,28 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontWeight: FONTS.weights.bold,
     color: colors.text.primary,
     marginBottom: SPACING.lg,
+  },
+  nameConfirm: {
+    backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    marginBottom: SPACING.xl,
+    borderWidth: 1,
+    borderColor: colors.background.border,
+  },
+  nameLabel: {
+    fontSize: FONTS.sizes.xs,
+    color: colors.text.tertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  nameValue: {
+    fontSize: FONTS.sizes.lg,
+    color: colors.primary.amber,
+    fontWeight: '800',
+    fontFamily: FONTS.primary,
   },
   field: { marginBottom: SPACING.md },
   label: {
