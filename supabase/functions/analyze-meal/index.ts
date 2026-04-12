@@ -81,35 +81,27 @@ serve(async (req) => {
     
     PASOS DE ANÁLISIS:
     1. Identifica las formas y texturas principales.
-    2. Determina el alimento basado en la evidencia visual.
-    3. Para cada ingrediente principal, estima sus coordenadas espaciales exactas en la imagen.
-    
-    REGLAS DE COORDENADAS (box_2d):
-    - Usa valores NORMALIZADOS de 0 a 1000.
-    - Formato: [ymin, xmin, ymax, xmax]
-    - [0, 0, 1000, 1000] representa toda la imagen.
-    - ymin/ymax son verticales (0 superior, 1000 inferior).
-    - xmin/xmax son horizontales (0 izquierda, 1000 derecha).
+    INSTRUCCIONES:
+    1. Analiza cada componente del plato.
+    2. Devuelve los ingredientes y sus cuadros de detección (box_2d) en formato [ymin, xmin, ymax, xmax] escala 0-1000.
     
     FORMATO DE RESPUESTA (JSON):
     {
-      "name": "Nombre descriptivo y honesto",
-      "calories": 0,
-      "protein": 0,
-      "carbs": 0,
-      "fat": 0,
+      "summary": "Resumen nutricional corto",
       "ingredients": [
         {
-          "name": "Ingrediente", 
-          "calories": 0, 
-          "protein": 0, 
-          "carbs": 0, 
-          "fat": 0,
+          "name": "Nombre alimento",
+          "calories": kcal,
+          "protein": g,
+          "carbs": g,
+          "fat": g,
           "box_2d": [ymin, xmin, ymax, xmax]
         }
-      ]
+      ],
+      "totalNutrition": { "calories": X, "protein": X, "carbs": X, "fat": X }
     }
-    IMPORTANTE: Solo JSON. Los valores de "box_2d" deben ser precisos para dibujar etiquetas flotantes sobre los alimentos.`
+    
+    IMPORTANTE: Si no estás seguro, estima de forma realista basándote en el tamaño relativo.`;
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -118,32 +110,20 @@ serve(async (req) => {
         contents: [{
           parts: [
             { text: prompt },
-            {
-              inline_data: {
-                mime_type: "image/jpeg",
-                data: await fetch(imageUrl).then(r => r.arrayBuffer()).then(buf => {
-                  const bytes = new Uint8Array(buf);
-                  let binary = '';
-                  for (let i = 0; i < bytes.byteLength; i++) {
-                    binary += String.fromCharCode(bytes[i]);
-                  }
-                  return btoa(binary);
-                })
-              }
+            { 
+              inlineData: { 
+                mimeType: 'image/jpeg', 
+                data: imageUrl.split(',')[1] || imageUrl 
+              } 
             }
           ]
         }],
         generationConfig: {
-          temperature: 0.1, // Mínima temperatura para evitar alucinaciones
+          temperature: 0.2,
           topP: 0.95,
-          response_mime_type: "application/json"
-        },
-        safetySettings: [
-          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-        ]
+          maxOutputTokens: 2048,
+          responseMimeType: "application/json"
+        }
       })
     })
 

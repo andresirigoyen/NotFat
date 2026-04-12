@@ -47,8 +47,9 @@ serve(async (req) => {
       body: JSON.stringify({ 
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.8,
-          response_mime_type: "application/json"
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+          responseMimeType: "application/json"
         }
       })
     })

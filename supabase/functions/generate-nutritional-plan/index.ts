@@ -136,7 +136,10 @@ Responde ÚNICAMENTE con un JSON en este formato:
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: systemPrompt + userPrompt }] }],
-        generationConfig: { response_mime_type: "application/json" }
+        generationConfig: { 
+          responseMimeType: "application/json",
+          temperature: 0.2
+        }
       })
     })
 

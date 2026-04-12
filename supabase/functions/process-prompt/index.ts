@@ -223,7 +223,7 @@ serve(async (req) => {
             temperature: coachStyle === 'apoyo' ? 0.7 : 0.9,
             topP: 0.95,
             maxOutputTokens: 2048,
-            response_mime_type: "application/json"
+            responseMimeType: "application/json"
           }
         })
       })

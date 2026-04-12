@@ -224,31 +224,46 @@ export default function AnalysisResultScreen() {
               {imageUri ? (
                 <View style={styles.mainImageWrapper}>
                   <Image source={{ uri: imageUri }} style={styles.mainImage} resizeMode="cover" />
-                  
-                  {/* Overlay de Etiquetas Espaciales (Solo si no está analizando) */}
-                  {!analyzing && ingredients.map((ing: any) => {
+                                {/* 🎯 OVERLAY DE DETECCIÓN ESPACIAL (Spatial AI) */}
+                  {!analyzing && ingredients.map((ing: any, idx: number) => {
                     if (!ing.box_2d || !ing.confirmed) return null;
                     
-                    // Gemini devuelve [ymin, xmin, ymax, xmax] de 0-1000
+                    // Gemini devuelve [ymin, xmin, ymax, xmax] en escala 0-1000
                     const [ymin, xmin, ymax, xmax] = ing.box_2d;
+                    
+                    // Convertimos a porcentajes para que sea responsive
                     const top = `${ymin / 10}%`;
                     const left = `${xmin / 10}%`;
+                    const width = `${(xmax - xmin) / 10}%`;
+                    const height = `${(ymax - ymin) / 10}%`;
+
+                    // Colores rotativos para los bordes
+                    const glowColors = ['#FBBF24', '#34D399', '#60A5FA', '#F87171'];
+                    const currentColor = glowColors[idx % glowColors.length];
                     
                     return (
-                      <View 
-                        key={`badge-${ing.id}`}
-                        style={[styles.spatialBadge, { top, left } as any]}
-                      >
-                        <View style={styles.badgeLine} />
-                        <View style={styles.badgeContent}>
-                          <Text style={styles.badgeKcal}>{ing.calories} kcal</Text>
-                          <View style={styles.badgeMacros}>
-                            <Text style={styles.badgeMacroText}>P: {ing.protein}g</Text>
-                            <View style={styles.badgeDot} />
-                            <Text style={styles.badgeMacroText}>C: {ing.carbs}g</Text>
+                      <React.Fragment key={`spatial-${ing.id}`}>
+                        {/* El Cuadro (Bounding Box) */}
+                        <View 
+                          style={[
+                            styles.boundingBox, 
+                            { 
+                              top, left, width, height, 
+                              borderColor: currentColor,
+                              backgroundColor: `${currentColor}15` // 15% opacidad
+                            } as any
+                          ]} 
+                        />
+                        
+                        {/* La Etiqueta Flotante */}
+                        <View style={[styles.spatialBadge, { top, left } as any]}>
+                          <View style={[styles.badgeIndicator, { backgroundColor: currentColor }]} />
+                          <View style={styles.badgeContent}>
+                            <Text style={styles.badgeName}>{ing.name}</Text>
+                            <Text style={styles.badgeKcal}>{ing.calories} kcal</Text>
                           </View>
                         </View>
-                      </View>
+                      </React.Fragment>
                     );
                   })}
 
@@ -259,7 +274,9 @@ export default function AnalysisResultScreen() {
                   )}
                 </View>
               ) : barcodeProduct?.image_url ? (
-                <Image source={{ uri: barcodeProduct.image_url }} style={styles.mainImage} resizeMode="contain" />
+                <View style={styles.thumbnailPlaceholder}>
+                  <Image source={{ uri: barcodeProduct.image_url }} style={styles.mainImage} resizeMode="contain" />
+                </View>
               ) : (
                 <View style={styles.thumbnailPlaceholder}>
                   <Ionicons 
@@ -270,6 +287,7 @@ export default function AnalysisResultScreen() {
                 </View>
               )}
 
+              {/* 🏷️ Chip Flotante de Identificación */}
               <View style={[
                 styles.aiChipFloating, 
                 source === 'barcode' && { backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(59, 130, 246, 0.4)' }
@@ -283,7 +301,7 @@ export default function AnalysisResultScreen() {
                   styles.aiChipText, 
                   source === 'barcode' && { color: colors.status.info }
                 ]}>
-                  {source === 'barcode' ? 'Open Food Facts' : 'Gemini 2.0 Flash'}
+                  {source === 'barcode' ? 'Open Food Facts' : 'Gemini 2.5 Flash'}
                 </Text>
               </View>
             </View>
@@ -397,13 +415,12 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   thumbnailPlaceholder: { width: '100%', height: '100%', backgroundColor: colors.background.card, justifyContent: 'center', alignItems: 'center' },
   aiChipFloating: { position: 'absolute', top: SPACING.md, right: SPACING.md, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: BORDER_RADIUS.full, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, gap: 6, borderWidth: 1, borderColor: 'rgba(255,252,211,0.2)', zIndex: 10 },
   aiChipText: { color: colors.primary.amber, fontFamily: FONTS.primary, fontSize: FONTS.sizes.xs, fontWeight: '700' },
-  spatialBadge: { position: 'absolute', zIndex: 20, alignItems: 'center' },
-  badgeLine: { width: 2, height: 15, backgroundColor: '#fff', opacity: 0.8 },
-  badgeContent: { backgroundColor: '#fff', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
-  badgeKcal: { color: '#000', fontSize: 13, fontWeight: '900', textAlign: 'center' },
-  badgeMacros: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 },
-  badgeMacroText: { color: '#666', fontSize: 9, fontWeight: '700' },
-  badgeDot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#ddd' },
+  boundingBox: { position: 'absolute', borderWidth: 2, borderRadius: 8, borderStyle: 'dashed', zIndex: 15 },
+  spatialBadge: { position: 'absolute', zIndex: 20, flexDirection: 'row', alignItems: 'center', gap: 4, transform: [{ translateY: -10 }] },
+  badgeIndicator: { width: 4, height: 20, borderRadius: 2 },
+  badgeContent: { backgroundColor: '#fff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 4 },
+  badgeName: { color: '#000', fontSize: 10, fontWeight: '800', fontFamily: FONTS.primary },
+  badgeKcal: { color: '#666', fontSize: 9, fontWeight: '700', fontFamily: FONTS.primary },
   scanningOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(16,185,129,0.05)', justifyContent: 'center' },
   scanningLine: { width: '100%', height: 2, backgroundColor: '#10B981', shadowColor: '#10B981', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 10, elevation: 15 },
   resultHeader: { paddingHorizontal: SPACING.xl, marginBottom: SPACING.lg },
