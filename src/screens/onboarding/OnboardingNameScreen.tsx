@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +14,10 @@ export default function OnboardingNameScreen() {
   const { setData: setOnboardingData } = useOnboardingStore();
   const [name, setName] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+
+  React.useEffect(() => {
+    setOnboardingData({ last_visited_step: 'OnboardingName' });
+  }, []);
 
   const handleContinue = () => {
     if (!name.trim()) {

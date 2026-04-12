@@ -1,5 +1,5 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -39,6 +39,10 @@ export default function OnboardingProfileScreen() {
   const [weightValue, setWeightValue] = useState('');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setOnboardingData({ last_visited_step: 'OnboardingProfile' });
+  }, []);
 
   const { data: onboardingData } = useOnboardingStore();
   const userName = onboardingData?.onboarding_metadata?.first_name || '';

@@ -13,11 +13,15 @@ export default function OnboardingPsychologyScreen() {
   const { colors, isDark } = useThemeColors();
   const navigation = useNavigation();
   const { user } = useAuthStore();
-  const { setData: setOnboardingData } = useOnboardingStore();
+  const { data: onboardingData, setData: setOnboardingData } = useOnboardingStore();
 
   const [hungerTrigger, setHungerTrigger] = useState('');
   const [weekendStruggle, setWeekendStruggle] = useState('');
   const [targetWeight, setTargetWeight] = useState('');
+
+  React.useEffect(() => {
+    setOnboardingData({ last_visited_step: 'OnboardingPsychology' });
+  }, []);
 
   const handleContinue = () => {
     if (!targetWeight || !hungerTrigger) {
@@ -26,9 +30,12 @@ export default function OnboardingPsychologyScreen() {
     }
 
     setOnboardingData({
+      onboarding_metadata: {
+        ...(onboardingData.onboarding_metadata || {}),
+        hunger_trigger: hungerTrigger,
+        weekend_struggle: weekendStruggle,
+      },
       target_weight_kg: parseFloat(targetWeight),
-      hunger_trigger: hungerTrigger,
-      weekend_struggle: weekendStruggle,
     });
 
     navigation.navigate('OnboardingModeSelection' as never);

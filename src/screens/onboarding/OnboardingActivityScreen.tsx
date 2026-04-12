@@ -1,5 +1,5 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -61,6 +61,10 @@ export default function OnboardingActivityScreen() {
   const [selectedWorkout, setSelectedWorkout] = useState<string>('');
   const [selectedStepsGoal, setSelectedStepsGoal] = useState<number>(10000);
   const [isLoading, setIsLoading] = useState(false);
+
+  React.useEffect(() => {
+    setOnboardingData({ last_visited_step: 'OnboardingActivity' });
+  }, []);
 
   const handleWorkoutSelect = (workoutId: string) => {
     setSelectedWorkout(workoutId);

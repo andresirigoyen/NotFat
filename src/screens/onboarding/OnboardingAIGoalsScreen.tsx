@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store';
 import { useProfile } from '@/hooks/useProfile';
 import { analytics } from '@/services/analytics';
+import { useOnboardingStore } from '@/store/onboarding-store';
 import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
 
 interface AIGeneratedGoals {
@@ -28,6 +29,11 @@ export default function OnboardingAIGoalsScreen() {
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const { updateProfile, generateAutomaticGoals, generateAutomaticHydrationGoal } = useProfile();
+  const { setData: setOnboardingData } = useOnboardingStore();
+
+  useEffect(() => {
+    setOnboardingData({ last_visited_step: 'OnboardingAIGoals' });
+  }, []);
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiGoals, setAiGoals] = useState<AIGeneratedGoals | null>(null);

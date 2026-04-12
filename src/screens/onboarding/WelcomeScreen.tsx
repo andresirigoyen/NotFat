@@ -1,5 +1,5 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, StatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,19 +7,21 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FONTS, SPACING, BORDER_RADIUS } from '@/constants/theme';
+import { useOnboardingStore } from '@/store/onboarding-store';
 
 export default function WelcomeScreen() {
   const { colors, isDark } = useThemeColors();
   const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
   const navigation = useNavigation();
+  const { data: onboardingData } = useOnboardingStore();
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <Animated.View entering={FadeIn.duration(1000)} style={styles.container}>
         <ImageBackground 
-          source={{ uri: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070&auto=format&fit=crop' }} 
+          source={{ uri: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=75&w=1200&auto=format&fit=crop' }} 
           style={styles.backgroundImage}
           resizeMode="cover"
         >
@@ -48,6 +50,24 @@ export default function WelcomeScreen() {
                 </Animated.View>
 
                 <Animated.View entering={SlideInDown.springify().delay(500)}>
+                  {onboardingData.last_visited_step && onboardingData.last_visited_step !== 'Welcome' ? (
+                    <TouchableOpacity 
+                      style={[styles.primaryButton, { marginBottom: SPACING.md }]}
+                      activeOpacity={0.9}
+                      onPress={() => navigation.navigate(onboardingData.last_visited_step as never)}
+                    >
+                      <LinearGradient
+                        colors={['#10B981', '#059669']}
+                        style={styles.buttonGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                      >
+                        <Text style={styles.buttonText}>Continuar progreso</Text>
+                        <Ionicons name="refresh" size={20} color="#000" />
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  ) : null}
+
                   <TouchableOpacity 
                     style={styles.primaryButton}
                     activeOpacity={0.9}

@@ -1,5 +1,5 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -28,6 +28,10 @@ export default function OnboardingBirthDateScreen() {
   });
   const [showPicker, setShowPicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setOnboardingData({ last_visited_step: 'OnboardingBirthDate' });
+  }, []);
 
   const calculateAge = (date: Date) => {
     const today = new Date();

@@ -1,5 +1,5 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Alert, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, StackActions } from '@react-navigation/native';
@@ -19,6 +19,10 @@ export default function OnboardingModeSelectionScreen() {
   const { setData: setOnboardingData } = useOnboardingStore();
   const [selectedMode, setSelectedMode] = useState<'hard' | 'friendly' | null>(null);
   const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    setOnboardingData({ last_visited_step: 'OnboardingModeSelection' });
+  }, []);
 
   const handleConfirm = async () => {
     if (!selectedMode) return;

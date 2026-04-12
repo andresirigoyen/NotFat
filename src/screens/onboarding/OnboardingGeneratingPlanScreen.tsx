@@ -52,7 +52,7 @@ export default function OnboardingGeneratingPlanScreen() {
             carbos_g: Math.round((targetCals * 0.4) / 4),
             grasas_g: Math.round((targetCals * 0.25) / 9),
           },
-          fecha_meta_estimada: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          semanas_estimadas: 12
         },
         estrategia_conductual: {
           hack_fines_de_semana: "Planifica tus comidas sociales con antelación.",
@@ -100,6 +100,18 @@ export default function OnboardingGeneratingPlanScreen() {
         const minDelay = 4500;
         if (executionTime < minDelay) {
           await new Promise(resolve => setTimeout(resolve, minDelay - executionTime));
+        }
+
+        // Calcular target_date dinámicamente si hay semanas estimadas
+        if (data.plan_nutricional?.semanas_estimadas) {
+          const weeks = data.plan_nutricional.semanas_estimadas;
+          const targetDate = new Date();
+          targetDate.setDate(targetDate.getDate() + (weeks * 7));
+          
+          await supabase.from('profiles').update({
+            target_date: targetDate.toISOString().split('T')[0]
+          }).eq('id', user!.id);
+          console.log('[Onboarding] Dynamic target_date calculated:', targetDate.toISOString().split('T')[0]);
         }
 
         if (data.prediccion_exito) {

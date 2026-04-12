@@ -1,5 +1,5 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -96,6 +96,10 @@ export default function OnboardingGoalsScreen() {
   const [selectedNutritionGoal, setSelectedNutritionGoal] = useState<string>('');
   const [selectedDietType, setSelectedDietType] = useState<string>('balanced');
   const [isLoading, setIsLoading] = useState(false);
+
+  React.useEffect(() => {
+    setOnboardingData({ last_visited_step: 'OnboardingGoals' });
+  }, []);
 
   const handleNutritionGoalSelect = (goalId: string) => {
     setSelectedNutritionGoal(goalId);

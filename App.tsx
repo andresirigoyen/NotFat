@@ -85,11 +85,30 @@ export default function App() {
     // 🌐 GLOBAL WEB FIX: Bloquear zoom automático y mejorar interactividad
     if (Platform.OS === 'web') {
       try {
+        // Preconnect a dominios clave
+        const preconnectUnsplash = document.createElement('link');
+        preconnectUnsplash.rel = 'preconnect';
+        preconnectUnsplash.href = 'https://images.unsplash.com';
+        document.head.appendChild(preconnectUnsplash);
+
+        // Preload de la imagen LCP del WelcomeScreen
+        const preloadLCP = document.createElement('link');
+        preloadLCP.rel = 'preload';
+        preloadLCP.as = 'image';
+        preloadLCP.href = 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=75&w=1200&auto=format&fit=crop';
+        document.head.appendChild(preloadLCP);
+
         const style = document.createElement('style');
         style.textContent = `
+          /* Optimización de fuentes */
+          @font-face {
+            font-display: swap !important;
+          }
+          
           * {
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
+            text-rendering: optimizeLegibility;
           }
           input, textarea, select {
             font-size: 16px !important;
@@ -100,6 +119,7 @@ export default function App() {
             width: 100%;
             height: 100%;
             overflow: hidden;
+            background-color: #000;
           }
           #root, #__next {
             height: 100%;

@@ -60,7 +60,7 @@ Responde ÚNICAMENTE con un JSON en este formato:
   "plan_nutricional": {
     "calorias_objetivo": number,
     "macros": { "proteina_g": number, "carbos_g": number, "grasas_g": number },
-    "fecha_meta_estimada": "YYYY-MM-DD"
+    "semanas_estimadas": number
   },
   "estrategia_conductual": {
     "hack_fines_de_semana": "string",
@@ -93,7 +93,7 @@ Responde ÚNICAMENTE con un JSON en este formato:
     if (aiResponse.plan_nutricional.calorias_objetivo < minCals) {
       console.warn(`🛡️ AI suggested ${aiResponse.plan_nutricional.calorias_objetivo} kcal, raising to safe minimum ${minCals} kcal.`);
       aiResponse.plan_nutricional.calorias_objetivo = minCals;
-      // Adjust macros proportionally if needed, or just calories for simplicity
+      aiResponse.plan_nutricional.nota_seguridad = `Se ha ajustado tu objetivo calórico al mínimo de seguridad metabólica (${minCals} kcal) para proteger tu salud y asegurar energía suficiente.`;
     }
 
     // 3. Save result back to profiles
@@ -103,8 +103,9 @@ Responde ÚNICAMENTE con un JSON en este formato:
         nutritional_plan: aiResponse,
         onboarding_completed: true,
         onboarding_step: 'completed',
-        // Update top-level calorie goal for easy access in Hub
-        steps_goal: profile.steps_goal || 10000 
+        // Update top-level values for quick access
+        steps_goal: profile.steps_goal || 10000,
+        daily_calorie_target: aiResponse.plan_nutricional.calorias_objetivo
       })
       .eq('id', userId)
 

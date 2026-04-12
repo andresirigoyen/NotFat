@@ -1,38 +1,44 @@
-import React from 'react';
-import { Linking } from 'react-native';
+import React, { Suspense } from 'react';
+import { Linking, ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
+import { TransitionPresets, createStackNavigator } from '@react-navigation/stack';
 import { deepLinkingService } from '@/services/deeplinking';
 
-// Importaciones de Onboarding / Auth
+// Importaciones Críticas (Directas para FCP)
 import SplashScreen from '../screens/onboarding/SplashScreen';
 import WelcomeScreen from '../screens/onboarding/WelcomeScreen';
-import OnboardingReferralScreen from '../screens/onboarding/OnboardingReferralScreen';
-import OnboardingNameScreen from '../screens/onboarding/OnboardingNameScreen';
-import OnboardingGenderScreen from '../screens/onboarding/OnboardingGenderScreen';
-import OnboardingBirthDateScreen from '../screens/onboarding/OnboardingBirthDateScreen';
-import OnboardingGoalsScreen from '../screens/onboarding/OnboardingGoalsScreen';
-import OnboardingProfileScreen from '../screens/onboarding/OnboardingProfileScreen';
-import OnboardingActivityScreen from '../screens/onboarding/OnboardingActivityScreen';
-import OnboardingPreferencesScreen from '../screens/onboarding/OnboardingPreferencesScreen';
-import OnboardingAIGoalsScreen from '../screens/onboarding/OnboardingAIGoalsScreen';
-import OnboardingModeSelectionScreen from '../screens/onboarding/OnboardingModeSelectionScreen';
-import OnboardingPsychologyScreen from '../screens/onboarding/OnboardingPsychologyScreen';
-import OnboardingGeneratingPlanScreen from '../screens/onboarding/OnboardingGeneratingPlanScreen';
-import LoginScreen from '../screens/auth/LoginScreen';
-import SignUpScreen from '../screens/auth/SignUpScreen';
 
-// Navegador Principal (Bottom Tabs + Hub)
-import MainNavigator from './MainNavigator';
+// Wrapper para Lazy Loading con Suspense funcional en Web
+const LazyOverlay = (Component: any) => (props: any) => (
+  <Suspense fallback={
+    <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+      <ActivityIndicator size="large" color="#FBBF24" />
+    </View>
+  }>
+    <Component {...props} />
+  </Suspense>
+);
 
-// Pantallas principales que NO deben tener TabBar
-import BarcodeScannerScreen from '../screens/main/BarcodeScannerScreen';
-import SubscriptionCenterScreen from '../screens/main/SubscriptionCenterScreen';
-import SubscriptionScreen from '../screens/main/SubscriptionScreen';
-import RecipeDetailScreen from '../screens/main/RecipeDetailScreen';
-
-// Pantallas que SÍ deben tener TabBar (se moverán dentro del MainNavigator)
-// Estas pantallas ahora están manejadas dentro del MainNavigator
+// Importaciones Diferidas (Lazy Loading)
+const OnboardingReferralScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingReferralScreen')));
+const OnboardingNameScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingNameScreen')));
+const OnboardingGenderScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingGenderScreen')));
+const OnboardingBirthDateScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingBirthDateScreen')));
+const OnboardingGoalsScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingGoalsScreen')));
+const OnboardingProfileScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingProfileScreen')));
+const OnboardingActivityScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingActivityScreen')));
+const OnboardingPreferencesScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingPreferencesScreen')));
+const OnboardingAIGoalsScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingAIGoalsScreen')));
+const OnboardingModeSelectionScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingModeSelectionScreen')));
+const OnboardingPsychologyScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingPsychologyScreen')));
+const OnboardingGeneratingPlanScreen = LazyOverlay(React.lazy(() => import('../screens/onboarding/OnboardingGeneratingPlanScreen')));
+const LoginScreen = LazyOverlay(React.lazy(() => import('../screens/auth/LoginScreen')));
+const SignUpScreen = LazyOverlay(React.lazy(() => import('../screens/auth/SignUpScreen')));
+const MainNavigator = LazyOverlay(React.lazy(() => import('./MainNavigator')));
+const BarcodeScannerScreen = LazyOverlay(React.lazy(() => import('../screens/main/BarcodeScannerScreen')));
+const SubscriptionCenterScreen = LazyOverlay(React.lazy(() => import('../screens/main/SubscriptionCenterScreen')));
+const SubscriptionScreen = LazyOverlay(React.lazy(() => import('../screens/main/SubscriptionScreen')));
+const RecipeDetailScreen = LazyOverlay(React.lazy(() => import('../screens/main/RecipeDetailScreen')));
 
 const Stack = createStackNavigator();
 

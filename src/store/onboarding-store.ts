@@ -34,6 +34,7 @@ export interface OnboardingData {
   show_calories?: boolean;
   show_macros?: boolean;
   show_hydration?: boolean;
+  last_visited_step?: string;
 }
 
 interface OnboardingState {

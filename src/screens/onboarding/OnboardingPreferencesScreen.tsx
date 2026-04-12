@@ -1,5 +1,5 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -37,6 +37,10 @@ export default function OnboardingPreferencesScreen() {
   const [showCalories, setShowCalories] = useState<boolean>(true);
   const [showHydration, setShowHydration] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState(false);
+
+  React.useEffect(() => {
+    setOnboardingData({ last_visited_step: 'OnboardingPreferences' });
+  }, []);
 
   const availableBottleSizes = BOTTLE_SIZES[preferredBottleUnit];
 
