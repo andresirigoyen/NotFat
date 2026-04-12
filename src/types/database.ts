@@ -182,6 +182,54 @@ export type Database = {
         Insert: Omit<Database['public']['Tables']['user_activity_profile']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['user_activity_profile']['Insert']>;
       };
+      coach_messages: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: 'user' | 'assistant';
+          content: string;
+          metadata: any | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['coach_messages']['Row'], 'id' | 'created_at'>;
+        Update: Partial<Database['public']['Tables']['coach_messages']['Insert']>;
+      };
+      coach_insights: {
+        Row: {
+          id: string;
+          user_id: string;
+          insight_type: string | null;
+          title: string | null;
+          content: string | null;
+          metadata: any | null;
+          generated_at: string;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['coach_insights']['Row'], 'id' | 'created_at' | 'generated_at'>;
+        Update: Partial<Database['public']['Tables']['coach_insights']['Insert']>;
+      };
+      daily_tips: {
+        Row: {
+          id: string;
+          title: string;
+          content: string;
+          category: string | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['daily_tips']['Row'], 'id' | 'created_at'>;
+        Update: Partial<Database['public']['Tables']['daily_tips']['Insert']>;
+      };
+      daily_tips_used: {
+        Row: {
+          id: string;
+          user_id: string;
+          tip_id: string;
+          used_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['daily_tips_used']['Row'], 'id' | 'used_at'>;
+        Update: Partial<Database['public']['Tables']['daily_tips_used']['Insert']>;
+      };
     };
     Enums: {
       user_role: 'user' | 'creator' | 'admin' | 'superadmin';

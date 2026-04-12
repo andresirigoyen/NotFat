@@ -80,15 +80,12 @@ export const useSendMessage = () => {
           metadata,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (userError) throw userError;
 
       try {
         // Then call AI to get response using process-prompt
-        const { data: session } = await supabase.auth.getSession();
-        const accessToken = session?.session?.access_token;
-
         const { data: aiResponse, error: aiError } = await supabase.functions.invoke('process-prompt', {
           body: { 
             message: content,
@@ -98,15 +95,11 @@ export const useSendMessage = () => {
               diet_type: user.user_metadata?.diet_type,
               nutrition_goal: user.user_metadata?.nutrition_goal,
             }
-          },
-          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+          }
         });
 
         if (aiError) throw aiError;
         if (!aiResponse) throw new Error('No AI response received');
-
-        // Verify the response
-        console.log('AI Response:', aiResponse);
 
         // Save AI response
         const { data: assistantMessage, error: assistantError } = await supabase
@@ -117,13 +110,13 @@ export const useSendMessage = () => {
             content: aiResponse.response || 'Lo siento, no pude procesar eso.',
             metadata: {
               type: aiResponse.type || 'chat',
-              model: 'gemini-2.0-flash',
+              model: 'gemini-2.5-flash',
               processing_time: Date.now(),
               recipeData: aiResponse.recipeData || null,
             },
           })
           .select()
-          .single();
+          .maybeSingle();
 
         if (assistantError) throw assistantError;
 
@@ -145,7 +138,7 @@ export const useSendMessage = () => {
             },
           })
           .select()
-          .single();
+          .maybeSingle();
 
         if (assistantError) throw assistantError;
 
@@ -253,7 +246,7 @@ export const useMarkTipAsUsed = () => {
           tip_id: tipId,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;

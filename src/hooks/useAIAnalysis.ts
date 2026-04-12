@@ -62,14 +62,16 @@ export const useAIAnalysis = () => {
       console.log('[useAIAnalysis] Image uploaded, URL:', imageUrl);
 
       // 2. Call Supabase Edge Function for AI Analysis
-      console.log('[useAIAnalysis] Calling analyze-meal function...');
+      console.log('[useAIAnalysis] Calling analyze-meal function for user:', user.id);
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-meal', {
         body: { imageUrl, userId: user.id },
       });
 
       if (analysisError) {
         console.error('[useAIAnalysis] Analysis error:', analysisError);
-        throw new Error(`Error analyzing image: ${analysisError.message}`);
+        // Special handling for 401/Invalid JWT which might be a service role mismatch or similar
+        const errorMsg = analysisError.message || 'Error en el servicio de análisis';
+        throw new Error(`Error analizando imagen: ${errorMsg}`);
       }
 
       // If successful, increment scan counter
