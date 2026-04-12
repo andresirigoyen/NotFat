@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, ScrollView } f
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useOnboardingStore } from '@/store/onboarding-store';
+import { useAuthStore } from '@/store';
+import { supabase } from '@/services/SupabaseContext';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { SPACING, FONTS, BORDER_RADIUS } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +16,7 @@ export default function OnboardingNotificationScreen() {
   const { colors, isDark } = useThemeColors();
   const navigation = useNavigation();
   const { data: onboardingData, setData: setOnboardingData } = useOnboardingStore();
+  const { user } = useAuthStore();
   const { registerForPushNotificationsAsync } = useNotifications();
 
   const [meals, setMeals] = useState(true);
@@ -37,10 +40,28 @@ export default function OnboardingNotificationScreen() {
         await registerForPushNotificationsAsync();
       }
 
-      navigation.navigate('SignUp' as never);
+      if (user) {
+        // Usuario ya registrado (flujo en vivo), actualizar BD directamente
+        const { error } = await supabase.from('profiles').update({
+          notify_meals: meals,
+          notify_water: water,
+          notify_motivation: motivation
+        }).eq('id', user.id);
+
+        if (error) console.error('Error actualizando notificaciones en BD:', error);
+        
+        navigation.navigate('OnboardingGeneratingPlan' as never);
+      } else {
+        // Flujo normal de onboarding, ir al registro
+        navigation.navigate('SignUp' as never);
+      }
     } catch (error) {
       console.error('Error requesting notifications:', error);
-      navigation.navigate('SignUp' as never);
+      if (user) {
+        navigation.navigate('OnboardingGeneratingPlan' as never);
+      } else {
+        navigation.navigate('SignUp' as never);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -59,71 +80,68 @@ export default function OnboardingNotificationScreen() {
           <View style={styles.progressBackground}>
             <View style={[styles.progressBar, { width: '95%' }]} />
           </View>
-          <Text style={styles.progressLabel}>FINAL STEP</Text>
+          <Text style={styles.progressLabel}>PASO FINAL</Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         <Animated.View entering={FadeInDown.duration(800)}>
-          <Text style={styles.title}>How should I support you?</Text>
+          <Text style={styles.title}>¿Cómo puedo apoyarte?</Text>
           <Text style={styles.subtitle}>
-            Enable reminders to stay on track. You can customize this later.
+            Activa los recordatorios para mantenerte en el camino. Puedes personalizar esto más tarde.
           </Text>
         </Animated.View>
 
         <View style={styles.settingsContainer}>
           <Animated.View entering={SlideInRight.delay(200)} style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <View style={[styles.iconBox, { backgroundColor: 'rgba(251, 191, 36, 0.1)' }]}>
-                <Ionicons name="restaurant-outline" size={20} color="#FBBF24" />
-              </View>
-              <View>
-                <Text style={styles.settingTitle}>Meal logging</Text>
-                <Text style={styles.settingDesc}>Reminders for breakfast, lunch & dinner.</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingTitle}>Registro de comidas</Text>
+                <Text style={styles.settingDesc}>Recordatorios para desayuno, almuerzo y cena.</Text>
               </View>
             </View>
-            <Switch 
-              value={meals} 
-              onValueChange={setMeals}
-              trackColor={{ false: '#333', true: '#FBBF24' }}
-              thumbColor="#FFF"
-            />
+            <View style={styles.switchWrapper}>
+              <Switch 
+                value={meals} 
+                onValueChange={setMeals}
+                trackColor={{ false: '#333', true: '#FBBF24' }}
+                thumbColor="#FFF"
+              />
+            </View>
           </Animated.View>
 
           <Animated.View entering={SlideInRight.delay(300)} style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <View style={[styles.iconBox, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
-                <Ionicons name="water-outline" size={20} color="#3B82F6" />
-              </View>
-              <View>
-                <Text style={styles.settingTitle}>Water tracking</Text>
-                <Text style={styles.settingDesc}>Stay hydrated during the day.</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingTitle}>Control de agua</Text>
+                <Text style={styles.settingDesc}>Mantente hidratado durante todo el día.</Text>
               </View>
             </View>
-            <Switch 
-              value={water} 
-              onValueChange={setWater}
-              trackColor={{ false: '#333', true: '#FBBF24' }}
-              thumbColor="#FFF"
-            />
+            <View style={styles.switchWrapper}>
+              <Switch 
+                value={water} 
+                onValueChange={setWater}
+                trackColor={{ false: '#333', true: '#FBBF24' }}
+                thumbColor="#FFF"
+              />
+            </View>
           </Animated.View>
 
           <Animated.View entering={SlideInRight.delay(400)} style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
-                <Ionicons name="flash-outline" size={20} color="#10B981" />
-              </View>
-              <View>
-                <Text style={styles.settingTitle}>Motivational pushes</Text>
-                <Text style={styles.settingDesc}>Custom hacks from your AI Coach.</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingTitle}>Impulso motivacional</Text>
+                <Text style={styles.settingDesc}>Hacks personalizados de tu Coach IA.</Text>
               </View>
             </View>
-            <Switch 
-              value={motivation} 
-              onValueChange={setMotivation}
-              trackColor={{ false: '#333', true: '#FBBF24' }}
-              thumbColor="#FFF"
-            />
+            <View style={styles.switchWrapper}>
+              <Switch 
+                value={motivation} 
+                onValueChange={setMotivation}
+                trackColor={{ false: '#333', true: '#FBBF24' }}
+                thumbColor="#FFF"
+              />
+            </View>
           </Animated.View>
         </View>
 
@@ -131,7 +149,7 @@ export default function OnboardingNotificationScreen() {
           <Animated.View entering={FadeIn.duration(400)} style={styles.mascotAviso}>
             <View style={styles.mascotHeader}>
               <Ionicons name="alert-circle" size={24} color="#FBBF24" />
-              <Text style={styles.mascotTitle}>Note from your Coach</Text>
+              <Text style={styles.mascotTitle}>Nota de tu Coach</Text>
             </View>
             <Text style={styles.mascotText}>
               "Respeto tu espacio, pero recuerda que el 70% de nuestros usuarios exitosos usan recordatorios."
@@ -153,7 +171,7 @@ export default function OnboardingNotificationScreen() {
             end={{ x: 1, y: 0 }}
           >
             <Text style={styles.buttonText}>
-              {allOff ? 'Continue anyway' : 'Enable Support'}
+              {allOff ? 'Continuar de todos modos' : 'Activar Apoyo'}
             </Text>
             <Ionicons name="arrow-forward" size={20} color="#000" />
           </LinearGradient>
@@ -261,6 +279,10 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontFamily: FONTS.primary,
     marginTop: 2,
+    paddingRight: SPACING.md,
+  },
+  switchWrapper: {
+    paddingLeft: SPACING.sm,
   },
   mascotAviso: {
     marginTop: SPACING['2xl'],

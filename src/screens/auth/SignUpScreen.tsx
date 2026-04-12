@@ -94,6 +94,9 @@ export default function SignUpScreen() {
               activity_level: onboardingData.activity_level,
               workout_frequency: onboardingData.workout_frequency,
               target_weight_kg: onboardingData.target_weight_kg,
+              notify_meals: onboardingData.notification_settings?.meals ?? false,
+              notify_water: onboardingData.notification_settings?.water ?? false,
+              notify_motivation: onboardingData.notification_settings?.motivation ?? false,
               onboarding_metadata: {
                 ...(onboardingData.onboarding_metadata || {}),
                 hunger_trigger: onboardingData.hunger_trigger,

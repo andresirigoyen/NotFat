@@ -34,7 +34,11 @@ export const useAuthStore = create<AuthState>()(
       loading: true,
       isPro: false,
       setUser: (user) => {
-        const isPro = !!(user?.user_metadata?.is_pro || user?.user_metadata?.subscription_tier === 'pro');
+        const metadata = user?.user_metadata;
+        const isPro = !!(
+          metadata?.is_pro || 
+          (metadata?.subscription_tier === 'pro' && (metadata?.subscription_status === 'active' || metadata?.subscription_status === 'trialing'))
+        );
         set({ user, isPro });
       },
       setSession: (session) => set({ session }),
@@ -199,7 +203,11 @@ export const useAuthStore = create<AuthState>()(
           const { data: { session }, error } = await supabase.auth.getSession();
           if (error) throw error;
           const user = session?.user || null;
-          const isPro = !!(user?.user_metadata?.is_pro || user?.user_metadata?.subscription_tier === 'pro');
+          const metadata = user?.user_metadata;
+          const isPro = !!(
+            metadata?.is_pro || 
+            (metadata?.subscription_tier === 'pro' && (metadata?.subscription_status === 'active' || metadata?.subscription_status === 'trialing'))
+          );
           
           set({ 
             user, 
@@ -227,14 +235,15 @@ export const useAuthStore = create<AuthState>()(
             // Check both metadata and profiles table (as backup)
             const { data: profile } = await supabase
               .from('profiles')
-              .select('subscription_tier')
+              .select('subscription_tier, subscription_status')
               .eq('id', authUser.id)
               .single();
 
+            const metadata = authUser.user_metadata;
             const isPro = !!(
-              authUser.user_metadata?.is_pro || 
-              authUser.user_metadata?.subscription_tier === 'pro' ||
-              profile?.subscription_tier === 'pro'
+              metadata?.is_pro || 
+              (metadata?.subscription_tier === 'pro' && (metadata?.subscription_status === 'active' || metadata?.subscription_status === 'trialing')) ||
+              (profile?.subscription_tier === 'pro' && (profile?.subscription_status === 'active' || profile?.subscription_status === 'trialing'))
             );
 
             set({ user: authUser, isPro });

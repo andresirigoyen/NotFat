@@ -164,15 +164,15 @@ const RecipesScreen = () => {
       {/* Search Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerIcon}>
-          <Ionicons name="basket-outline" size={24} color={colors.primary.sky} />
+          <Ionicons name="basket-outline" size={24} color={colors.primary.amber} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Recetas</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerIcon}>
-            <Ionicons name="search-outline" size={24} color={colors.primary.sky} />
+            <Ionicons name="search-outline" size={24} color={colors.primary.amber} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIcon}>
-            <Ionicons name="options-outline" size={24} color={colors.primary.sky} />
+            <Ionicons name="options-outline" size={24} color={colors.primary.amber} />
           </TouchableOpacity>
         </View>
       </View>
@@ -266,7 +266,7 @@ const RecipesScreen = () => {
                 onPress={() => navigation.navigate('SubscriptionCenter')}
               >
                 <LinearGradient
-                  colors={[colors.primary.sky, colors.primary.amber]}
+                  colors={['#D97706', colors.primary.amber]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.proBannerGradient}
@@ -324,7 +324,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: colors.primary.sky,
+    borderBottomColor: colors.primary.amber,
   },
   tabText: {
     fontSize: 16,
@@ -332,7 +332,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     color: colors.text.muted,
   },
   activeTabText: {
-    color: colors.primary.sky,
+    color: colors.primary.amber,
   },
   scrollView: {
     flex: 1,
@@ -470,15 +470,15 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     paddingRight: SPACING.lg,
   },
   limitBadge: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
+    borderColor: 'rgba(251, 191, 36, 0.3)',
   },
   limitBadgeText: {
-    color: '#38BDF8',
+    color: '#FBBF24',
     fontSize: 10,
     fontWeight: '800',
     textTransform: 'uppercase',
