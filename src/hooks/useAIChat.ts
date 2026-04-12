@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/services/supabase';
 
 interface ProcessPromptResponse {
@@ -71,27 +71,26 @@ export const useAIChat = () => {
     fetchUserProfile();
   }, []);
 
-  const processPrompt = async (message: string, profileData?: UserProfile): Promise<ProcessPromptResponse | null> => {
-    // 🛡️ BLOQUEO DE CONCURRENCIA: Si ya está pensando, ignoramos los clics extra o bucles
-    if (loading) {
-      console.warn('🛑 [Anti-Spam] El Coach ya está cocinando una respuesta. Petición ignorada:', message.substring(0, 30));
+  // 🛡️ Candado síncrono para evitar colisiones en bucles rápidos
+  const isProcessingRef = React.useRef(false);
+
+  const processPrompt = React.useCallback(async (message: string, profileData?: UserProfile): Promise<ProcessPromptResponse | null> => {
+    // 🛡️ BLOQUEO SÍNCRONO: Inmune a los retrasos de renderizado de React
+    if (isProcessingRef.current) {
+      console.warn('🛑 [Anti-Spam] El Coach ya está cocinando. Petición ignorada:', message.substring(0, 30));
       return null;
     }
 
-    console.log('🚀 processPrompt called with:', message);
-    
-    if (!message.trim()) {
-      console.log('❌ Empty message, returning null');
-      return null;
-    }
+    if (!message.trim()) return null;
 
+    isProcessingRef.current = true;
     setLoading(true);
     setError(null);
-    console.log('📡 Calling unified endpoint...');
+
+    console.log('🚀 processPrompt called with:', message);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      console.log('👤 User:', user?.id);
       if (!user?.id) {
         throw new Error('Usuario no autenticado');
       }
@@ -100,55 +99,41 @@ export const useAIChat = () => {
 
       console.log('📤 Invoking process-prompt function with fresh auth...');
       
-      // 🛡️ Usamos getUser() para forzar la validación/refresco del token si es necesario
-      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+      // Forzar validación de sesión
+      await supabase.auth.getUser();
       const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
       
       if (!accessToken) {
-        console.error('🛑 Error de sesión: No hay token disponible');
-        throw new Error('Tu sesión ha expirado. Por favor, cierra sesión y vuelve a entrar.');
+        throw new Error('Sesión expirada. Por favor, reinicia la app.');
       }
 
-      let result;
-      try {
-        result = await supabase.functions.invoke('process-prompt', {
-          body: { message, userId: user.id, userProfile: profileToSend },
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-      } catch (invokeErr: any) {
-        console.error('❌ Invoke caught error:', invokeErr);
-        throw new Error(`Invoke failed: ${invokeErr.message || invokeErr.toString()}`);
-      }
+      const result = await supabase.functions.invoke('process-prompt', {
+        body: { message, userId: user.id, userProfile: profileToSend },
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
 
       const { data, error: fnError } = result;
-      console.log('📥 Response:', data, 'Error:', fnError);
       
       if (fnError) {
-        console.error('❌ Function error:', fnError);
-        throw new Error(fnError.message || fnError.toString() || 'Error en la función');
+        throw new Error(fnError.message || 'Error en la función del Chef');
       }
       if (!data) {
-        console.error('❌ No data returned');
         throw new Error('Respuesta vacía de la IA');
       }
 
       return data as ProcessPromptResponse;
     } catch (err: any) {
       console.error('❌ AI Chat Error:', err);
-      const errorMessage = err.message || err.toString() || 'Error al conectar con la IA';
+      const errorMessage = err.message || 'Error al conectar con la IA';
       setError(errorMessage);
-      console.log('📝 Error message:', errorMessage);
-      
-      return {
-        type: 'chat',
-        response: `Lo siento, tuve un problema: ${errorMessage}. Por favor intenta de nuevo.`,
-        recipeData: null
-      };
+      return null;
     } finally {
+      // 🌟 Abrimos la puerta de nuevo instantáneamente
+      isProcessingRef.current = false;
       setLoading(false);
     }
-  };
+  }, [userProfile]);
 
   // Mantener funciones legacy para compatibilidad (opcional)
   const sendMessage = async (message: string) => {

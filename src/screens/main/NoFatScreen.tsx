@@ -160,8 +160,14 @@ const NoFatScreen = () => {
     }
   }, [isPro, maxAiSuggestionsOnLoad, getTodayMessages, incrementMessage, canRefreshAiSuggestions, navigation, processPrompt]);
 
+  // Mount guard to prevent infinite loops
+  const hasGeneratedRef = React.useRef(false);
+
   // Generate on mount
   React.useEffect(() => {
+    if (hasGeneratedRef.current) return;
+    hasGeneratedRef.current = true;
+    
     generateAISuggestions(false);
   }, [generateAISuggestions]);
 
