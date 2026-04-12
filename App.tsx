@@ -7,10 +7,8 @@ import {
   useFonts,
   Montserrat_300Light,
   Montserrat_400Regular,
-  Montserrat_500Medium,
   Montserrat_600SemiBold,
-  Montserrat_700Bold,
-  Montserrat_800ExtraBold
+  Montserrat_700Bold
 } from '@expo-google-fonts/montserrat';
 
 import Navigation from '@/navigation/Navigation';
@@ -47,8 +45,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    Montserrat_300Light, Montserrat_400Regular, Montserrat_500Medium,
-    Montserrat_600SemiBold, Montserrat_700Bold, Montserrat_800ExtraBold,
+    Montserrat_300Light, 
+    Montserrat_400Regular, 
+    Montserrat_600SemiBold, 
+    Montserrat_700Bold,
     Montserrat: Montserrat_400Regular,
   });
 
@@ -100,11 +100,32 @@ export default function App() {
 
         const style = document.createElement('style');
         style.textContent = `
-          /* Optimización de fuentes */
+          /* Optimización de fuentes global */
           @font-face {
+            font-family: 'Montserrat_300Light';
             font-display: swap !important;
           }
-          
+          @font-face {
+            font-family: 'Montserrat_400Regular';
+            font-display: swap !important;
+          }
+          @font-face {
+            font-family: 'Montserrat_600SemiBold';
+            font-display: swap !important;
+          }
+          @font-face {
+            font-family: 'Montserrat_700Bold';
+            font-display: swap !important;
+          }
+          @font-face {
+            font-family: 'Ionicons';
+            font-display: swap !important;
+          }
+          @font-face {
+            font-family: 'MaterialCommunityIcons';
+            font-display: swap !important;
+          }
+
           * {
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
