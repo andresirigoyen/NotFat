@@ -72,6 +72,12 @@ export const useAIChat = () => {
   }, []);
 
   const processPrompt = async (message: string, profileData?: UserProfile): Promise<ProcessPromptResponse | null> => {
+    // 🛡️ BLOQUEO DE CONCURRENCIA: Si ya está pensando, ignoramos los clics extra o bucles
+    if (loading) {
+      console.warn('🛑 [Anti-Spam] El Coach ya está cocinando una respuesta. Petición ignorada:', message.substring(0, 30));
+      return null;
+    }
+
     console.log('🚀 processPrompt called with:', message);
     
     if (!message.trim()) {
@@ -94,14 +100,19 @@ export const useAIChat = () => {
 
       console.log('📤 Invoking process-prompt function with explicit auth...');
       
-      const { data: session } = await supabase.auth.getSession();
-      const accessToken = session?.session?.access_token;
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
       
+      if (!accessToken) {
+        console.error('🛑 No se encontró un Token de Acceso en el frontend');
+        throw new Error('La sesión ha expirado o es inválida. Por favor, reinicia la app.');
+      }
+
       let result;
       try {
         result = await supabase.functions.invoke('process-prompt', {
           body: { message, userId: user.id, userProfile: profileToSend },
-          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+          headers: { Authorization: `Bearer ${accessToken}` },
         });
       } catch (invokeErr: any) {
         console.error('❌ Invoke caught error:', invokeErr);

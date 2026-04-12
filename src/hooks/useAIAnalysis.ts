@@ -64,12 +64,16 @@ export const useAIAnalysis = () => {
       // 2. Call Supabase Edge Function for AI Analysis
       console.log('[useAIAnalysis] Calling analyze-meal function for user:', user.id);
       
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('Sesión no encontrada. Por favor, inicia sesión de nuevo.');
+      }
       
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-meal', {
         body: { imageUrl, userId: user.id },
-        ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
       if (analysisError) {

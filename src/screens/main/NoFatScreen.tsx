@@ -119,34 +119,38 @@ const NoFatScreen = () => {
       const shuffledSeeds = [...PROMPT_SEEDS].sort(() => Math.random() - 0.5).slice(0, seedCount);
       const tags = ['Desayuno', 'Almuerzo', 'Cena', 'Snack'];
       const randomTag = () => tags[Math.floor(Math.random() * tags.length)];
+      
+      const valid: AISuggestedRecipe[] = [];
 
-      const results = await Promise.allSettled(
-        shuffledSeeds.map(async (seed) => {
+      // 🔄 EJECUCIÓN SECUENCIAL (Para evitar Auth Lock)
+      for (const seed of shuffledSeeds) {
+        try {
           const tag = randomTag();
           const prompt = `Dame UNA receta saludable y deliciosa de ${tag.toLowerCase()} con ${seed}. Varía el estilo de cocina (mediterránea, asiática, latinoamericana, etc.).`;
+          
           const result = await processPrompt(prompt);
+          
           if (result?.recipeData) {
-            // ✅ Count each AI call toward daily limit
             incrementMessage();
             const kcalValue = result.recipeData.nutrition?.calories ?? Math.floor(Math.random() * 300 + 200);
             const timeValue = result.recipeData.time ? `${result.recipeData.time} min` : `${Math.floor(Math.random() * 20 + 5)} min`;
-            return {
+            
+            valid.push({
               name: result.recipeData.name || `Plato de ${seed}`,
               kcal: typeof kcalValue === 'number' ? kcalValue : parseInt(kcalValue) || 350,
               time: timeValue,
               tag,
               prompt,
               emoji: MEAL_EMOJIS[tag] || '🍴',
-            } as AISuggestedRecipe;
+            });
           }
-          return null;
-        })
-      );
 
-      const valid = results
-        .filter((r): r is PromiseFulfilledResult<AISuggestedRecipe | null> => r.status === 'fulfilled')
-        .map(r => r.value)
-        .filter((v): v is AISuggestedRecipe => v !== null);
+          // 🕐 Pequeño respiro de 500ms para el Auth Lock de Supabase
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (cardError) {
+          console.error('Error generando card individual:', cardError);
+        }
+      }
 
       setAiSuggestions(valid);
     } catch (err) {

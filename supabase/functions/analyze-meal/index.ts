@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { getSupabaseAdmin } from "../_shared/db.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,8 +13,32 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl, userId } = await req.json()
+    const { imageUrl } = await req.json()
 
+    // 🛡️ SECURITY: Validar identidad real vía JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Authorization header is required' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    
+    const userClient = createClient(supabaseUrl, supabaseAnonKey);
+    const { data: { user }, error: authError } = await userClient.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid session' }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401
+      });
+    }
+
+    const userId = user.id;
     const supabase = getSupabaseAdmin()
 
     // 1. Fetch user tier and usage in parallel for efficiency
@@ -31,13 +56,13 @@ serve(async (req) => {
     // SECURE: Enforce Free Tier Limit server-side (3 scans/day)
     if (!isPro && scansCount >= 3) {
       console.warn(`🛑 LIMIT REACHED: User ${userId} is at 3 scans.`);
-      return new Response(JSON.stringify({ 
-        error: 'Límite diario de escaneos alcanzado.', 
+      return new Response(JSON.stringify({
+        error: 'Límite diario de escaneos alcanzado.',
         code: 'LIMIT_REACHED',
         suggestion: 'Pásate a Pro para disfrutar de escaneos ilimitados.'
-      }), { 
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 403 
+        status: 403
       });
     }
 
@@ -91,7 +116,7 @@ serve(async (req) => {
         contents: [{
           parts: [
             { text: prompt },
-            { 
+            {
               inline_data: {
                 mime_type: "image/jpeg",
                 data: await fetch(imageUrl).then(r => r.arrayBuffer()).then(buf => {
@@ -126,7 +151,7 @@ serve(async (req) => {
     }
 
     const result = await response.json()
-    
+
     if (!result.candidates || result.candidates.length === 0) {
       throw new Error('No se pudo generar un análisis para esta imagen.')
     }
@@ -150,9 +175,9 @@ serve(async (req) => {
     // 2. Increment daily usage counter in DB (Optional, don't crash analysis if fails)
     try {
       console.log(`[analyze-meal] Incrementing usage for ${userId}`);
-      const { error: rpcError } = await supabase.rpc('increment_user_usage', { 
-        target_user_id: userId, 
-        column_name: 'scans_count' 
+      const { error: rpcError } = await supabase.rpc('increment_user_usage', {
+        target_user_id: userId,
+        column_name: 'scans_count'
       });
       if (rpcError) console.error('[analyze-meal] RPC Error:', rpcError);
     } catch (e) {
@@ -169,11 +194,11 @@ serve(async (req) => {
     console.error('🛑 ERROR in analyze-meal:', error.message)
     // Return 200 with success: false so Supabase JS doesn't truncate the error message
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: false,
         error: error.message || 'Internal Server Error',
         details: 'Revisa los logs de Supabase para más información.'
-      }), 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   }
