@@ -102,10 +102,10 @@ serve(async (req) => {
       throw new Error('GOOGLE_GEMINI_API_KEY is not configured. Please set the secret.')
     }
 
-    const model = 'gemini-1.5-flash-latest'
+    const model = 'gemini-2.0-flash'
     console.log('Using model:', model)
     
-    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
     // OPTIMIZACIÓN: Detectar si es una consulta simple que no necesita IA
     const simpleResponses: Record<string, string> = {
