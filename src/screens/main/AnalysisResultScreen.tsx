@@ -45,6 +45,7 @@ export default function AnalysisResultScreen() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [analyzing, setAnalyzing] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [errorHeader, setErrorHeader] = useState<string | null>(null);
   
   const { analyzeMealImage } = useAIAnalysis();
   const { mutateAsync: createMeal } = useCreateMealWithItems();
@@ -70,9 +71,8 @@ export default function AnalysisResultScreen() {
     console.log('[AnalysisResult] Image URI:', imageUri);
     
     if (!imageUri || imageUri === 'undefined' || imageUri === 'null') {
-      console.log('[AnalysisResult] No image URI, using mock data');
-      setIngredients(MOCK_INGREDIENTS);
       setAnalyzing(false);
+      setErrorHeader('No se proporcionó ninguna imagen para analizar.');
       return;
     }
 
@@ -83,48 +83,43 @@ export default function AnalysisResultScreen() {
         console.log('[AnalysisResult] Analysis result:', JSON.stringify(analysisResult, null, 2));
         
         if (!analysisResult) {
-          console.log('[AnalysisResult] No result returned, using mock data');
-          setIngredients(MOCK_INGREDIENTS);
-          return;
+          throw new Error('La IA no pudo procesar la imagen correctamente.');
         }
 
-        // Handle different response structures
+        // Handle spatial structure from our updated prompt
         let ingredientsList = [];
         
-        // Try different possible structures
-        if (analysisResult.ingredients && Array.isArray(analysisResult.ingredients) && analysisResult.ingredients.length > 0) {
+        if (analysisResult.ingredients && Array.isArray(analysisResult.ingredients)) {
           ingredientsList = analysisResult.ingredients;
-        } else if (analysisResult.name && (analysisResult.calories > 0)) {
-          // Fallback: create ingredient from top-level data if ingredients array is empty or missing
+        } else if (analysisResult.name) {
           ingredientsList = [{
             name: analysisResult.name,
             calories: analysisResult.calories,
-            protein: analysisResult.macros?.protein || analysisResult.protein || 0,
-            carbs: analysisResult.macros?.carbs || analysisResult.carbs || 0,
-            fat: analysisResult.macros?.fat || analysisResult.fat || 0,
+            protein: analysisResult.protein || 0,
+            carbs: analysisResult.carbs || 0,
+            fat: analysisResult.fat || 0,
+            box_2d: analysisResult.box_2d
           }];
         }
 
-        console.log('[AnalysisResult] Ingredients list found:', ingredientsList.length);
-
         if (ingredientsList.length > 0) {
           const mappedIngredients = ingredientsList.map((ing: any, index: number) => ({
-            id: index.toString(),
+            id: `ing-${index}-${Date.now()}`,
             name: ing.name || 'Ingrediente detectado',
             calories: Math.round(Number(ing.calories) || 0),
             protein: parseFloat(String(ing.protein || 0)).toFixed(1),
             carbs: parseFloat(String(ing.carbs || 0)).toFixed(1),
             fat: parseFloat(String(ing.fat || 0)).toFixed(1),
             confirmed: true,
+            box_2d: ing.box_2d
           }));
           setIngredients(mappedIngredients as any);
         } else {
-          console.log('[AnalysisResult] No ingredients found in response, using mock data');
-          setIngredients(MOCK_INGREDIENTS);
+          throw new Error('No se detectaron ingredientes en la imagen.');
         }
       } catch (error: any) {
         console.error('[AnalysisResult] Error analyzing image:', error);
-        setIngredients(MOCK_INGREDIENTS);
+        setErrorHeader(error.message || 'Error al conectar con el motor de IA.');
       } finally {
         setAnalyzing(false);
       }
@@ -209,145 +204,161 @@ export default function AnalysisResultScreen() {
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.photoContainer}>
-          {imageUri ? (
-            <View style={styles.mainImageWrapper}>
-              <Image source={{ uri: imageUri }} style={styles.mainImage} resizeMode="cover" />
-              
-              {/* Overlay de Etiquetas Espaciales (Solo si no está analizando) */}
-              {!analyzing && ingredients.map((ing: any) => {
-                if (!ing.box_2d || !ing.confirmed) return null;
-                
-                // Gemini devuelve [ymin, xmin, ymax, xmax] de 0-1000
-                const [ymin, xmin, ymax, xmax] = ing.box_2d;
-                const top = `${ymin / 10}%`;
-                const left = `${xmin / 10}%`;
-                
-                return (
-                  <View 
-                    key={`badge-${ing.id}`}
-                    style={[styles.spatialBadge, { top, left } as any]}
-                  >
-                    <View style={styles.badgeLine} />
-                    <View style={styles.badgeContent}>
-                      <Text style={styles.badgeKcal}>{ing.calories} kcal</Text>
-                      <View style={styles.badgeMacros}>
-                        <Text style={styles.badgeMacroText}>P: {ing.protein}g</Text>
-                        <View style={styles.badgeDot} />
-                        <Text style={styles.badgeMacroText}>C: {ing.carbs}g</Text>
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
-
-              {analyzing && (
-                <View style={styles.scanningOverlay}>
-                  <View style={styles.scanningLine} />
-                </View>
-              )}
-            </View>
-          ) : barcodeProduct?.image_url ? (
-            <Image source={{ uri: barcodeProduct.image_url }} style={styles.mainImage} resizeMode="contain" />
-          ) : (
-            <View style={styles.thumbnailPlaceholder}>
-              <Ionicons 
-                name={source === 'barcode' ? "barcode-outline" : "image-outline"} 
-                size={80} 
-                color="rgba(255,255,255,0.1)" 
-              />
-            </View>
-          )}
-
-          <View style={[
-            styles.aiChipFloating, 
-            source === 'barcode' && { backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(59, 130, 246, 0.4)' }
-          ]}>
-            <Ionicons 
-              name={source === 'barcode' ? "barcode" : "sparkles"} 
-              size={14} 
-              color={source === 'barcode' ? colors.status.info : colors.primary.amber} 
-            />
-            <Text style={[
-              styles.aiChipText, 
-              source === 'barcode' && { color: colors.status.info }
-            ]}>
-              {source === 'barcode' ? 'Open Food Facts' : 'Gemini 2.0 Flash'}
-            </Text>
-          </View>
-        </View>
-
-        {analyzing ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary.amber} />
-            <Text style={styles.loadingText}>Escaneando estructura nutricional...</Text>
+        {errorHeader && !analyzing ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={60} color={colors.status.error} />
+            <Text style={styles.errorTitle}>¡Vaya! Algo no salió bien</Text>
+            <Text style={styles.errorText}>{errorHeader}</Text>
+            <TouchableOpacity 
+              style={styles.retryButton} 
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={styles.retryButtonText}>Volver a intentar</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <>
-            <View style={styles.resultHeader}>
-              <Text style={styles.sectionTitle}>Identificación Exacta</Text>
-              <Text style={styles.sectionSub}>Hemos detectado {ingredients.length} componentes nutricionales</Text>
+            <View style={styles.photoContainer}>
+              {imageUri ? (
+                <View style={styles.mainImageWrapper}>
+                  <Image source={{ uri: imageUri }} style={styles.mainImage} resizeMode="cover" />
+                  
+                  {/* Overlay de Etiquetas Espaciales (Solo si no está analizando) */}
+                  {!analyzing && ingredients.map((ing: any) => {
+                    if (!ing.box_2d || !ing.confirmed) return null;
+                    
+                    // Gemini devuelve [ymin, xmin, ymax, xmax] de 0-1000
+                    const [ymin, xmin, ymax, xmax] = ing.box_2d;
+                    const top = `${ymin / 10}%`;
+                    const left = `${xmin / 10}%`;
+                    
+                    return (
+                      <View 
+                        key={`badge-${ing.id}`}
+                        style={[styles.spatialBadge, { top, left } as any]}
+                      >
+                        <View style={styles.badgeLine} />
+                        <View style={styles.badgeContent}>
+                          <Text style={styles.badgeKcal}>{ing.calories} kcal</Text>
+                          <View style={styles.badgeMacros}>
+                            <Text style={styles.badgeMacroText}>P: {ing.protein}g</Text>
+                            <View style={styles.badgeDot} />
+                            <Text style={styles.badgeMacroText}>C: {ing.carbs}g</Text>
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })}
+
+                  {analyzing && (
+                    <View style={styles.scanningOverlay}>
+                      <View style={styles.scanningLine} />
+                    </View>
+                  )}
+                </View>
+              ) : barcodeProduct?.image_url ? (
+                <Image source={{ uri: barcodeProduct.image_url }} style={styles.mainImage} resizeMode="contain" />
+              ) : (
+                <View style={styles.thumbnailPlaceholder}>
+                  <Ionicons 
+                    name={source === 'barcode' ? "barcode-outline" : "image-outline"} 
+                    size={80} 
+                    color="rgba(255,255,255,0.1)" 
+                  />
+                </View>
+              )}
+
+              <View style={[
+                styles.aiChipFloating, 
+                source === 'barcode' && { backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(59, 130, 246, 0.4)' }
+              ]}>
+                <Ionicons 
+                  name={source === 'barcode' ? "barcode" : "sparkles"} 
+                  size={14} 
+                  color={source === 'barcode' ? colors.status.info : colors.primary.amber} 
+                />
+                <Text style={[
+                  styles.aiChipText, 
+                  source === 'barcode' && { color: colors.status.info }
+                ]}>
+                  {source === 'barcode' ? 'Open Food Facts' : 'Gemini 2.0 Flash'}
+                </Text>
+              </View>
             </View>
 
-            <View style={styles.ingredientsList}>
-              {ingredients.map((ing) => (
-                <TouchableOpacity
-                  key={ing.id}
-                  style={[styles.ingredientCard, !ing.confirmed && styles.ingredientCardUnchecked]}
-                  onPress={() => toggleIngredient(ing.id)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.cardHeader}>
-                    <View style={[styles.checkbox, ing.confirmed && styles.checkboxChecked]}>
-                      {ing.confirmed && <Ionicons name="checkmark" size={12} color={colors.background.primary} />}
-                    </View>
-                    <Text style={styles.macroKcal}>🔥 {ing.calories} kcal</Text>
-                  </View>
+            {analyzing ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary.amber} />
+                <Text style={styles.loadingText}>Escaneando estructura nutricional...</Text>
+              </View>
+            ) : (
+              <>
+                <View style={styles.resultHeader}>
+                  <Text style={styles.sectionTitle}>Identificación Exacta</Text>
+                  <Text style={styles.sectionSub}>Hemos detectado {ingredients.length} componentes nutricionales</Text>
+                </View>
 
-                  <View style={styles.ingredientInfo}>
-                    <Text 
-                      style={[styles.ingredientName, !ing.confirmed && { color: colors.text.secondary }]}
-                      numberOfLines={1}
+                <View style={styles.ingredientsList}>
+                  {ingredients.map((ing) => (
+                    <TouchableOpacity
+                      key={ing.id}
+                      style={[styles.ingredientCard, !ing.confirmed && styles.ingredientCardUnchecked]}
+                      onPress={() => toggleIngredient(ing.id)}
+                      activeOpacity={0.8}
                     >
-                      {ing.name}
-                    </Text>
-                    <View style={styles.macroGrid}>
-                      <Text style={styles.macroMini}>PROT: {ing.protein}g</Text>
-                      <Text style={styles.macroMini}>CARB: {ing.carbs}g</Text>
-                      <Text style={styles.macroMini}>FAT: {ing.fat}g</Text>
+                      <View style={styles.cardHeader}>
+                        <View style={[styles.checkbox, ing.confirmed && styles.checkboxChecked]}>
+                          {ing.confirmed && <Ionicons name="checkmark" size={12} color={colors.background.primary} />}
+                        </View>
+                        <Text style={styles.macroKcal}>🔥 {ing.calories} kcal</Text>
+                      </View>
+
+                      <View style={styles.ingredientInfo}>
+                        <Text 
+                          style={[styles.ingredientName, !ing.confirmed && { color: colors.text.secondary }]}
+                          numberOfLines={1}
+                        >
+                          {ing.name}
+                        </Text>
+                        <View style={styles.macroGrid}>
+                          <Text style={styles.macroMini}>PROT: {ing.protein}g</Text>
+                          <Text style={styles.macroMini}>CARB: {ing.carbs}g</Text>
+                          <Text style={styles.macroMini}>FAT: {ing.fat}g</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <View style={styles.summaryCard}>
+                  <View style={styles.summaryHeader}>
+                    <Ionicons name="stats-chart" size={18} color={colors.primary.amber} />
+                    <Text style={styles.summaryTitle}>VALOR NUTRICIONAL TOTAL</Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <View style={styles.summaryBlock}>
+                      <Text style={styles.summaryNumber}>{totalCalories}</Text>
+                      <Text style={styles.summaryLabel}>kcal</Text>
+                    </View>
+                    <View style={styles.summaryDivider} />
+                    <View style={styles.summaryBlock}>
+                      <Text style={styles.summaryNumber}>{totalProtein.toFixed(0)}g</Text>
+                      <Text style={styles.summaryLabel}>Proteína</Text>
+                    </View>
+                    <View style={styles.summaryDivider} />
+                    <View style={styles.summaryBlock}>
+                      <Text style={styles.summaryNumber}>{totalCarbs.toFixed(0)}g</Text>
+                      <Text style={styles.summaryLabel}>Carbos</Text>
+                    </View>
+                    <View style={styles.summaryDivider} />
+                    <View style={styles.summaryBlock}>
+                      <Text style={styles.summaryNumber}>{totalFat.toFixed(0)}g</Text>
+                      <Text style={styles.summaryLabel}>Grasas</Text>
                     </View>
                   </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <View style={styles.summaryCard}>
-              <View style={styles.summaryHeader}>
-                <Ionicons name="stats-chart" size={18} color={colors.primary.amber} />
-                <Text style={styles.summaryTitle}>VALOR NUTRICIONAL TOTAL</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <View style={styles.summaryBlock}>
-                  <Text style={styles.summaryNumber}>{totalCalories}</Text>
-                  <Text style={styles.summaryLabel}>kcal</Text>
                 </View>
-                <View style={styles.summaryDivider} />
-                <View style={styles.summaryBlock}>
-                  <Text style={styles.summaryNumber}>{totalProtein.toFixed(0)}g</Text>
-                  <Text style={styles.summaryLabel}>Proteína</Text>
-                </View>
-                <View style={styles.summaryDivider} />
-                <View style={styles.summaryBlock}>
-                  <Text style={styles.summaryNumber}>{totalCarbs.toFixed(0)}g</Text>
-                  <Text style={styles.summaryLabel}>Carbos</Text>
-                </View>
-                <View style={styles.summaryDivider} />
-                <View style={styles.summaryBlock}>
-                  <Text style={styles.summaryNumber}>{totalFat.toFixed(0)}g</Text>
-                  <Text style={styles.summaryLabel}>Grasas</Text>
-                </View>
-              </View>
-            </View>
+              </>
+            )}
           </>
         )}
       </ScrollView>
@@ -445,6 +456,18 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   summaryNumber: { color: colors.primary.amber, fontFamily: FONTS.primary, fontWeight: '800', fontSize: FONTS.sizes['2xl'] },
   summaryLabel: { color: colors.text.secondary, fontFamily: FONTS.primary, fontSize: 11, marginTop: 2 },
   summaryDivider: { width: 1, height: 32, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' },
+  errorContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: SPACING.xl * 2,
+    gap: SPACING.md,
+    marginTop: SPACING.xl * 2
+  },
+  errorTitle: { color: colors.text.primary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.lg, fontWeight: '700', textAlign: 'center' },
+  errorText: { color: colors.text.secondary, fontFamily: FONTS.primary, fontSize: FONTS.sizes.base, textAlign: 'center', lineHeight: 22 },
+  retryButton: { backgroundColor: colors.background.card, paddingHorizontal: SPACING.xl, paddingVertical: SPACING.md, borderRadius: BORDER_RADIUS.full, borderWidth: 1, borderColor: colors.status.error, marginTop: SPACING.lg },
+  retryButtonText: { color: colors.status.error, fontFamily: FONTS.primary, fontWeight: '700' },
   ctaContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.xl, paddingBottom: SPACING['3xl'], backgroundColor: colors.background.primary, borderTopWidth: 1, borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' },
   confirmButton: { backgroundColor: colors.primary.amber, borderRadius: BORDER_RADIUS.full, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: SPACING.lg, gap: SPACING.sm },
   confirmButtonText: { color: colors.background.primary, fontFamily: FONTS.primary, fontWeight: '700', fontSize: FONTS.sizes.base },
