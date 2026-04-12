@@ -13,7 +13,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ChevronLeft } from 'lucide-react-native';
-import AppleHealthKit, { HealthKitPermissions } from 'react-native-health';
 import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 import { useHealthSettings } from '@/hooks/useHealthSettings';
 import { useAuthStore } from '@/store';
@@ -68,6 +67,15 @@ export default function HealthIntegrationScreen({ navigation }: any) {
     try {
       switch (platformId) {
         case 'apple_health':
+          let AppleHealthKit: any;
+          try {
+            // AppleHealthKit = require('react-native-health').default || require('react-native-health');
+            throw new Error('Health check bypass for Expo Go');
+          } catch (e) {
+            Alert.alert('Error', 'Apple Health no está soportado en este entorno (Expo Go).');
+            return;
+          }
+
           const permissions = {
             permissions: {
               read: [
@@ -78,27 +86,31 @@ export default function HealthIntegrationScreen({ navigation }: any) {
               ],
               write: [],
             },
-          } as HealthKitPermissions;
+          };
 
-          AppleHealthKit.initHealthKit(permissions, async (err: string) => {
-            if (err) {
-              console.log('[ERROR] Cannot grant permissions for Apple Health!', err);
-              Alert.alert('Error', 'No se pudieron obtener los permisos de Apple Health.');
-              return;
-            }
-            
-            try {
-              const currentPlatforms = healthSettings?.connected_platforms || [];
-              if (!currentPlatforms.includes('apple_health')) {
-                await updateHealthSettings({ 
-                  connected_platforms: [...currentPlatforms, 'apple_health'] 
-                });
+          if (AppleHealthKit && AppleHealthKit.initHealthKit) {
+            AppleHealthKit.initHealthKit(permissions, async (err: string) => {
+              if (err) {
+                console.log('[ERROR] Cannot grant permissions for Apple Health!', err);
+                Alert.alert('Error', 'No se pudieron obtener los permisos de Apple Health.');
+                return;
               }
-              Alert.alert('Éxito', '¡Apple Health conectado! NotFat leerá tus pasos y calorías.');
-            } catch (error) {
-              Alert.alert('Error', 'Permiso concedido, pero ocurrió un fallo al guardar tu configuración.');
-            }
-          });
+              
+              try {
+                const currentPlatforms = healthSettings?.connected_platforms || [];
+                if (!currentPlatforms.includes('apple_health')) {
+                  await updateHealthSettings({ 
+                    connected_platforms: [...currentPlatforms, 'apple_health'] 
+                  });
+                }
+                Alert.alert('Éxito', '¡Apple Health conectado! NotFat leerá tus pasos y calorías.');
+              } catch (error) {
+                Alert.alert('Error', 'Permiso concedido, pero ocurrió un fallo al guardar tu configuración.');
+              }
+            });
+          } else {
+            Alert.alert('Error', 'Apple Health no está disponible.');
+          }
           break;
         case 'google_fit':
           // Conexión con Google Fit

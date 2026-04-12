@@ -10,7 +10,17 @@ import * as FileSystem from 'expo-file-system';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/SupabaseContext';
 import { useAuthStore } from '@/store';
-import { Audio } from 'expo-av';
+
+let Audio: any = null;
+try {
+  // Prevent crash in Expo Go SDK 55 due to missing ExponentAV
+  const { NativeModules } = require('react-native');
+  if (NativeModules.ExponentAV) {
+    Audio = require('expo-av').Audio;
+  } else {
+    console.warn('expo-av is not supported in this Expo Go environment.');
+  }
+} catch (e) {}
 
 interface VoiceInputState {
   isRecording: boolean;
@@ -31,7 +41,7 @@ interface TaskQueue {
 export function useVoiceInput() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<boolean>(false);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [recording, setRecording] = useState<any | null>(null);
   const monitorIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
@@ -42,8 +52,10 @@ export function useVoiceInput() {
 
   const checkPermissions = async () => {
     try {
-      const { status } = await Audio.requestPermissionsAsync();
-      setPermissionStatus(status === 'granted');
+      if (Audio) {
+        const { status } = await Audio.requestPermissionsAsync();
+        setPermissionStatus(status === 'granted');
+      }
     } catch (error) {
       console.error('Error checking permissions:', error);
     }
@@ -101,6 +113,10 @@ export function useVoiceInput() {
 
   const startRecording = useCallback(async () => {
     try {
+      if (!Audio) {
+        Alert.alert('Error', 'La grabación de voz no está soportada en Expo Go. Usa la versión compilada.');
+        return;
+      }
       if (!permissionStatus) {
         const { status } = await Audio.requestPermissionsAsync();
         if (status !== 'granted') {

@@ -63,15 +63,25 @@ export const useAIAnalysis = () => {
 
       // 2. Call Supabase Edge Function for AI Analysis
       console.log('[useAIAnalysis] Calling analyze-meal function for user:', user.id);
+      
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-meal', {
         body: { imageUrl, userId: user.id },
+        ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
       });
 
       if (analysisError) {
         console.error('[useAIAnalysis] Analysis error:', analysisError);
-        // Special handling for 401/Invalid JWT which might be a service role mismatch or similar
         const errorMsg = analysisError.message || 'Error en el servicio de análisis';
         throw new Error(`Error analizando imagen: ${errorMsg}`);
+      }
+
+      // Check for application-level errors returned as 200 for visibility
+      if (analysisData && analysisData.success === false) {
+        console.error('[useAIAnalysis] Edge function reported an internal error:', analysisData.error);
+        throw new Error(`Detalle de IA: ${analysisData.error}`);
       }
 
       // If successful, increment scan counter

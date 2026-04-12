@@ -29,6 +29,68 @@ export default function SignUpScreen() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
+  const syncProfileData = async (user: any, userEmail: string, userFullName: string) => {
+    // Safeguard: Only sync if onboarding actually has data. Prevents replacing existing good values with NULLs if flow is skipped.
+    if (!onboardingData.gender && !onboardingData.target_weight_kg && !onboardingData.birth_date) {
+      console.log('[SignUp] No onboarding data found in store. Skipping profile sync to avoid null overwrites.');
+      return;
+    }
+
+    try {
+      console.log('[SignUp] Saving captured onboarding data to profile...');
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          email: userEmail,
+          full_name: userFullName,
+          first_name: userFullName.split(' ')[0],
+          last_name: userFullName.split(' ').slice(1).join(' '),
+          traffic_source: onboardingData.traffic_source,
+          gender: onboardingData.gender,
+          birth_date: onboardingData.birth_date,
+          weight_value: onboardingData.weight_value,
+          height_value: onboardingData.height_value,
+          weight_unit: onboardingData.weight_unit,
+          height_unit: onboardingData.height_unit,
+          nutrition_goal: onboardingData.nutrition_goal,
+          diet_type: onboardingData.diet_type,
+          activity_level: onboardingData.activity_level,
+          workout_frequency: onboardingData.workout_frequency,
+          target_weight_kg: onboardingData.target_weight_kg,
+          notify_meals: onboardingData.notification_settings?.meals ?? false,
+          notify_water: onboardingData.notification_settings?.water ?? false,
+          notify_motivation: onboardingData.notification_settings?.motivation ?? false,
+          onboarding_metadata: {
+            ...(onboardingData.onboarding_metadata || {}),
+            hunger_trigger: onboardingData.hunger_trigger,
+            weekend_struggle: onboardingData.weekend_struggle,
+            notification_settings: onboardingData.notification_settings,
+          },
+          onboarding_completed: true,
+          onboarding_step: 'completed',
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
+
+      if (profileError) {
+         console.error('[SignUp] Error saving profile data:', profileError);
+      } else {
+         console.log('[SignUp] Profile data synced successfully');
+         resetOnboarding();
+      }
+
+      const { analytics } = await import('@/services/analytics');
+      analytics.identify(user.id);
+      analytics.trackOnboardingStep('signup_completed_with_data', {
+        id: user.id,
+        email: userEmail,
+        has_onboarding_data: true
+      });
+    } catch (err) {
+      console.error('[SignUp] Post-signup logic error:', err);
+    }
+  };
+
   const handleSignUp = async () => {
     if (!fullName || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Por favor completa todos los campos');
@@ -70,62 +132,9 @@ export default function SignUpScreen() {
 
       console.log('[SignUp] Account created successfully. Session exists:', !!session);
 
-      // Si Supabase devuelve sesión (confirmación desactivada), guardamos perfil y vamos a Home
       if (session) {
-        try {
-          console.log('[SignUp] Saving captured onboarding data to profile...');
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert({
-              id: session.user.id,
-              email: email.trim(),
-              full_name: fullName.trim(),
-              first_name: fullName.trim().split(' ')[0],
-              last_name: fullName.trim().split(' ').slice(1).join(' '),
-              traffic_source: onboardingData.traffic_source,
-              gender: onboardingData.gender,
-              birth_date: onboardingData.birth_date,
-              weight_value: onboardingData.weight_value,
-              height_value: onboardingData.height_value,
-              weight_unit: onboardingData.weight_unit,
-              height_unit: onboardingData.height_unit,
-              nutrition_goal: onboardingData.nutrition_goal,
-              diet_type: onboardingData.diet_type,
-              activity_level: onboardingData.activity_level,
-              workout_frequency: onboardingData.workout_frequency,
-              target_weight_kg: onboardingData.target_weight_kg,
-              notify_meals: onboardingData.notification_settings?.meals ?? false,
-              notify_water: onboardingData.notification_settings?.water ?? false,
-              notify_motivation: onboardingData.notification_settings?.motivation ?? false,
-              onboarding_metadata: {
-                ...(onboardingData.onboarding_metadata || {}),
-                hunger_trigger: onboardingData.hunger_trigger,
-                weekend_struggle: onboardingData.weekend_struggle,
-                notification_settings: onboardingData.notification_settings,
-              },
-              onboarding_completed: true,
-              onboarding_step: 'completed',
-              updated_at: new Date().toISOString(),
-            }, { onConflict: 'id' });
-
-          if (profileError) {
-             console.error('[SignUp] Error saving profile data:', profileError);
-          } else {
-             console.log('[SignUp] Profile data synced successfully');
-             resetOnboarding();
-          }
-
-          // Marcamos la identidad del usuario para seguimiento
-          const { analytics } = await import('@/services/analytics');
-          analytics.identify(session.user.id);
-          analytics.trackOnboardingStep('signup_completed_with_data', {
-            id: session.user.id,
-            email: session.user.email,
-            has_onboarding_data: !!onboardingData.gender
-          });
-        } catch (analyticsError) {
-          console.warn('[SignUp] Post-signup logic error (ignored):', analyticsError);
-        }
+        // Ejecutar guardado generalizado
+        await syncProfileData(session.user, email.trim(), fullName.trim());
 
         (navigation as any).reset({
           index: 0,
@@ -161,13 +170,28 @@ export default function SignUpScreen() {
         Alert.alert('Error', result.error.message || 'Error al registrarse con Apple');
         return;
       }
-      // Navegación automática manejada por el store/listener
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const appleName = session.user.user_metadata?.full_name || 'Apple User';
+        const appleEmail = session.user.email || '';
+        await syncProfileData(session.user, appleEmail, appleName);
+      }
+
+      (navigation as any).reset({
+        index: 0,
+        routes: [{ name: 'OnboardingGeneratingPlan' }],
+      });
     } catch (error) {
       console.error('Apple SignUp error:', error);
       Alert.alert('Error', 'No se pudo completar el registro con Apple');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleSignUp = () => {
+    Alert.alert('En camino', 'Módulo de Google SignUp en desarrollo.');
   };
 
   return (
@@ -394,7 +418,12 @@ export default function SignUpScreen() {
             </View>
 
             <View style={styles.socialButtonsContainer}>
-              <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
+              <TouchableOpacity 
+                style={styles.socialButton} 
+                activeOpacity={0.8}
+                onPress={handleGoogleSignUp}
+                disabled={isLoading}
+              >
                 <Ionicons name="logo-google" size={20} color={colors.background.primary} />
                 <Text style={styles.socialButtonText}>Registrarse con Google</Text>
               </TouchableOpacity>

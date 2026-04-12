@@ -94,9 +94,14 @@ serve(async (req) => {
             { 
               inline_data: {
                 mime_type: "image/jpeg",
-                data: await fetch(imageUrl).then(r => r.arrayBuffer()).then(buf => 
-                  btoa(String.fromCharCode(...new Uint8Array(buf)))
-                )
+                data: await fetch(imageUrl).then(r => r.arrayBuffer()).then(buf => {
+                  const bytes = new Uint8Array(buf);
+                  let binary = '';
+                  for (let i = 0; i < bytes.byteLength; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                  }
+                  return btoa(binary);
+                })
               }
             }
           ]
@@ -162,12 +167,14 @@ serve(async (req) => {
     })
   } catch (error: any) {
     console.error('🛑 ERROR in analyze-meal:', error.message)
+    // Return 200 with success: false so Supabase JS doesn't truncate the error message
     return new Response(
       JSON.stringify({ 
+        success: false,
         error: error.message || 'Internal Server Error',
         details: 'Revisa los logs de Supabase para más información.'
       }), 
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   }
 })
