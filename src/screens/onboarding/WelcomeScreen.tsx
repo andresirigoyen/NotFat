@@ -75,15 +75,8 @@ export default function WelcomeScreen() {
                       activeOpacity={0.9}
                       onPress={() => navigation.navigate(onboardingData.last_visited_step as never)}
                     >
-                      <LinearGradient
-                        colors={['#10B981', '#059669']}
-                        style={styles.buttonGradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                      >
-                        <Text style={styles.buttonText}>Continuar progreso</Text>
-                        <Ionicons name="refresh" size={20} color="#000" />
-                      </LinearGradient>
+                      <Text style={styles.buttonText}>Continuar progreso</Text>
+                      <Ionicons name="refresh" size={20} color="#000" />
                     </TouchableOpacity>
                   ) : null}
 
@@ -92,15 +85,8 @@ export default function WelcomeScreen() {
                     activeOpacity={0.9}
                     onPress={() => navigation.navigate('OnboardingReferral' as never)}
                   >
-                    <LinearGradient
-                      colors={['#FBBF24', '#D97706']}
-                      style={styles.buttonGradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                    >
-                      <Text style={styles.buttonText}>Comenzar ahora</Text>
-                      <Ionicons name="arrow-forward" size={20} color="#000" />
-                    </LinearGradient>
+                    <Text style={styles.buttonText}>Comenzar ahora</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#000" />
                   </TouchableOpacity>
 
                   {/* Social Login Options */}
@@ -201,16 +187,20 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     opacity: 0.9,
   },
   primaryButton: {
-    width: '100%',
-    borderRadius: BORDER_RADIUS.xl,
-    overflow: 'hidden',
-  },
-  buttonGradient: {
+    height: 64,
+    backgroundColor: '#FBBF24',
+    borderRadius: 24,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 18,
+    alignItems: 'center',
     gap: SPACING.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+    marginBottom: SPACING.md,
+    width: '100%',
   },
   buttonText: {
     fontSize: 18,
