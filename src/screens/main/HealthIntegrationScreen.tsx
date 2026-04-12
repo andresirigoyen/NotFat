@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ChevronLeft } from 'lucide-react-native';
+import AppleHealthKit, { HealthKitPermissions } from 'react-native-health';
 import { FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '@/constants/theme';
 import { useHealthSettings } from '@/hooks/useHealthSettings';
 import { useAuthStore } from '@/store';
@@ -67,8 +68,37 @@ export default function HealthIntegrationScreen({ navigation }: any) {
     try {
       switch (platformId) {
         case 'apple_health':
-          // Aquí iría la lógica de conexión con Apple Health
-          Alert.alert('Apple Health', 'Funcionalidad de Apple Health en desarrollo');
+          const permissions = {
+            permissions: {
+              read: [
+                AppleHealthKit.Constants.Permissions.Steps,
+                AppleHealthKit.Constants.Permissions.ActiveEnergyBurned,
+                AppleHealthKit.Constants.Permissions.DistanceWalkingRunning,
+                AppleHealthKit.Constants.Permissions.SleepAnalysis,
+              ],
+              write: [],
+            },
+          } as HealthKitPermissions;
+
+          AppleHealthKit.initHealthKit(permissions, async (err: string) => {
+            if (err) {
+              console.log('[ERROR] Cannot grant permissions for Apple Health!', err);
+              Alert.alert('Error', 'No se pudieron obtener los permisos de Apple Health.');
+              return;
+            }
+            
+            try {
+              const currentPlatforms = healthSettings?.connected_platforms || [];
+              if (!currentPlatforms.includes('apple_health')) {
+                await updateHealthSettings({ 
+                  connected_platforms: [...currentPlatforms, 'apple_health'] 
+                });
+              }
+              Alert.alert('Éxito', '¡Apple Health conectado! NotFat leerá tus pasos y calorías.');
+            } catch (error) {
+              Alert.alert('Error', 'Permiso concedido, pero ocurrió un fallo al guardar tu configuración.');
+            }
+          });
           break;
         case 'google_fit':
           // Conexión con Google Fit
