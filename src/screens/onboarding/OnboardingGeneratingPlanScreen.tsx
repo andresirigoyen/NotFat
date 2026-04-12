@@ -169,14 +169,16 @@ export default function OnboardingGeneratingPlanScreen() {
             `¡${userName}, hemos diseñado tu estrategia perfecta para alcanzar tu meta.`,
             2 * 60 * 60
           );
-        } catch (notifErr) {}
+        } catch (notifErr) {
+          console.warn('[Onboarding] Notification schedule failed:', notifErr);
+        }
 
         navigation.dispatch(StackActions.replace('Main'));
       }
     };
 
     generatePlan();
-  }, [user, localData, navigation, notifications, reset]);
+  }, [user, localData, navigation, notifications, reset, pulse]);
 
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulse.value }],
