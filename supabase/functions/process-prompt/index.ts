@@ -131,7 +131,7 @@ serve(async (req) => {
       throw new Error('GOOGLE_GEMINI_API_KEY is not configured. Please set the secret.')
     }
 
-    const model = 'gemini-1.5-flash'
+    const model = 'gemini-2.5-flash'
     console.log('Using model:', model)
 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`

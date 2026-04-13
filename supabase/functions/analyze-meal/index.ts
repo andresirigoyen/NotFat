@@ -73,8 +73,8 @@ serve(async (req) => {
       throw new Error('GOOGLE_GEMINI_API_KEY is not configured')
     }
 
-    // Usar gemini-1.5-flash para máxima velocidad y precisión visual
-    const model = 'gemini-1.5-flash'
+    // Usar gemini-2.5-flash para máxima velocidad y precisión visual
+    const model = 'gemini-2.5-flash'
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
     // 🛡️ DESCARGAR LA IMAGEN Y CONVERTIR A BASE64 (Gemini requiere los bytes, no la URL)

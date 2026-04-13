@@ -5,7 +5,7 @@ Tu NotFat AI ya está configurado para usar Google Gemini Pro! Aquí está todo 
 ## 📋 Estado Actual
 
 ✅ **Ya configurado:**
-- Función `analyze-meal` con Gemini 2.0 Flash
+- Función `analyze-meal` con Gemini 2.5 Flash
 - Integración en Supabase Edge Functions
 - Hook `useAIAnalysis` en la app móvil
 - Variables de entorno preparadas
@@ -31,7 +31,7 @@ Tu NotFat AI ya está configurado para usar Google Gemini Pro! Aquí está todo 
    
    # Edita .env.local y agrega:
    GOOGLE_GEMINI_API_KEY="tu-api-key-aqui"
-   DEFAULT_LLM_MODEL="gemini-2.0-flash"
+   DEFAULT_LLM_MODEL="gemini-2.5-flash"
    ENABLE_AI_FEATURES="true"
    ```
 
@@ -57,7 +57,7 @@ Para verificar que todo funciona:
 ## 🔧 Configuración Técnica
 
 La integración usa:
-- **Modelo:** Gemini 2.0 Flash
+- **Modelo:** Gemini 2.5 Flash
 - **Endpoint:** Supabase Edge Functions
 - **Función:** `analyze-meal`
 - **Timeout:** 30 segundos

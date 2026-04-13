@@ -44,7 +44,7 @@ serve(async (req) => {
       )
     }
 
-    // Usar gemini-1.5-flash que es la versión estable y actual
+    // Usar gemini-2.5-flash para el chat del coach IA
     const model = 'gemini-2.5-flash'
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
     console.log(`🌐 Calling Gemini API (${model})...`)

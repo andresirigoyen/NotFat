@@ -34,7 +34,7 @@ async function processAudioWithGemini(audioUrl: string): Promise<any> {
 Responde ÚNICAMENTE con el JSON, sin texto extra.`;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -199,7 +199,7 @@ serve(async (req) => {
         total_protein: analysis.protein,
         total_carbs: analysis.carbs,
         total_fat: analysis.fat,
-        llm_used: 'gemini-1.5-flash',
+        llm_used: 'gemini-2.5-flash',
         text_description: analysis.transcription,
       }
 
