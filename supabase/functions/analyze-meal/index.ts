@@ -1,13 +1,14 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "std/http/server.ts"
 import { getSupabaseAdmin } from "../_shared/db.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { encode } from "std/encoding/base64.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -80,8 +81,12 @@ serve(async (req) => {
     // 🛡️ DESCARGAR LA IMAGEN Y CONVERTIR A BASE64 (Gemini requiere los bytes, no la URL)
     console.log('[analyze-meal] Fetching image for base64 conversion:', imageUrl);
     const imageRes = await fetch(imageUrl);
+    if (!imageRes.ok) {
+      throw new Error(`Error al descargar la imagen: ${imageRes.status} ${imageRes.statusText}`);
+    }
     const imageBlob = await imageRes.arrayBuffer();
-    const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBlob)));
+    const base64Image = encode(new Uint8Array(imageBlob));
+    console.log('[analyze-meal] Base64 created, length:', base64Image.length);
 
     const prompt = `Actúa como un Analista Nutricional Visual de Precisión con capacidad de detección espacial. Tu objetivo es identificar EXACTAMENTE lo que hay en la imagen y su ubicación.
     

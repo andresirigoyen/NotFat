@@ -1,5 +1,6 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { serve } from 'std/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { encode } from "std/encoding/base64.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,8 +16,11 @@ async function processAudioWithGemini(audioUrl: string): Promise<any> {
 
   // Descargar el audio
   const audioResponse = await fetch(audioUrl);
+  if (!audioResponse.ok) {
+    throw new Error(`Error al descargar el audio: ${audioResponse.status} ${audioResponse.statusText}`);
+  }
   const audioBuffer = await audioResponse.arrayBuffer();
-  const audioBase64 = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+  const audioBase64 = encode(new Uint8Array(audioBuffer));
 
   const prompt = `Eres un experto en nutrición. Este audio describe una comida. 
 1. Transcribe lo que el usuario dijo
@@ -135,7 +139,7 @@ async function analyzeMealText(text: string): Promise<any> {
   }
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -257,7 +261,7 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
 
-    } catch (processingError) {
+    } catch (processingError: any) {
       console.error('Error processing audio:', processingError)
 
       // Actualizar tarea como error
@@ -273,7 +277,7 @@ serve(async (req) => {
       throw processingError
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in process-voice-input function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),

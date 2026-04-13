@@ -1,5 +1,6 @@
 {
   "imports": {
+    "std/": "https://deno.land/std@0.168.0/",
     "@prisma/client": "https://esm.sh/@prisma/client@5.22.0/edge?no-check",
     "@prisma/client/edge": "https://esm.sh/@prisma/client@5.22.0/edge?no-check"
   }

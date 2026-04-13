@@ -25,11 +25,31 @@ ON CONFLICT (id) DO NOTHING;
 -- 2. Storage Policies (RLS)
 -- ============================================================================
 
+-- Clean up existing policies to allow re-runs
+DROP POLICY IF EXISTS "Public Access for meal-images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can view own meal images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload own meal images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own meal images" ON storage.objects;
+DROP POLICY IF EXISTS "Public Access for contributions" ON storage.objects;
+DROP POLICY IF EXISTS "Users can view own contributions" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload contributions" ON storage.objects;
+DROP POLICY IF EXISTS "Public Access for audio-uploads" ON storage.objects;
+DROP POLICY IF EXISTS "Users can view own audio" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload own audio" ON storage.objects;
+DROP POLICY IF EXISTS "Public Access for avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Users can view own avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload own avatar" ON storage.objects;
+DROP POLICY IF EXISTS "Users can update own avatar" ON storage.objects;
+
 -- MEAL IMAGES
--- Allow public access for viewing
-CREATE POLICY "Public Access for meal-images"
+-- Allow users to view their own images metadata
+CREATE POLICY "Users can view own meal images"
 ON storage.objects FOR SELECT
-USING ( bucket_id = 'meal-images' );
+TO authenticated
+USING (
+  bucket_id = 'meal-images' AND
+  (storage.foldername(name))[1] = auth.uid()::text
+);
 
 -- Allow authenticated users to upload their own images
 CREATE POLICY "Users can upload own meal images"
@@ -51,10 +71,14 @@ USING (
 
 
 -- CONTRIBUTIONS
--- Allow public access for viewing
-CREATE POLICY "Public Access for contributions"
+-- Allow users to view their own contributions metadata
+CREATE POLICY "Users can view own contributions"
 ON storage.objects FOR SELECT
-USING ( bucket_id = 'contributions' );
+TO authenticated
+USING (
+  bucket_id = 'contributions' AND
+  (storage.foldername(name))[1] = auth.uid()::text
+);
 
 -- Allow authenticated users to upload contributions
 CREATE POLICY "Users can upload contributions"
@@ -64,10 +88,14 @@ WITH CHECK ( bucket_id = 'contributions' );
 
 
 -- AUDIO UPLOADS
--- Allow public access for viewing
-CREATE POLICY "Public Access for audio-uploads"
+-- Allow users to view their own audio metadata
+CREATE POLICY "Users can view own audio"
 ON storage.objects FOR SELECT
-USING ( bucket_id = 'audio-uploads' );
+TO authenticated
+USING (
+  bucket_id = 'audio-uploads' AND
+  (storage.foldername(name))[2] = auth.uid()::text
+);
 
 -- Allow authenticated users to upload their own audio
 CREATE POLICY "Users can upload own audio"
@@ -83,10 +111,14 @@ WITH CHECK (
 
 
 -- AVATARS
--- Allow public access for viewing
-CREATE POLICY "Public Access for avatars"
+-- Allow users to view their own avatar metadata
+CREATE POLICY "Users can view own avatars"
 ON storage.objects FOR SELECT
-USING ( bucket_id = 'avatars' );
+TO authenticated
+USING (
+  bucket_id = 'avatars' AND
+  (storage.foldername(name))[1] = auth.uid()::text
+);
 
 -- Allow authenticated users to upload their own avatar
 CREATE POLICY "Users can upload own avatar"
