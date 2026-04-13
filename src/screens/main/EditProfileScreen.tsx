@@ -105,12 +105,12 @@ const EditProfileScreen = ({ navigation }: any) => {
             try {
               const uri = await takeAvatarPhoto();
               if (!uri) return;
-              console.log('Foto tomada, URI:', uri);
               await uploadAvatar.mutateAsync(uri);
               Alert.alert('Éxito', 'Tu foto de perfil fue actualizada.');
             } catch (e: any) {
-              console.error('Error uploading avatar:', e);
-              Alert.alert('Error', `No se pudo actualizar la foto: ${e.message || 'Error desconocido'}`);
+              console.error('[EditProfileScreen] Error uploading avatar (Camera):', e);
+              const errorDetail = e.message || e.error_description || 'Error de conexión';
+              Alert.alert('Error de Cámara', `No se pudo actualizar la foto: ${errorDetail}`);
             }
           },
         },
@@ -124,8 +124,9 @@ const EditProfileScreen = ({ navigation }: any) => {
               await uploadAvatar.mutateAsync(uri);
               Alert.alert('Éxito', 'Tu foto de perfil fue actualizada.');
             } catch (e: any) {
-              console.error('Error uploading avatar:', e);
-              Alert.alert('Error', `No se pudo actualizar la foto: ${e.message || 'Error desconocido'}`);
+              console.error('[EditProfileScreen] Error uploading avatar (Gallery):', e);
+              const errorDetail = e.message || e.error_description || 'Error de conexión';
+              Alert.alert('Error de Galería', `No se pudo actualizar la foto: ${errorDetail}`);
             }
           },
         },

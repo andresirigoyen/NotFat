@@ -127,6 +127,7 @@ export const useProfile = () => {
         console.log('📦 [useProfile] Blob creado, tamaño:', blob.size);
 
         // 2. Subir a Supabase Storage
+        console.log('📤 [useProfile] Subiendo archivo a avatars:', fileName);
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('avatars')
           .upload(fileName, blob, {
@@ -135,7 +136,12 @@ export const useProfile = () => {
           });
 
         if (uploadError) {
-          console.error('❌ [useProfile] Error al subir a Storage:', uploadError);
+          console.error('❌ [useProfile] Error de Storage detallado:', {
+            message: uploadError.message,
+            name: uploadError.name,
+            stack: (uploadError as any).stack,
+            error: uploadError
+          });
           throw uploadError;
         }
 
@@ -161,14 +167,23 @@ export const useProfile = () => {
           .single();
 
         if (profileError) {
-          console.error('❌ [useProfile] Error al actualizar perfil en DB:', profileError);
+          console.error('❌ [useProfile] Error al actualizar perfil en DB:', {
+            message: profileError.message,
+            code: profileError.code,
+            details: profileError.details,
+            hint: profileError.hint
+          });
           throw profileError;
         }
 
         console.log('✨ [useProfile] Perfil actualizado con éxito');
         return profileData;
-      } catch (error) {
-        console.error('💥 [useProfile] Error crítico en uploadAvatar:', error);
+      } catch (error: any) {
+        console.error('💥 [useProfile] Error crítico detallado:', {
+          message: error.message,
+          stack: error.stack,
+          originalError: error
+        });
         throw error;
       }
     },
