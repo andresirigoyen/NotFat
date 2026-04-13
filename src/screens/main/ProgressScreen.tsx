@@ -22,13 +22,22 @@ const ProgressScreen = ({ navigation }: any) => {
   const [newWeight, setNewWeight] = React.useState('');
   const [isSavingWeight, setIsSavingWeight] = React.useState(false);
   
-  const { data: weeklyStats, isLoading: statsLoading } = useWeeklyStats();
+  const rangeMap: ('this_week' | 'last_week' | 'month')[] = ['this_week', 'last_week', 'month'];
+  const { data: weeklyStats, isLoading: statsLoading } = useWeeklyStats(rangeMap[activeTab]);
   const { profile, nutritionGoals, isLoading: profileLoading } = useProfile();
   const { data: bodyMetrics } = useBodyMetrics(profile?.id || '');
   const { mutateAsync: addBodyMetric } = useAddBodyMetric();
   
-  // Get latest body metrics
-  const latestMetrics = bodyMetrics?.[bodyMetrics.length - 1];
+  // ✅ Optimización: Memoización de variables de peso
+  const initialWeight = React.useMemo(() => 
+    bodyMetrics?.[0]?.weight_value || profile?.weight_value || 0,
+    [bodyMetrics, profile]
+  );
+  
+  const currentWeight = React.useMemo(() => 
+    bodyMetrics?.[bodyMetrics.length - 1]?.weight_value || profile?.weight_value || 0,
+    [bodyMetrics, profile]
+  );
 
   const handleAddWeight = async () => {
     const parsed = Number(newWeight.replace(',', '.'));
@@ -62,16 +71,17 @@ const ProgressScreen = ({ navigation }: any) => {
   const averageKcal = weeklyStats?.average || 0;
   const progressPercent = Math.min(Math.round((averageKcal / targetKcal) * 100), 100);
 
-  const chartData = {
+  // ✅ Optimización: Memoización de objetos pesados para mitigar cuellos de botella en el hillo principal
+  const chartData = React.useMemo(() => ({
     labels: weeklyStats?.labels || ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
     datasets: [{
       data: weeklyStats?.data || [0, 0, 0, 0, 0, 0, 0],
       color: (opacity = 1) => `rgba(252, 211, 77, ${opacity})`,
       strokeWidth: 4
     }]
-  };
+  }), [weeklyStats]);
 
-  const chartConfig = {
+  const chartConfig = React.useMemo(() => ({
     backgroundColor: colors.background.secondary,
     backgroundGradientFrom: colors.background.secondary,
     backgroundGradientTo: colors.background.secondary,
@@ -88,9 +98,9 @@ const ProgressScreen = ({ navigation }: any) => {
       strokeDasharray: '6',
       stroke: 'rgba(255,255,255,0.1)'
     }
-  };
+  }), [colors, isDark]);
 
-  const weightChartConfig = {
+  const weightChartConfig = React.useMemo(() => ({
     ...chartConfig,
     color: (opacity = 1) => `rgba(252, 211, 77, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
@@ -100,7 +110,7 @@ const ProgressScreen = ({ navigation }: any) => {
       fill: '#FFFFFF',
     },
     barPercentage: 0.55,
-  };
+  }), [chartConfig]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -198,7 +208,7 @@ const ProgressScreen = ({ navigation }: any) => {
              <BarChart
                data={{
                  labels: ['Inicial', 'Actual'],
-                 datasets: [{ data: [profile?.weight_value || 70, profile?.weight_value || 70] }]
+                 datasets: [{ data: [initialWeight, currentWeight] }]
                }}
                width={width - 80}
                height={150}

@@ -2,26 +2,34 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/store';
 
-export const useWeeklyStats = () => {
+export const useWeeklyStats = (range: 'this_week' | 'last_week' | 'month' = 'this_week') => {
   const { user } = useAuthStore();
 
   return useQuery({
-    queryKey: ['weekly_stats', user?.id],
+    queryKey: ['weekly_stats', user?.id, range],
     queryFn: async () => {
       if (!user?.id) return null;
 
-      // Get last 7 days including today
       const now = new Date();
-      const last7Days = [];
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - i);
-        d.setHours(0, 0, 0, 0);
-        last7Days.push(d);
+      let daysCount = 7;
+      let offset = 0;
+
+      if (range === 'last_week') {
+        offset = 7;
+      } else if (range === 'month') {
+        daysCount = 30;
       }
 
-      const startDate = last7Days[0];
-      const endDate = new Date(now);
+      const lastDays = [];
+      for (let i = daysCount - 1; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - (i + offset));
+        d.setHours(0, 0, 0, 0);
+        lastDays.push(d);
+      }
+
+      const startDate = lastDays[0];
+      const endDate = new Date(lastDays[lastDays.length - 1]);
       endDate.setHours(23, 59, 59, 999);
 
       // Fetch meals with food items for the period
@@ -40,25 +48,28 @@ export const useWeeklyStats = () => {
 
       // Map totals per day
       const dailyKcalMap: Record<string, number> = {};
-      last7Days.forEach(day => {
+      lastDays.forEach(day => {
         dailyKcalMap[day.toDateString()] = 0;
       });
 
       mealData?.forEach((meal: any) => {
         const dateStr = new Date(meal.meal_at).toDateString();
-        if (dailyKcalMap[dateStr] !== undefined) {
-          meal.food_items?.forEach((item: any) => {
-            dailyKcalMap[dateStr] += item.calories || 0;
-          });
+        if (dailyKcalMap[dateStr] !== undefined && Array.isArray(meal.food_items)) {
+          // ✅ Optimización: reduce es más eficiente y semántico para sumar totales
+          dailyKcalMap[dateStr] += meal.food_items.reduce((sum: number, item: any) => sum + (item.calories || 0), 0);
         }
       });
 
-      const dayLabels = last7Days.map(day => {
+      const dayLabels = lastDays.map((day, idx) => {
+          if (range === 'month') {
+              // For month, only show some labels
+              return idx % 5 === 0 ? day.getDate().toString() : '';
+          }
         const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         return days[day.getDay()];
       });
 
-      const kcalData = last7Days.map(day => Math.round(dailyKcalMap[day.toDateString()]));
+      const kcalData = lastDays.map(day => Math.round(dailyKcalMap[day.toDateString()]));
 
       return {
         labels: dayLabels,

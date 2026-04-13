@@ -188,7 +188,42 @@ export const calculateHydration = (weight: number): number => {
   return Math.round(weight * 35);
 };
 
+export const calculateMifflinStJeor = (weight: number, height: number, age: number, gender: string): number => {
+  if (gender === 'male') {
+    return (10 * weight) + (6.25 * height) - (5 * age) + 5;
+  } else {
+    // For female and others
+    return (10 * weight) + (6.25 * height) - (5 * age) - 161;
+  }
+};
+
+export const getActivityLevelInfo = (dailyLevel?: string, multiplier?: number) => {
+  if (multiplier) {
+    if (multiplier <= 1.2) return { name: 'Sedentario', multiplier: 1.2, icon: 'accessibility-outline' };
+    if (multiplier <= 1.375) return { name: 'Ligero', multiplier: 1.375, icon: 'walk-outline' };
+    if (multiplier <= 1.55) return { name: 'Moderado', multiplier: 1.55, icon: 'fitness-outline' };
+    if (multiplier <= 1.725) return { name: 'Activo', multiplier: 1.725, icon: 'flame-outline' };
+    return { name: 'Muy Activo', multiplier: 1.9, icon: 'speedometer-outline' };
+  }
+
+  switch (dailyLevel?.toLowerCase()) {
+    case 'sedentary':
+      return { name: 'Sedentario', multiplier: 1.2, icon: 'accessibility-outline' };
+    case 'lightly_active':
+      return { name: 'Ligero', multiplier: 1.375, icon: 'walk-outline' };
+    case 'moderately_active':
+      return { name: 'Moderado', multiplier: 1.55, icon: 'fitness-outline' };
+    case 'very_active':
+      return { name: 'Activo', multiplier: 1.725, icon: 'flame-outline' };
+    case 'extra_active':
+      return { name: 'Muy Activo', multiplier: 1.9, icon: 'speedometer-outline' };
+    default:
+      return { name: 'Moderado', multiplier: 1.55, icon: 'fitness-outline' };
+  }
+};
+
 export const calculateAge = (birthDate: string): number => {
+  if (!birthDate) return 30;
   const today = new Date();
   const birth = new Date(birthDate);
   let age = today.getFullYear() - birth.getFullYear();

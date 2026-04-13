@@ -57,6 +57,8 @@ export const useAddBodyMetric = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['body_metrics', data.user_id] });
       queryClient.invalidateQueries({ queryKey: ['profile', data.user_id] });
+      queryClient.invalidateQueries({ queryKey: ['weekly_stats', data.user_id] });
+      queryClient.invalidateQueries({ queryKey: ['stats_overview', data.user_id] });
     },
   });
 };

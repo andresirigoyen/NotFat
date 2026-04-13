@@ -34,7 +34,7 @@ export default function CoachScreen({ route }: any) {
   const styles = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
   const navigation = useNavigation();
-  const { profile } = useProfile();
+  const { profile, nutritionGoals } = useProfile();
   const [input, setInput] = useState('');
   const scrollRef = useRef<ScrollView>(null);
   const [showRecommendations, setShowRecommendations] = useState(true);
@@ -52,7 +52,7 @@ export default function CoachScreen({ route }: any) {
   const getDynamicRecommendation = () => {
     if (!profile || !totals) return "Cargando tus datos para darte la mejor recomendación...";
     
-    const goals = profile.nutrition_goals || { calories: 2000, protein: 150, carbs: 250, fat: 70 };
+    const goals = nutritionGoals || { calories: 2000, protein: 150, carbs: 250, fat: 70 };
     const consumed = {
       calories: totals.calories || 0,
       protein: totals.protein || 0,
@@ -117,7 +117,7 @@ export default function CoachScreen({ route }: any) {
   };
 
   const renderFunctionalCards = () => {
-    const goals = profile?.nutrition_goals || { calories: 2000, protein: 150 };
+    const goals = nutritionGoals || { calories: 2000, protein: 150 };
     const consumed = totals?.calories || 0;
     const remaining = Math.max(0, (goals.calories || 2000) - consumed);
     const proteinPct = totals?.protein && goals.protein ? Math.round((totals.protein / goals.protein) * 100) : 0;
@@ -175,52 +175,76 @@ export default function CoachScreen({ route }: any) {
     if (!recipe) return null;
     
     return (
-      <View style={styles.premiumRecipeCard}>
-        <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-        <View style={styles.recipeHeader}>
-          <View style={styles.recipeImageWrapper}>
-            <Text style={{ fontSize: 44 }}>🥗</Text>
-          </View>
-          <View style={styles.recipeMetaBadges}>
-            <View style={styles.recipeBadge}>
-              <Ionicons name="time-outline" size={14} color={colors.accent} />
-              <Text style={styles.recipeBadgeText}>{recipe.time || '15'} min</Text>
-            </View>
-            <View style={styles.recipeBadge}>
-              <Ionicons name="flash-outline" size={14} color={colors.accent} />
-              <Text style={styles.recipeBadgeText}>{recipe.difficulty || 'Fácil'}</Text>
-            </View>
-          </View>
+      <View style={styles.recipeCardContainer}>
+        {/* Meal Type Header */}
+        <View style={styles.recipeCardHeader}>
+          <Text style={styles.recipeCardHeaderText}>🍽️ {recipe.mealType || 'Almuerzo'}</Text>
         </View>
 
-        <Text style={styles.recipeName}>{recipe.name}</Text>
+        <View style={styles.recipeCardMain}>
+          {/* Top Row: Image and Badges */}
+          <View style={styles.recipeTopRow}>
+            <View style={styles.recipeImageWrapper}>
+              <Text style={{ fontSize: 44 }}>{recipe.icon || '🥗'}</Text>
+            </View>
+            <View style={styles.recipeMetaBadges}>
+              <View style={styles.recipeTimeBadge}>
+                <Ionicons name="time-outline" size={14} color="#666" />
+                <Text style={styles.recipeTimeText}>{recipe.time || '15'} min</Text>
+              </View>
+              <View style={styles.recipeDifficultyBadge}>
+                <Text style={styles.recipeDifficultyText}>{recipe.difficulty || 'Fácil'}</Text>
+              </View>
+            </View>
+          </View>
 
-        <View style={styles.nutrientGrid}>
-          <View style={styles.nutrientItem}>
-            <Text style={styles.nutrientVal}>{recipe.nutrition?.calories || 0}</Text>
-            <Text style={styles.nutrientLabel}>KCAL</Text>
+          {/* Recipe Name */}
+          <Text style={styles.recipeName}>{recipe.name}</Text>
+
+          {/* Nutritional Badges Row 1 */}
+          <View style={styles.nutrientBadgeRow}>
+             <View style={[styles.nBadge, { backgroundColor: '#FEF3C7' }]}>
+                <Ionicons name="flame" size={12} color="#D97706" />
+                <Text style={[styles.nBadgeText, { color: '#D97706' }]}>{recipe.nutrition?.calories || 0} kcal</Text>
+             </View>
+             <View style={[styles.nBadge, { backgroundColor: '#FEE2E2' }]}>
+                <Ionicons name="restaurant" size={12} color="#DC2626" />
+                <Text style={[styles.nBadgeText, { color: '#DC2626' }]}>{recipe.nutrition?.protein || 0}g proteínas</Text>
+             </View>
           </View>
-          <View style={styles.nutrientItem}>
-            <Text style={styles.nutrientVal}>{recipe.nutrition?.protein || 0}g</Text>
-            <Text style={styles.nutrientLabel}>PROT</Text>
+
+          {/* Nutritional Badges Row 2 */}
+          <View style={styles.nutrientBadgeRow}>
+             <View style={[styles.nBadge, { backgroundColor: '#FFFBEB' }]}>
+                <Ionicons name="leaf" size={12} color="#B45309" />
+                <Text style={[styles.nBadgeText, { color: '#B45309' }]}>{recipe.nutrition?.carbs || 0}g carbos</Text>
+             </View>
+             <View style={[styles.nBadge, { backgroundColor: '#E0F2FE' }]}>
+                <Ionicons name="water" size={12} color="#0284C7" />
+                <Text style={[styles.nBadgeText, { color: '#0284C7' }]}>{recipe.nutrition?.fat || 0}g grasas</Text>
+             </View>
           </View>
-          <View style={styles.nutrientItem}>
-            <Text style={styles.nutrientVal}>{recipe.nutrition?.carbs || 0}g</Text>
-            <Text style={styles.nutrientLabel}>CARB</Text>
+
+          {/* Tags */}
+          <View style={styles.tagRow}>
+             {['alta proteína', 'digestivo', 'fresco'].map(tag => (
+               <View key={tag} style={styles.softTag}>
+                  <Text style={styles.softTagText}>{tag}</Text>
+               </View>
+             ))}
           </View>
-          <View style={styles.nutrientItem}>
-            <Text style={styles.nutrientVal}>{recipe.nutrition?.fat || 0}g</Text>
-            <Text style={styles.nutrientLabel}>FAT</Text>
-          </View>
+
+          <View style={styles.cardDivider} />
+
+          {/* Footer Action */}
+          <TouchableOpacity 
+            style={styles.fullRecipeLink}
+            onPress={() => (navigation as any).navigate('RecipeDetail', { recipe })}
+          >
+            <Text style={styles.fullRecipeLinkText}>Ver receta completa</Text>
+            <Ionicons name="arrow-forward" size={18} color="#92400E" />
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => (navigation as any).navigate('RecipeDetail', { recipe })}
-        >
-          <Text style={styles.actionButtonText}>Ver receta completa</Text>
-          <Ionicons name="arrow-forward" size={16} color="#000" />
-        </TouchableOpacity>
       </View>
     );
   };
@@ -518,87 +542,135 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginBottom: 12,
     letterSpacing: -0.4,
   },
-  premiumRecipeCard: {
-    borderRadius: 28,
-    padding: 18,
-    overflow: 'hidden',
+  recipeCardContainer: {
+    marginVertical: 10,
+    width: '100%',
+  },
+  recipeCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingLeft: 4,
+  },
+  recipeCardHeaderText: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFF',
+    fontFamily: FONTS.primary,
+  },
+  recipeCardMain: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 24,
+    padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
-    backgroundColor: 'rgba(255,255,255,0.02)',
   },
-  recipeHeader: {
+  recipeTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
   recipeImageWrapper: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   recipeMetaBadges: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
   },
-  recipeBadge: {
+  recipeTimeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+  },
+  recipeTimeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#E2E8F0',
+  },
+  recipeDifficultyBadge: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+  },
+  recipeDifficultyText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#E2E8F0',
+  },
+  recipeName: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginBottom: 16,
+    fontFamily: FONTS.primary,
+    letterSpacing: -0.5,
+  },
+  nutrientBadgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  nBadge: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+  },
+  nBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  tagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  softTag: {
     backgroundColor: 'rgba(255,255,255,0.06)',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
   },
-  recipeBadgeText: {
+  softTagText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#FFF',
+    color: colors.accent,
   },
-  recipeName: {
-    fontSize: 19,
-    fontWeight: '900',
-    color: '#FFF',
-    marginBottom: 15,
-    letterSpacing: -0.4,
+  cardDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    width: '100%',
+    marginBottom: 12,
   },
-  nutrientGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 18,
-  },
-  nutrientItem: {
-    alignItems: 'center',
-  },
-  nutrientVal: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FFF',
-  },
-  nutrientLabel: {
-    fontSize: 9,
-    color: 'rgba(255,255,255,0.4)',
-    marginTop: 2,
-    fontWeight: '800',
-  },
-  actionButton: {
-    backgroundColor: colors.accent,
+  fullRecipeLink: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 18,
     gap: 8,
+    paddingVertical: 4,
   },
-  actionButtonText: {
-    fontSize: 14,
+  fullRecipeLinkText: {
+    fontSize: 16,
     fontWeight: '900',
-    color: '#000',
+    color: colors.accent,
   },
   chatHistory: {
     paddingHorizontal: 20,

@@ -131,7 +131,7 @@ serve(async (req) => {
       throw new Error('GOOGLE_GEMINI_API_KEY is not configured. Please set the secret.')
     }
 
-    const model = 'gemini-2.5-flash'
+    const model = 'gemini-1.5-flash'
     console.log('Using model:', model)
 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
@@ -201,7 +201,23 @@ serve(async (req) => {
         3. Si el usuario sugiere o pregunta por comida/recetas, USA "type": "recipe" e incluye el objeto "recipeData".
         4. Enfoque: 100% Nutricional (macros, hidratación, metabolismo).
         5. Tono: ${tonoStr}
-        6. RECUERDA: ${coachStyle === 'apoyo' ? 'SÉ AMABLE Y APOYANTE.' : 'SÉ DIRECTO PERO ÚTIL. NUNCA SEA SARCÁSTICO.'}`
+        6. RECUERDA: ${coachStyle === 'apoyo' ? 'SÉ AMABLE Y APOYANTE.' : 'SÉ DIRECTO PERO ÚTIL. NUNCA SEA SARCÁSTICO.'}
+        
+        SCHEMA PARA recipeData:
+        {
+          "name": "Título de la receta",
+          "time": "Tiempo (ej: 15 min)",
+          "difficulty": "Fácil/Media/Difícil",
+          "tags": ["Tag1", "Tag2"],
+          "description": "Breve descripción",
+          "nutrition": { "calories": 0, "protein": 0, "carbs": 0, "fat": 0 },
+          "ingredients": [
+            { "name": "Ingrediente", "amount": 0, "unit": "g/ml/ud", "cal": 0, "p": 0, "c": 0, "f": 0 }
+          ],
+          "instructions": ["Paso 1", "Paso 2"],
+          "mealType": "Desayuno/Almuerzo/Cena/Snack",
+          "imageURL": "https://loremflickr.com/800/600/nombre-receta,food"
+        }`
       }]
     };
 

@@ -3,6 +3,11 @@ import { Alert } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/store';
+import { 
+  calculateAge, 
+  calculateMifflinStJeor, 
+  getActivityLevelInfo 
+} from '@/utils/nutrition';
 
 interface UserProfile {
   height_value?: number;
@@ -18,7 +23,7 @@ interface ActivityProfile {
   activity_system_version?: string;
 }
 
-interface ScientificGoals {
+export interface ScientificGoals {
   calories: number;
   protein: number;
   carbs: number;
@@ -31,9 +36,11 @@ interface ScientificGoals {
     age: number;
     bmr_formula: string;
     activity_multiplier: number;
+    activity_name?: string;
     protein_formula: string;
     carb_formula: string;
     fat_formula: string;
+    goal_type?: string;
   };
 }
 
@@ -58,7 +65,7 @@ export function useScientificGoals() {
       // 1. Obtener perfil del usuario
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('height_value, weight_value, birth_date, gender, activity_level')
+        .select('height_value, weight_value, birth_date, gender, activity_level, nutrition_goal')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -77,7 +84,7 @@ export function useScientificGoals() {
       const age = calculateAge(profile.birth_date!);
       
       // 4. Determinar nivel de actividad
-      const activityLevel = determineActivityLevel(
+      const activityLevel = getActivityLevelInfo(
         activityProfile?.daily_activity_level,
         profile.activity_level
       );
@@ -90,13 +97,26 @@ export function useScientificGoals() {
         profile.gender || 'other'
       );
 
-      // 6. Calcular TDEE (Total Daily Energy Expenditure)
+      // 6. Calcular TDEE (Total Daily Energy Expenditure / Mantenimiento)
       const tdee = bmr * activityLevel.multiplier;
 
-      // 7. Calcular macronutrientes basados en objetivos y peso
+      // 6.5 Ajustar por objetivo
+      let targetCalories = tdee;
+      const goal = profile.nutrition_goal || 'maintain';
+      if (goal === 'lose_weight') {
+        targetCalories -= 500;
+      } else if (goal === 'gain_weight') {
+        targetCalories += 300;
+      }
+      
+      // Mínimos de seguridad
+      const minCalories = profile.gender === 'female' ? 1200 : 1500;
+      targetCalories = Math.max(targetCalories, minCalories);
+
+      // 7. Calcular macronutrientes basados en objetivo calórico y peso
       const { protein, carbs, fat } = calculateMacronutrients(
         profile.weight_value!,
-        tdee,
+        targetCalories,
         activityProfile?.does_sport || false
       );
 
@@ -105,7 +125,7 @@ export function useScientificGoals() {
       const water = calculateWaterGoal(profile.weight_value!);
 
       const goals: ScientificGoals = {
-        calories: Math.round(tdee),
+        calories: Math.round(targetCalories),
         protein: Math.round(protein),
         carbs: Math.round(carbs),
         fat: Math.round(fat),
@@ -117,9 +137,9 @@ export function useScientificGoals() {
           age,
           bmr_formula: 'Mifflin-St Jeor',
           activity_multiplier: activityLevel.multiplier,
-          protein_formula: activityProfile?.does_sport ? '1.6-2.2g/kg peso' : '0.8-1.2g/kg peso',
-          carb_formula: 'balanceado',
-          fat_formula: 'balanceado',
+          protein_formula: activityProfile?.does_sport ? 'Deportista (1.8g/kg)' : 'Estándar (0.8g/kg)',
+          carb_formula: goal === 'lose_weight' ? 'Déficit moderado' : goal === 'gain_weight' ? 'Superávit leve' : 'Mantenimiento',
+          fat_formula: '25% de ingesta total',
         },
       };
 
@@ -140,6 +160,8 @@ export function useScientificGoals() {
         fat: goals.fat,
         fiber: goals.fiber,
         water: goals.water,
+        bmr: goals.bmr,
+        tdee: goals.tdee,
         source: 'algorithm',
         is_active: true,
         start_date: new Date().toISOString().split('T')[0],
@@ -185,57 +207,6 @@ export function useScientificGoals() {
     },
   });
 
-  // Función para calcular edad
-  const calculateAge = (birthDate: string): number => {
-    const birth = new Date(birthDate);
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    
-    return age;
-  };
-
-  // Determinar nivel de actividad
-  const determineActivityLevel = (dailyLevel?: string, profileLevel?: number) => {
-    // Priorizar el nivel de actividad del perfil
-    if (profileLevel) {
-      if (profileLevel <= 1.2) return { name: 'Sedentario', multiplier: 1.2 };
-      if (profileLevel <= 1.375) return { name: 'Ligeramente activo', multiplier: 1.375 };
-      if (profileLevel <= 1.55) return { name: 'Moderadamente activo', multiplier: 1.55 };
-      if (profileLevel <= 1.725) return { name: 'Muy activo', multiplier: 1.725 };
-      return { name: 'Extremadamente activo', multiplier: 1.9 };
-    }
-
-    // Fallback a daily_activity_level
-    switch (dailyLevel?.toLowerCase()) {
-      case 'sedentary':
-        return { name: 'Sedentario', multiplier: 1.2 };
-      case 'lightly_active':
-        return { name: 'Ligeramente activo', multiplier: 1.375 };
-      case 'moderately_active':
-        return { name: 'Moderadamente activo', multiplier: 1.55 };
-      case 'very_active':
-        return { name: 'Muy activo', multiplier: 1.725 };
-      case 'extra_active':
-        return { name: 'Extremadamente activo', multiplier: 1.9 };
-      default:
-        return { name: 'Moderadamente activo', multiplier: 1.55 }; // Default
-    }
-  };
-
-  // Calcular BMR usando Mifflin-St Jeor
-  const calculateMifflinStJeor = (weight: number, height: number, age: number, gender: string): number => {
-    if (gender === 'male') {
-      return (10 * weight) + (6.25 * height) - (5 * age) + 5;
-    } else {
-      return (10 * weight) + (6.25 * height) - (5 * age) - 161;
-    }
-  };
-
   // Calcular macronutrientes
   const calculateMacronutrients = (weight: number, tdee: number, doesSport: boolean) => {
     // Proteína: basada en peso y actividad física
@@ -253,7 +224,7 @@ export function useScientificGoals() {
     // Carbohidratos: el resto de las calorías
     const proteinCalories = protein * 4;
     const remainingCalories = tdee - proteinCalories - fatCalories;
-    const carbs = remainingCalories / 4; // 4 calorías por gramo de carbohidrato
+    const carbs = Math.max(0, remainingCalories / 4); // Prevención de números negativos
 
     return { protein, carbs, fat };
   };

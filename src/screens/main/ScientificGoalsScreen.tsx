@@ -11,10 +11,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useScientificGoals } from '@/hooks/useScientificGoals';
+import { useScientificGoals, ScientificGoals } from '@/hooks/useScientificGoals';
 import { useProfile } from '@/hooks/useProfile';
 import { getStyles } from './ScientificGoalsScreen.styles';
-import { calculateAge } from '@/utils/nutrition';
+import { 
+  calculateAge, 
+  calculateMifflinStJeor, 
+  getActivityLevelInfo 
+} from '@/utils/nutrition';
 
 interface ScientificGoalsScreenProps {
   navigation: any;
@@ -26,11 +30,16 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
   const { colors, isDark } = useThemeColors();
   const styles = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
   
-  const { profile, nutritionGoals, isLoading: profileLoading } = useProfile();
+  const { 
+    profile, 
+    nutritionGoals, 
+    activityProfile, 
+    isLoading: profileLoading 
+  } = useProfile();
   const { generateAndSaveGoals, isLoading: goalsLoading } = useScientificGoals();
   
   const [showResults, setShowResults] = useState(false);
-  const [generatedGoals, setGeneratedGoals] = useState<any>(null);
+  const [generatedGoals, setGeneratedGoals] = useState<ScientificGoals | null>(null);
 
   useEffect(() => {
     console.log('ScientificGoals - nutritionGoals:', nutritionGoals);
@@ -38,25 +47,43 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
     const source = nutritionGoals?.source;
     const hasAlgorithm = source === 'algorithm' || source === 'Algorithm' || source === 'ALGORITHM' || source === 'ai';
     if (nutritionGoals && hasAlgorithm) {
+      const age = profile?.birth_date ? calculateAge(profile.birth_date) : 30;
+      
+      // ✅ Optimización: Usar BMR persistido en DB o recalcular solo si es necesario
+      const bmrVal = nutritionGoals.bmr || (profile?.weight_value && profile?.height_value
+        ? Math.round(calculateMifflinStJeor(profile.weight_value, profile.height_value, age, profile.gender || 'male'))
+        : 'Calculado');
+
+      const activityInfo = getActivityLevelInfo(
+        activityProfile?.daily_activity_level ?? undefined,
+        profile?.activity_level ?? undefined
+      );
+
+      const goal = profile?.nutrition_goal || 'maintain';
+      const goalLabel = goal === 'lose_weight' ? 'Bajar de peso' : goal === 'gain_weight' ? 'Subir masa' : 'Mantener';
+
       setGeneratedGoals({
         calories: nutritionGoals.calories,
-        protein: nutritionGoals.protein,
-        carbs: nutritionGoals.carbs,
-        fat: nutritionGoals.fat,
+        protein: Number(parseFloat(String(nutritionGoals.protein || 0)).toFixed(1)),
+        carbs: Number(parseFloat(String(nutritionGoals.carbs || 0)).toFixed(1)),
+        fat: Number(parseFloat(String(nutritionGoals.fat || 0)).toFixed(1)),
         fiber: nutritionGoals.fiber || 25,
         water: nutritionGoals.water || 2000,
-        bmr: 'Calculado',
-        tdee: nutritionGoals.calories,
+        bmr: bmrVal,
+        tdee: Math.round(Number(bmrVal) * activityInfo.multiplier) || nutritionGoals.calories,
         calculations: {
+          age: age,
           bmr_formula: 'Mifflin-St Jeor',
-          activity_multiplier: 'Perfil',
-          protein_formula: 'Gramos por kilo',
-          carb_formula: 'Balanceado',
-          fat_formula: 'Balanceado',
+          activity_multiplier: activityInfo.multiplier,
+          activity_name: activityInfo.name,
+          protein_formula: (activityProfile?.does_sport) ? 'Deportista (1.8g/kg)' : 'Estándar (0.8g/kg)',
+          carb_formula: `${goalLabel} (-500 kcal)`,
+          fat_formula: '25% del total calórico',
+          goal_type: goal
         }
       });
       setShowResults(true);
-      console.log('ScientificGoals - Showing results');
+      console.log('ScientificGoals - Showing results with logic');
     }
   }, [nutritionGoals]);
 
@@ -98,6 +125,11 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
       ? calculateAge(profile.birth_date)
       : 'N/A';
 
+    const activityInfo = getActivityLevelInfo(
+      activityProfile?.daily_activity_level ?? undefined,
+      profile.activity_level ?? undefined
+    );
+
     return (
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Análisis de Datos</Text>
@@ -116,9 +148,11 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
           </View>
           <View style={styles.profileItem}>
             <Text style={styles.profileLabel}>Actividad</Text>
-            <Text style={styles.profileValue}>
-              {profile.activity_level ? `${(profile.activity_level * 100).toFixed(0)}%` : 'Manual'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={styles.profileValue}>
+                {activityInfo.name}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -128,25 +162,36 @@ export const ScientificGoalsScreen: React.FC<ScientificGoalsScreenProps> = ({
   const renderFormulas = () => {
     if (!generatedGoals) return null;
 
+    const calculations = generatedGoals.calculations || {};
+
     return (
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Metodología Científica</Text>
         
         <View style={styles.formulaItem}>
           <Text style={styles.formulaName}>Tasa Metabólica Basal (BMR)</Text>
-          <Text style={styles.formulaDesc}>Fórmula de Mifflin-St Jeor (Estándar de oro)</Text>
+          <Text style={styles.formulaDesc}>{calculations.bmr_formula} (Estándar clínico)</Text>
           <Text style={styles.formulaResult}>{generatedGoals.bmr} kcal/día</Text>
         </View>
 
         <View style={styles.formulaItem}>
           <Text style={styles.formulaName}>Gasto Energético (TDEE)</Text>
-          <Text style={styles.formulaDesc}>Multiplicador de actividad física aplicado</Text>
+          <Text style={styles.formulaDesc}>
+            Nivel: {calculations.activity_name || 'Detectado'} (x{calculations.activity_multiplier || '1.2'})
+          </Text>
           <Text style={styles.formulaResult}>{generatedGoals.tdee} kcal de mantenimiento</Text>
         </View>
 
         <View style={styles.formulaItem}>
+          <Text style={styles.formulaName}>Ajuste por Objetivo</Text>
+          <Text style={styles.formulaDesc}>{calculations.carb_formula || 'Mantenimiento'}</Text>
+          <Text style={styles.formulaResult}>{generatedGoals.calories} kcal de objetivo</Text>
+        </View>
+
+        <View style={styles.formulaItem}>
           <Text style={styles.formulaName}>Macronutrientes</Text>
-          <Text style={styles.formulaDesc}>Basado en requerimientos de masa muscular</Text>
+          <Text style={styles.formulaDesc}>Proteína: {calculations.protein_formula}</Text>
+          <Text style={styles.formulaDesc}>Grasas: {calculations.fat_formula}</Text>
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
             <Text style={styles.formulaResult}>P: {generatedGoals.protein}g</Text>
             <Text style={styles.formulaResult}>C: {generatedGoals.carbs}g</Text>

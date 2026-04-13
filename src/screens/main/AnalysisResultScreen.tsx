@@ -60,9 +60,9 @@ export default function AnalysisResultScreen() {
         id: '0',
         name: barcodeProduct.name || 'Producto Escaneado',
         calories: Math.round(Number(barcodeProduct.calories) || 0),
-        protein: parseFloat(String(barcodeProduct.protein || 0)).toFixed(1) as any,
-        carbs: parseFloat(String(barcodeProduct.carbs || 0)).toFixed(1) as any,
-        fat: parseFloat(String(barcodeProduct.fat || 0)).toFixed(1) as any,
+        protein: Number(parseFloat(String(barcodeProduct.protein || 0)).toFixed(1)),
+        carbs: Number(parseFloat(String(barcodeProduct.carbs || 0)).toFixed(1)),
+        fat: Number(parseFloat(String(barcodeProduct.fat || 0)).toFixed(1)),
         confirmed: true,
       };
       setIngredients([mappedIngredient]);
@@ -109,9 +109,9 @@ export default function AnalysisResultScreen() {
             id: `ing-${index}-${Date.now()}`,
             name: ing.name || 'Ingrediente detectado',
             calories: Math.round(Number(ing.calories) || 0),
-            protein: parseFloat(String(ing.protein || 0)).toFixed(1),
-            carbs: parseFloat(String(ing.carbs || 0)).toFixed(1),
-            fat: parseFloat(String(ing.fat || 0)).toFixed(1),
+            protein: Number(parseFloat(String(ing.protein || 0)).toFixed(1)),
+            carbs: Number(parseFloat(String(ing.carbs || 0)).toFixed(1)),
+            fat: Number(parseFloat(String(ing.fat || 0)).toFixed(1)),
             confirmed: true,
             box_2d: ing.box_2d
           }));

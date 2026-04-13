@@ -73,9 +73,15 @@ serve(async (req) => {
       throw new Error('GOOGLE_GEMINI_API_KEY is not configured')
     }
 
-    // Usar gemini-2.0-flash para máxima velocidad y precisión visual
-    const model = 'gemini-2.5-flash'
+    // Usar gemini-1.5-flash para máxima velocidad y precisión visual
+    const model = 'gemini-1.5-flash'
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+
+    // 🛡️ DESCARGAR LA IMAGEN Y CONVERTIR A BASE64 (Gemini requiere los bytes, no la URL)
+    console.log('[analyze-meal] Fetching image for base64 conversion:', imageUrl);
+    const imageRes = await fetch(imageUrl);
+    const imageBlob = await imageRes.arrayBuffer();
+    const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBlob)));
 
     const prompt = `Actúa como un Analista Nutricional Visual de Precisión con capacidad de detección espacial. Tu objetivo es identificar EXACTAMENTE lo que hay en la imagen y su ubicación.
     
@@ -111,24 +117,25 @@ serve(async (req) => {
           parts: [
             { text: prompt },
             { 
-              inlineData: { 
-                mimeType: 'image/jpeg', 
-                data: imageUrl.split(',')[1] || imageUrl 
+              inline_data: { 
+                mime_type: 'image/jpeg', 
+                data: base64Image
               } 
             }
           ]
         }],
-        generationConfig: {
+        generation_config: {
           temperature: 0.2,
-          topP: 0.95,
-          maxOutputTokens: 2048,
-          responseMimeType: "application/json"
+          top_p: 0.95,
+          max_output_tokens: 2048,
+          response_mime_type: "application/json"
         }
       })
     })
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('🛑 Gemini API Error Response:', errorText);
       throw new Error(`Gemini API Error: ${response.status} - ${errorText}`)
     }
 

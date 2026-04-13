@@ -38,6 +38,9 @@ import { useNotes } from '@/hooks/useNotes';
 import { useScannedCaloriesAnalytics } from '@/hooks/useScannedCaloriesAnalytics';
 import MarkdownText from '@/components/MarkdownText';
 import { PermissionPopover } from '@/components/ui/PermissionPopover';
+import { NotificationPermissionModal } from '@/components/NotificationPermissionModal';
+import { useNotifications } from '@/hooks/useNotifications';
+import * as Notifications from 'expo-notifications';
 
 const DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const TODAY_INDEX = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
@@ -78,6 +81,8 @@ export default function DashboardScreen() {
   const { message: coachMessage, refresh: refreshCoachMessage, isFriendly, triggerHaptic: coachHaptic } = useCoachMessage('general');
   const [showPermissionPopover, setShowPermissionPopover] = useState(false);
   const [permissionType, setPermissionType] = useState<'camera' | 'microphone' | 'gallery'>('camera');
+  const [showNotifModal, setShowNotifModal] = useState(false);
+  const { registerForPushNotificationsAsync } = useNotifications();
 
   // Water feedback animation
   const waterFeedbackAnim = useRef(new Animated.Value(0)).current;
@@ -105,6 +110,19 @@ export default function DashboardScreen() {
   useEffect(() => {
     setTempNote(note);
   }, [note, showNoteModal]);
+
+  // Check for notification permissions on mount
+  useEffect(() => {
+    const checkPermissions = async () => {
+      if (Platform.OS === 'web') return;
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') {
+        // Delay slightly for better UX
+        setTimeout(() => setShowNotifModal(true), 1500);
+      }
+    };
+    checkPermissions();
+  }, []);
 
   useEffect(() => {
     cupAnims.forEach((anim: Animated.Value, i: number) => {
@@ -756,6 +774,17 @@ export default function DashboardScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Premium Notification Permission Modal */}
+      <NotificationPermissionModal
+        visible={showNotifModal}
+        onClose={() => setShowNotifModal(false)}
+        onAllow={async () => {
+          setShowNotifModal(false);
+          await registerForPushNotificationsAsync();
+        }}
+        goalReachDate="27 ABR"
+      />
 
       {/* ── Daily Summary Notifications Modal ───── */}
       <Modal
