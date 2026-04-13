@@ -23,10 +23,14 @@ export const usePermissions = () => {
       
       switch (type) {
         case 'camera':
-          permission = await ImagePicker.getCameraPermissionsAsync();
+          permission = Platform.OS === 'web' 
+            ? { granted: true, canAskAgain: true, status: 'granted' as const }
+            : await ImagePicker.getCameraPermissionsAsync();
           break;
         case 'mediaLibrary':
-          permission = await ImagePicker.getMediaLibraryPermissionsAsync();
+          permission = Platform.OS === 'web' 
+            ? { granted: true, canAskAgain: true, status: 'granted' as const }
+            : await ImagePicker.getMediaLibraryPermissionsAsync();
           break;
         case 'microphone':
           // Para web, asumimos que el micrófono está disponible

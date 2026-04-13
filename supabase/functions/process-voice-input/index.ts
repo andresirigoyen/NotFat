@@ -1,6 +1,9 @@
-import { serve } from 'std/http/server.ts'
+// @ts-ignore
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+// @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { encode } from "std/encoding/base64.ts"
+// @ts-ignore
+import { encode } from "https://deno.land/std@0.168.0/encoding/base64.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
