@@ -188,13 +188,12 @@ serve(async (req: Request) => {
       const analysis = await processAudioWithGemini(task.audio_url);
 
       // 3. Crear comida con los resultados
-      const { data: user } = await supabase.auth.getUser()
-      if (!user.user) {
-        throw new Error('User not authenticated')
+      if (!task.user_id) {
+        throw new Error('Task holds no user_id')
       }
 
       const mealData = {
-        user_id: user.user.id,
+        user_id: task.user_id,
         name: analysis.name,
         meal_type: analysis.meal_type || 'snack',
         source_type: 'voice',

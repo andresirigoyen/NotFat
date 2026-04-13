@@ -66,6 +66,9 @@ export function useVoiceInput() {
   // Crear entrada en task_queue
   const createTaskMutation = useMutation({
     mutationFn: async (audioUrl: string) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("Token actual:", session?.access_token);
+
       if (!user?.id) throw new Error('User not authenticated');
 
       const taskData = {

@@ -65,6 +65,7 @@ export const useAIAnalysis = () => {
       console.log('[useAIAnalysis] Calling analyze-meal function for user:', user.id);
       
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log("Token actual:", session?.access_token);
       const accessToken = session?.access_token;
       
       if (!accessToken) {

@@ -50,6 +50,9 @@ export function useBarcodeScanner() {
   // Consultar producto mediante Edge Function
   const queryProductMutation = useMutation({
     mutationFn: async (barcode: string) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("Token actual:", session?.access_token);
+
       const { data, error } = await supabase.functions.invoke('query-product', {
         body: { barcode },
       });
