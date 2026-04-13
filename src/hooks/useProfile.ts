@@ -105,31 +105,75 @@ export const useProfile = () => {
 
   const uploadAvatar = useMutation({
     mutationFn: async (imageUri: string) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!user?.id) throw new Error('Usuario no autenticado');
+      
+      console.log('🔄 [useProfile] Iniciando upload de avatar:', imageUri);
 
       try {
         const fileName = `${user.id}/${Date.now()}.jpg`;
-        const response = await fetch(imageUri);
-        const blob = await response.blob();
         
-        const { error: uploadError } = await supabase.storage
+        // 1. Convertir URI a Blob de forma robusta
+        let blob;
+        if (imageUri.startsWith('data:')) {
+          // Si es base64
+          const response = await fetch(imageUri);
+          blob = await response.blob();
+        } else {
+          // Si es un blob: o file://
+          const response = await fetch(imageUri);
+          blob = await response.blob();
+        }
+        
+        console.log('📦 [useProfile] Blob creado, tamaño:', blob.size);
+
+        // 2. Subir a Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
           .from('avatars')
           .upload(fileName, blob, {
             contentType: 'image/jpeg',
             upsert: true,
           });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('❌ [useProfile] Error al subir a Storage:', uploadError);
+          throw uploadError;
+        }
 
+        console.log('✅ [useProfile] Imagen subida a Storage:', uploadData.path);
+
+        // 3. Obtener URL pública
         const { data: urlData } = supabase.storage
           .from('avatars')
           .getPublicUrl(fileName);
 
-        return await updateProfile.mutateAsync({ avatar_url: urlData.publicUrl });
+        const publicUrl = urlData.publicUrl;
+        console.log('🔗 [useProfile] URL pública generada:', publicUrl);
+
+        // 4. Actualizar el perfil en la base de datos directamente (sin usar otra mutation)
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .update({ 
+            avatar_url: publicUrl,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id)
+          .select()
+          .single();
+
+        if (profileError) {
+          console.error('❌ [useProfile] Error al actualizar perfil en DB:', profileError);
+          throw profileError;
+        }
+
+        console.log('✨ [useProfile] Perfil actualizado con éxito');
+        return profileData;
       } catch (error) {
-        console.error('Avatar upload error:', error);
+        console.error('💥 [useProfile] Error crítico en uploadAvatar:', error);
         throw error;
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
     },
   });
 
