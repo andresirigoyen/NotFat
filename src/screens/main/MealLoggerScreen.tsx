@@ -45,21 +45,14 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
 
   const handleCameraPress = async () => {
     console.log('[MealLogger] handleCameraPress called, Platform:', Platform.OS);
-    
-    if (Platform.OS === 'web') {
-      Alert.alert('Disponible en móvil', 'La cámara no está disponible en web. Por favor usa la opción de Galería o instala la app en tu teléfono.');
-      return;
-    }
 
     try {
-      setAnalyzing(true);
       console.log('[MealLogger] Requesting camera permission...');
       const hasPermission = await requestCameraAccess();
       console.log('[MealLogger] Camera permission:', hasPermission);
       
       if (!hasPermission) {
         Alert.alert('Permiso requerido', 'Necesitamos acceso a la cámara para tomar fotos de tu comida.');
-        setAnalyzing(false);
         return;
       }
 
@@ -69,7 +62,6 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
 
       if (!photoUri) {
         console.log('[MealLogger] No photo taken, user cancelled or error');
-        setAnalyzing(false);
         return;
       }
 
@@ -82,22 +74,18 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
     } catch (error: any) {
       console.error('[MealLogger] Camera error:', error);
       Alert.alert('Error', `No se pudo tomar la foto: ${error.message}`);
-    } finally {
-      setAnalyzing(false);
     }
   };
 
   const handleGalleryPress = async () => {
     console.log('[MealLogger] handleGalleryPress called, Platform:', Platform.OS);
     try {
-      setAnalyzing(true);
       console.log('[MealLogger] Requesting media library permission...');
       const hasPermission = await requestMediaLibraryAccess();
       console.log('[MealLogger] Media library permission:', hasPermission);
       
       if (!hasPermission) {
         Alert.alert('Permiso requerido', 'Necesitamos acceso a la galería para seleccionar fotos.');
-        setAnalyzing(false);
         return;
       }
 
@@ -107,7 +95,6 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
 
       if (!imageUri) {
         console.log('[MealLogger] No image selected, user cancelled');
-        setAnalyzing(false);
         return;
       }
 
@@ -120,8 +107,6 @@ const MealLoggerScreen = ({ navigation, route }: any) => {
     } catch (error: any) {
       console.error('[MealLogger] Gallery error:', error);
       Alert.alert('Error', `No se pudo seleccionar la imagen: ${error.message}`);
-    } finally {
-      setAnalyzing(false);
     }
   };
 

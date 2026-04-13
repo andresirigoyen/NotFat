@@ -63,14 +63,14 @@ Responde ÚNICAMENTE con el JSON, sin texto extra.`;
   }
 
   const result = await response.json();
-  
+
   if (!result.candidates || result.candidates.length === 0) {
     throw new Error('No se pudo procesar el audio');
   }
 
   const content = result.candidates[0].content.parts[0].text;
   const cleanContent = content.replace(/```json|```/g, '').trim();
-  
+
   try {
     return JSON.parse(cleanContent);
   } catch {

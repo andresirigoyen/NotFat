@@ -134,13 +134,6 @@ export const useAIAnalysis = () => {
 
   const takePhoto = async () => {
     console.log('[useAIAnalysis] takePhoto called, Platform:', Platform.OS);
-    
-    // Web doesn't support camera well - show message
-    if (Platform.OS === 'web') {
-      setError('La cámara no está disponible en web. Usa la opción de Galería o un dispositivo móvil.');
-      console.log('[useAIAnalysis] Camera not available on web');
-      return null;
-    }
 
     console.log('[useAIAnalysis] Requesting camera permissions...');
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
